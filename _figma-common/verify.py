@@ -19,10 +19,16 @@ TEAM = Path.home() / ".claude" / "figma-conventions.yaml"
 NAMES = ["figma-arrows", "figma-code", "figma-diff", "figma-lint", "figma-prep",
          "figma-proto", "figma-read", "figma-setup", "figma-sync", "figma-tokens"]
 
-# 팀·환경 고유값. **패턴을 하나씩 따로 돌린다** — 여럿을 | 로 이어 붙이면
+# 고유값 검사. **패턴을 하나씩 따로 돌린다** — 여럿을 | 로 이어 붙이면
 # 이스케이프가 꼬여 조용히 0 을 낸다(실측으로 한 건을 놓쳤다).
+#
+# 두 층으로 나눈다. 값이 팀마다 다른 것과, 팀을 **식별**하는 것은 다르다.
+#   · SKILL.md 는 판단만 담으므로 값이 박혀 있으면 안 된다 → 전부 검사
+#   · conventions 기본값·README 는 값을 담는 게 일이다. 다만 브랜드 색·제품명·문서 id 처럼
+#     남의 회사를 가리키는 것은 배포본에 실리면 안 된다 → 식별자만 검사
 TEAM_STRINGS = ["8306FF", "XDS", "1560", "BarisON", "[UI]", "[Update]",
                 "바리스", "라운지", "36131847b3e5", "매 실행 시 fetch"]
+IDENTITY_STRINGS = ["8306FF", "XDS", "BarisON", "바리스", "라운지", "36131847b3e5"]
 
 fails, warns = [], []
 
@@ -110,6 +116,16 @@ def main():
         for w in TEAM_STRINGS:
             if w in s:
                 fails.append(f"[고유값] {name}: '{w}'")
+
+    # 내장 기본값에도 고유값이 없어야 한다 — 이 파일은 레포에 실려 남에게 간다.
+    # (SKILL.md 만 훑다가 example 의 브랜드 색을 놓친 적이 있다)
+    for f in (EXAMPLE, COMMON / "README.md"):
+        if not f.exists():
+            continue
+        t = f.read_text()
+        for w in IDENTITY_STRINGS:
+            if w in t:
+                fails.append(f"[식별자] {f.name}: '{w}' — 배포본이 남의 회사를 가리킨다")
 
     print("=" * 60)
     for x in warns:
