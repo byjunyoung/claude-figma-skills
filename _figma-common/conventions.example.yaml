@@ -69,9 +69,9 @@ layout:
 # --- 섹션 스타일 ---------------------------------------------------------------
 # 모든 섹션이 같은 스타일이어야 한다. 색을 구분 용도로 쓰지 않는다.
 section_style:
-  fill: "#8306FF"
+  fill: "#6B7280"        # 중립 기본값 — 팀 색으로 바꿔 쓴다. /figma-setup 이 파일에서 관측해 채운다
   fill_opacity: 0.04
-  stroke: "#8306FF"
+  stroke: "#6B7280"
   stroke_weight: 1
   stroke_align: INSIDE
   dash: [20, 20]
