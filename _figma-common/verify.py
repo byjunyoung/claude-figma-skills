@@ -86,7 +86,9 @@ def main():
     # 스크립트 문법
     chk = COMMON / "scripts" / "lib" / "check.sh"
     if chk.exists():
-        r = subprocess.run([str(chk)], capture_output=True, text=True)
+        # `bash <path>` 로 부른다 — 직접 실행하면 실행 권한에 기대게 되는데,
+        # GitHub Contents API 로 배포된 파일에는 실행 비트가 안 따라온다(설치본에서 확인).
+        r = subprocess.run(["bash", str(chk)], capture_output=True, text=True)
         if r.returncode != 0:
             fails.append("[문법] check.sh 실패:\n" + r.stdout + r.stderr)
     else:
