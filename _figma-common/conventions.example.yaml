@@ -1,0 +1,168 @@
+# =============================================================================
+# figma-conventions.yaml — figma-* 스킬 공통 설정
+#
+# 이 파일이 규칙의 단일 출처다. 스킬 본문에는 규칙 값을 적지 않는다.
+#
+# 탐색 순서 (먼저 찾은 것 하나만 쓴다)
+#   1. ./figma-conventions.yaml          프로젝트별
+#   2. ~/.claude/figma-conventions.yaml  사용자 공통
+#   3. 이 파일                            내장 기본값 → 결과에 "기본값으로 진행" 명시
+#
+# 새 환경에서 처음 켤 때는 /figma-setup 이 대상 파일을 훑어 이 파일 초안을 만든다.
+# 값을 모르면 지우지 말고 null 로 둔다 — null 은 "이 검사를 건너뛴다"는 뜻이다.
+# =============================================================================
+
+meta:
+  profile: default          # 결과 보고에 찍히는 이름. 어느 설정으로 돌았는지 남긴다
+
+# --- 네이밍 -------------------------------------------------------------------
+# frame_pattern / section_pattern 은 lint 가 그대로 정규식으로 쓴다.
+# null 이면 그 네이밍 검사를 하지 않는다(패턴이 없는 파일에서 전건 오탐을 막는다).
+naming:
+  frame: "{screen}-{state}"                   # 사람이 읽을 형태. 문서·미리보기 표기용
+  frame_pattern: '^.+-[^-\s]+$'
+  section: "NN. {domain} - {feature}"
+  section_pattern: '^\d{2}\. .+$'
+  states: [Default, Empty, Loading, Error, Validation, Selected]
+  required_states:                            # 화면 유형별 필수 상태. 유형 판정은 화면 내용으로
+    list:   [Default, Empty, Loading, Error]
+    form:   [Default, Validation]
+    search: [Default, Empty]
+  # 스캐폴딩 노드 이름 규약 — arrows 가 쓰고 lint·xds-check 가 제외 대상으로 인식한다
+  arrow_delimiter: " --> "
+  state_chain_delimiter: " ~ "
+  label_prefix: "[label] "
+  state_chain_prefix: "[state] "
+  # 공통 반복 상태를 한 벌만 두는 페이지. null 이면 공통 페이지 규약을 쓰지 않는다
+  common_page_pattern: null                   # 예: '^공통|^\[UI\] 공통'
+  common_frame_prefix: null                   # 예: "공통-"
+
+# --- 페이지 역할 ---------------------------------------------------------------
+# 페이지 이름 정규식으로 취급을 가른다. 빈 배열이면 그 등급이 없는 파일로 본다.
+pages:
+  strict:   []                                # 규칙 전면 적용 (예: ['^\[UI\] '])
+  free:     []                                # 최소 규칙만 (예: ['^\[Update\] ', '^\d+\. .+ @'])
+  readonly: []                                # 쓰기 거부 (예: ['^\[Archive\]'])
+  exclude_sections: []                        # 검사 면제 섹션 정규식 (예: ['^템플릿$', '^\[?[Aa]rchive'])
+  protected_numbers: []                       # 순번 재부여에서 제외할 번호대 (예: ["99"])
+
+  # figma-sync 3축. null 이면 sync 실행 시 사용자에게 묻고, 답을 여기 적어 다음부터 재사용한다.
+  # match 는 두 가지다 —
+  #   name    : 페이지 이름이 pattern 에 걸리는 페이지
+  #   divider : 구분선 페이지(`## 라벨 ##` 형태의 빈 페이지) 라벨이 pattern 에 걸리면,
+  #             그 아래부터 다음 구분선 전까지의 페이지 전부. 이름으로는 안 잡히는 대역용
+  canonical: null                             # 대조 기준이 되는 운영 페이지
+  archive:   null                             # 반영이 끝나 정리된 작업분
+  queue:     null                             # 개발은 끝났고 정본 반영이 안 된 것
+
+# --- 배치 토큰 -----------------------------------------------------------------
+layout:
+  column_grid: 1560                           # 화면 열 간격
+  section_padding: 120
+  frame_gap: 120
+  section_gap_same_row: 240
+  domain_row_gap: 480
+  section_resize_margin: [80, 160]            # 섹션 리사이즈 시 내용 bbox 여백 하한·상한
+  row_bucket: 1000                            # 행 판정 반올림 단위. 페이지 스케일에 맞춰 조정
+  reference_frame_width: 1440                 # arrows 기본값이 기준으로 삼는 화면 폭
+
+# --- 섹션 스타일 ---------------------------------------------------------------
+# 모든 섹션이 같은 스타일이어야 한다. 색을 구분 용도로 쓰지 않는다.
+section_style:
+  fill: "#8306FF"
+  fill_opacity: 0.04
+  stroke: "#8306FF"
+  stroke_weight: 1
+  stroke_align: INSIDE
+  dash: [20, 20]
+  corner_radius: 72
+
+# --- placeholder 스타일 ---------------------------------------------------------
+placeholder_style:
+  fill: "#FAFAFB"
+  stroke: "#B3B3BF"
+  stroke_weight: 2
+  dash: [10, 8]
+  font: { family: Inter, style: Regular, size: 28 }
+  text_color: "#73787F"
+  text_prefix: "Placeholder — "
+
+# --- 흐름 화살표 ----------------------------------------------------------------
+# 페이지에 기존 화살표가 있으면 그 stroke 를 읽어 따르고, 없을 때만 이 값을 쓴다.
+arrows:
+  color: "#4A5463"
+  stroke_weight: 3
+  dash_conditional: [12, 8]                   # 조건부 흐름·상태 체인 공용
+  head_gap: 12                                # 화살촉과 도착 변 사이
+  trunk: 120                                  # 분기 트렁크 진출 길이
+  trunk_to_target_min: 240                    # 라벨이 들어갈 트렁크→도착 최소 간격
+  parallel_offset: 24                         # 같은 두 프레임 사이 화살표 2개일 때 오프셋
+  cap: { start: ROUND, end: ARROW_EQUILATERAL }
+  label:
+    font: { family: Inter, style: Medium, size: 20 }
+    padding: [10, 5]                          # 좌우 · 상하
+    corner_radius: 8
+    fill: "#FFFFFF"
+    stroke: "#D9DBE3"
+    text_color: "#59616E"
+    offset_from_target: [36, 60]              # 도착 변 위 이 범위에 라벨을 둔다
+  audit:                                      # 수치 감사 허용 오차
+    edge_tolerance: 2                         # 시작점이 출발 변에서 벗어나도 되는 px
+    gap_range: [9, 15]                        # head_gap 의 허용 구간
+    label_clear: 30                           # 라벨이 화살촉에서 떨어져야 하는 최소 거리
+
+# --- 컴포넌트 기본값 감사 --------------------------------------------------------
+# 규칙 문서가 아니라 같은 파일의 실사용 분포로 관례를 정한다.
+component_audit:
+  min_samples: 5                              # 이 수 미만이면 관례로 인정하지 않는다
+  dominance: 0.9                              # 이 비율 이상 쏠린 속성만 관례
+  body_offset: { left: 270, top: 120 }        # 화면 공통 껍데기(내비 폭·상단바 높이) — 검사 제외
+
+# --- 디자인시스템 ---------------------------------------------------------------
+design_system:
+  library: auto                               # auto = 파일에 연결된 라이브러리를 감지
+  token_prefixes: []                          # 조회할 토큰군 (예: ["fill/", "border/", "icon/"])
+  match_threshold_channel: 8                  # 1등급(색 사실상 불변) 판정 채널차 상한
+
+# --- 정본 동기화 ----------------------------------------------------------------
+sync:
+  pair_patterns:                              # 작업 페이지의 대조쌍 섹션 이름
+    to_be: 'to.?be|개선|after'
+    as_is: 'as.?is|현행|before'
+  text_diff_max_len: 40                       # 이보다 긴 문자열은 diff 키워드로 안 쓴다
+  version_page_pattern: null                  # 예: '^\[Update\] v[\d.]+'
+
+# --- 일감 트래커 ----------------------------------------------------------------
+# none 이면 figma-diff 가 Figma annotation 까지만 하고 비교표는 마크다운으로 낸다.
+task_tracker:
+  type: none                                  # notion | github | none
+  ref: null                                   # DB id · 레포 이름 등
+  ui_section_heading: null                    # 변경점을 적을 문서 내 절 제목
+  annotation_category: "Changed"              # 재사용할 공용 카테고리. 새로 만들지 않는다
+  scope_tags: []                              # 라벨 앞에 붙일 분류 태그 목록
+
+# --- 도구 ----------------------------------------------------------------------
+tools:
+  figma_token_env: FIGMA_TOKEN                # REST 경로용 PAT 환경변수 이름
+  frame_count_guard: 20                       # 이 수를 넘으면 스크린샷 수집 전 확인
+  proto_output_dir: "."                       # 동작 프로토타입 산출 위치
+  proto_publish: null                         # { repo:, account:, visibility: } 또는 null
+
+# --- 가이드 원천 (선택) ----------------------------------------------------------
+# 팀 가이드 문서가 따로 있으면 여기 적는다. 매 실행 fetch 하지 않고
+# /figma-setup 이 최초 1회 흡수해 위 값들을 채우는 데만 쓴다.
+guide_source:
+  type: none                                  # notion | file | url | none
+  ref: null
+
+# --- 파일별 덮어쓰기 -------------------------------------------------------------
+# 위 값들은 기본값이고, 여기 fileKey 로 적은 값이 그 파일에서만 위를 덮는다(깊은 병합).
+# pages 3축처럼 파일마다 관례가 갈리는 항목을 여기 둔다.
+# fileKey 는 figma.com/design/<fileKey>/... 의 그 값이다.
+files: {}
+#  "AbCdEf123456":
+#    label: "제품 A 디자인 파일"          # 결과 보고용 이름
+#    pages:
+#      canonical: { match: name,    pattern: '^\[UI\] ' }
+#      archive:   { match: name,    pattern: '^\[Update\] ' }
+#      queue:     { match: divider, pattern: '개발 서버 업데이트 완료' }
