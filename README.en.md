@@ -190,6 +190,29 @@ Conventions live in one file, `figma-conventions.yaml`, not in the skill docs. S
 plugin defaults                       → report notes "running on defaults"
 ```
 
+The full schema lives in [`conventions.example.yaml`](_figma-common/conventions.example.yaml) — 14 sections, 112 keys, each commented with what it governs, so you can copy it and edit in place. It looks like this:
+
+```yaml
+naming:
+  frame: "{screen}-{state}"           # human-readable form
+  frame_pattern: '^.+-[^-\s]+$'       # lint uses this as a regex directly
+  states: [Default, Empty, Loading, Error, Validation, Selected]
+  required_states:
+    list: [Default, Empty, Loading, Error]
+
+pages:
+  strict:   ['^\[UI\] ']              # full rules apply
+  exclude_sections: ['^Template$']    # exempt from audit
+
+layout:
+  column_grid: 1560
+  frame_gap: 120
+
+arrows:
+  color: "#4A5463"
+  audit: { edge_tolerance: 2, gap_range: [9, 15] }
+```
+
 - **First run** — `/fig:setup` in the target file observes its conventions and drafts one
 - **What `null` means** — the value wasn't inferred, so that check is skipped
 - **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
