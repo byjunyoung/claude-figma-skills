@@ -1,9 +1,18 @@
 {
   "name": "fig",
   "description": "이미 그려진 Figma 파일을 정리·검증·동기화하는 스킬 묶음. 화면을 만드는 쪽이 아니라 여러 사람이 함께 쓰는 파일을 관리하는 쪽이다.",
-  "version": "2.1.0",
-  "author": { "name": "김준영", "url": "https://www.linkedin.com/in/byjunyoung/" },
+  "version": "2.1.1",
+  "author": {
+    "name": "김준영",
+    "url": "https://www.linkedin.com/in/byjunyoung/"
+  },
   "homepage": "https://github.com/byjunyoung/claude-figma-skills",
   "repository": "https://github.com/byjunyoung/claude-figma-skills",
-  "keywords": ["figma", "design", "lint", "design-ops", "handoff"]
+  "keywords": [
+    "figma",
+    "design",
+    "lint",
+    "design-ops",
+    "handoff"
+  ]
 }
