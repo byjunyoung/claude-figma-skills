@@ -2,148 +2,166 @@
 
 [한국어](README.md) · **English**
 
-Claude Code skills for **operating** existing Figma files — tidying, verifying, and syncing them. Not for drawing new screens, but for keeping a file that several people share from decaying.
-
-Where the official Figma plugin (`figma-use`, `figma-generate-design`) handles **creation**, this handles **upkeep**. It runs on top of that plugin.
+A Claude Code skill bundle for organizing, auditing, and syncing Figma files.
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
 ```
 
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The ten skills](#the-ten-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles)
+
 ---
 
-## Why this exists
+## Where it fits
 
-A design file you use alone never rots. The trouble starts when several people share it, the screen count passes a few hundred, and a few months go by.
+Figma tooling splits into two halves: the half that draws screens, and the half that keeps drawn files in order.
 
-- You duplicate a screen and **settings from the original come along for the ride**, leaving empty slots rendered. Zoomed out you cannot see them, so nobody notices until an engineer asks
-- The build already shipped, but **the canonical Figma page still shows the old screen**. The next person designs against it
-- You move screens and **the flow arrows no longer line up.** Redrawing by hand is tedious, so they stay broken
-- "What shows up in this case?" an engineer asks. **That is when you learn you never drew that screen**
+Figma's official plugins (`figma-use`, `figma-generate-design`, `figma-generate-library`) are the first half. Give them code or a description and they produce screens and components.
 
-None of these are catchable by eye, and by the time they are, fixing them is expensive. This toolkit catches them **numerically, before handoff.**
+This bundle is the second half. It works on files that already exist — checking whether names follow the convention, whether screens sit where they belong, whether flow arrows actually connect, whether changes shipped to engineering made it back into the canonical page. It runs on top of the official plugins, so you use both.
 
-## Three design rules
+Drawing is the official plugins' job. What happens around the drawing is this bundle's.
 
-**Verification happens in exactly one place.** The skills that modify files (`prep`, `arrows`, `sync`) contain no checking code. Only `/fig:lint` decides whether something is wrong; the rest just fix what it reports. When verification is scattered across skills, you get a gap that reads "I wasn't using that skill this time, so I skipped the audit."
+## Who it's for
 
-**Conventions are observed, not asked for.** Every team names screens differently, spaces them differently, groups sections differently. `/fig:setup` does not ask — it **reads the file and works it out**, because people answer from memory and get their own team's rules wrong.
+Teams where one file is edited by several people over a long time. It doesn't matter whether you're drawing new screens or revising old ones.
 
-**When unsure, leave it blank.** If an observation is thin or split, the value stays `null`, which means that check is skipped. Not knowing a rule and breaking a rule are different things, and mixing them buries the report in false positives until nobody reads it.
+- Teams sharing a file that has grown to hundreds of screens
+- Anyone who repeats the cycle of drawing a feature's screens and handing them to engineering
+- Anyone who has to keep handed-off designs and the canonical Figma page in step
+- Teams that have file conventions but no way to check whether they're followed
 
-## How it fits together
+Here's where it attaches when you're drawing something new. The official plugins draw what's inside a screen; this bundle handles what comes before and after.
+
+```
+Before   Lay out the section skeleton, stub missing states as dashed placeholders — that stub list is your to-draw list
+During   Catch settings that tagged along when you duplicated a screen to make a variant
+After    Wire up transition arrows and state groups, then pass the audit before handing off
+```
+
+Where it isn't the right tool:
+
+- A one-off job of a screen or two is faster by hand
+- Building a component library from scratch belongs to the official `figma-generate-library`
+- If your team has no conventions yet, `/fig:setup` has nothing to observe. Settle a few of them first
+
+## What it solves
+
+A design file rarely breaks when one person owns it. It breaks when there are several people, hundreds of screens, and a few months of history. Four things recur.
+
+- **Duplication residue** — duplicate a screen to make a new one and the original's settings come along. An unused display toggle stays on, rendering an empty slot with nothing in it. It's invisible at zoomed-out scale
+- **Stale canonical page** — engineering has already shipped, but the canonical Figma page still shows the old screen. The next person plans against it
+- **Broken arrows** — move a screen and its flow arrows don't follow. Redrawing by hand costs enough that people leave them
+- **The screen nobody drew** — "what shows up in this case?" You find out that screen doesn't exist when engineering asks
+
+None of the four is catchable by eye, and by the time you do catch one, engineering has already asked. This bundle measures for them instead.
+
+---
+
+## How you use it
+
+Three rhythms: the cycle of drawing and handing off one feature, the per-release pass that keeps the canonical page current, and a health check you can run any time.
+
+### The cycle — drawing one feature through handoff
+
+```
+/fig:setup    First time in a file, observe its conventions and draft a config
+/fig:prep     Lay out the section skeleton, stub missing states as placeholders
+   ·          Draw the screens (official plugins, or by hand)
+/fig:arrows   Wire transition arrows and state groups
+/fig:lint     Audit structure, flow, and components in one pass
+/fig:diff     For revisions to existing screens, pin change annotations
+```
+
+`prep` comes first because it builds the to-draw list. A list screen needs an empty state; a form needs a validation-failure state. Stub those as dashed placeholders and the gaps become visible. The point is that they surface before engineering asks.
+
+`lint` is the gate you have to pass. It never writes to the file, so running it repeatedly is safe.
+
+### Per release — bringing the canonical page current
+
+```
+/fig:sync     Full audit of what made it into canonical → apply → archive
+```
+
+Working copies and the canonical page use identical screen names, so comparing names tells you nothing about what's missing. The audit judges on three signals together: the text inside a screen, the screen's height, and its component links.
+
+When the structure matches, it edits values rather than replacing the whole screen. Node ids survive, so deep links from specs and tickets keep working.
+
+### Any time — a file health check
+
+```
+/fig:lint     Structure, flow, and component audit (zero writes)
+/fig:tokens   Check that colors are bound to design system tokens
+```
+
+Neither touches the file. Run one when you inherit a file someone else has been in, or when you reopen something old, and you'll know where it stands.
+
+### Two side branches
+
+```
+/fig:proto    Before engineering starts, rebuild the design as a single HTML page that really accepts input and saves
+/fig:code     Apply the design to a frontend repo
+```
+
+`proto` isn't a click-through demo. Enter a value, save it, and it shows up in the list. Clicking through surfaces ordering problems that a static design hides.
+
+`code` separates what the design owns (numbers, colors, copy, states) from what the code owns (file structure, naming, state management), so neither overwrites the other.
+
+### The whole flow
 
 ```mermaid
 flowchart TD
-    setup["fig:setup<br/>read conventions, write config"]
-    read["fig:read<br/>collect pages and screens"]
-    prep["fig:prep<br/>naming and layout"]
-    arrows["fig:arrows<br/>flow arrows"]
-    tokens["fig:tokens<br/>color token bindings"]
-    lint{"fig:lint<br/>verification gate"}
-    sync["fig:sync<br/>update canonical"]
-    diff["fig:diff<br/>annotate changes"]
+    setup["fig:setup<br/>observe → config"]
+    prep["fig:prep<br/>section skeleton · missing screens"]
+    draw["Draw screens<br/>official plugins or by hand"]
+    arrows["fig:arrows<br/>flow arrows · state groups"]
+    tokens["fig:tokens<br/>color token audit"]
+    lint{"fig:lint<br/>audit gate · zero writes"}
     proto["fig:proto<br/>working prototype"]
-    code["fig:code<br/>ship to frontend"]
+    handoff["Handoff"]
+    diff["fig:diff<br/>change annotations"]
+    code["fig:code<br/>apply to frontend"]
+    sync["fig:sync<br/>canonical page after release"]
 
-    setup --> read --> prep --> arrows --> tokens --> lint
+    setup --> prep --> draw --> arrows --> tokens --> lint
     lint -- violations --> prep
-    lint -- pass --> sync
-    lint -- pass --> diff
     lint -- pass --> proto
-    lint -- pass --> code
+    lint -- pass --> handoff
+    handoff --> diff
+    handoff --> code
+    handoff -. after release .-> sync
+    sync --> lint
 ```
 
 ---
 
-## When you reach for it
-
-### Starting on a file you have never seen
-
-```
-/fig:setup    read the file, derive that team's conventions, draft a config
-/fig:read     collect every page and screen
-```
-
-Running checks before you know the conventions flags everything. That is why config comes first. Once you have a draft, run `/fig:lint` once and **judge it by the false-positive rate** — if nearly everything is flagged, the file is not a mess; the config is wrong.
-
-### You finished a feature's screens and it is going to engineering
-
-```
-/fig:prep     unify names · group into sections · stub missing screens
-/fig:arrows   connect screens with labeled flow arrows
-/fig:lint     check structure, flow, and components in one pass
-```
-
-`prep` notices that "there is a list screen but no empty-result screen" and reserves the spot. Surfacing it before an engineer asks is the whole point. Nothing ships until `lint` passes.
-
-### You built a new screen by duplicating an existing one
-
-```
-/fig:lint     detect component defaults dragged in by the copy
-```
-
-A display toggle that is on in the library stays on even where the screen does not use it, rendering an empty slot. **You will never see this in a zoomed-out screenshot.** The check works by sampling how the file's existing screens actually use that component, so it needs no rulebook.
-
-### The build shipped but the canonical Figma page is stale
-
-```
-/fig:sync     audit what reached canonical → apply → archive the working copy
-```
-
-The working copy and the canonical page **use identical screen names**, so comparing names tells you nothing. It judges on three signals together: the text inside screens, screen height, and component links. When the structure matches it edits values in place rather than moving frames, so deep links from specs and tickets survive.
-
-### The task is editing existing screens and you must communicate what changed
-
-```
-/fig:diff     dev-mode annotation pins on changed elements + a comparison table in the task doc
-```
-
-Only the representative screen gets pinned; state variants inherit. Pinning every variant buries the real change.
-
-### You want to check the flow makes sense before engineering starts
-
-```
-/fig:proto    rebuild the design as a single HTML file that actually accepts input
-```
-
-Not a click-through of screenshots — you type a value, save, and it appears in the list. Pressing through it surfaces "wait, this order is odd" that the static design hid.
-
-### Bringing the design into code
-
-```
-/fig:code     comparison table → minimal edits → typecheck · browser · screenshot diff → PR
-```
-
-It separates what the design owns (values, color, copy, states) from what the repo owns (file structure, naming, state management), so neither overwrites the other.
-
----
-
-## Skills
+## The ten skills
 
 | Command | What it does |
 |---|---|
-| `/fig:setup` | Observe conventions, draft a config |
-| `/fig:read` | Collect pages and screens |
-| `/fig:prep` | Unify names · group sections · stub missing screens |
+| `/fig:setup` | Observe a file's conventions and draft a config |
+| `/fig:read` | Collect the page and screen inventory |
+| `/fig:prep` | Normalize names · place into sections · stub missing screens |
 | `/fig:arrows` | Create and re-sync flow arrows |
-| `/fig:lint` | Read-only verification gate (zero writes) |
-| `/fig:tokens` | Audit color bindings against design-system tokens |
-| `/fig:sync` | Audit what reached canonical → apply → archive |
+| `/fig:lint` | Read-only audit gate (zero writes) |
+| `/fig:tokens` | Audit design system token binding for colors |
+| `/fig:sync` | Full canonical-page audit → apply → archive |
 | `/fig:diff` | Annotate changes · write up the task doc |
 | `/fig:proto` | Working single-file HTML prototype |
 | `/fig:code` | Apply the design to a frontend repo |
 
 ### What `/fig:lint` looks at
 
-| Area | Problems it catches |
+| Area | What it catches |
 |---|---|
-| Structure | Screens outside their section · out of section bounds · overlapping screens · naming violations · section numbering out of step with layout |
-| Flow | Arrows cutting through unrelated screens · arrowheads pointing into empty space · screens absent from every flow · labels covering an arrowhead or another line |
-| Components | Settings dragged in by duplication, leaving empty slots rendered |
+| Structure | Screens outside any section · screens past section bounds · overlapping screens · naming violations · section number vs. placement mismatch |
+| Flow | Arrows cutting through unrelated screens · arrowheads pointing at empty space · screens on no flow at all · labels covering an arrowhead or another line |
+| Components | Settings that tagged along in a duplicate, leaving an empty slot rendered |
 
-Arrowhead direction is not catchable by distance alone. An arrow can sit exactly 12px from its target and still point into empty space if that last segment runs **parallel** to the edge. So the final segment is checked for perpendicularity separately.
+Arrowhead direction isn't catchable by distance alone. An arrow can sit 12px away and still point into empty space if its last segment runs parallel to the target edge. So the audit checks perpendicularity separately.
+
+The component audit works without any written convention. It derives the usage distribution from how other screens in the same file use that component, and compares against it.
 
 ---
 
@@ -154,33 +172,45 @@ claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
 ```
 
-Updating is one line: `claude plugin marketplace update byjunyoung`.
+To update: `claude plugin marketplace update byjunyoung`.
 
-- **Requires** — Claude Code, the Figma MCP plugin (`plugin:figma`), `python3` + PyYAML, `node`
-- **Verify** — `fig@byjunyoung` should appear in `claude plugin list`
-- **After installing** — run `/fig:setup` against your file first to generate a config
+- **Requires** — Claude Code, the Figma MCP plugin (`plugin:figma`), `python3` with PyYAML, `node`
+- **Verify** — `fig@byjunyoung` shows up in `claude plugin list`
+- **Then** — run `/fig:setup` in your target file to create a config
 
 ## Configuration
 
-Rules live in a single `figma-conventions.yaml`, not in the skill documents. Naming patterns, state lists, spacing tokens, section styling, arrow styling, sections to exclude, and tolerances are all there.
+Conventions live in one file, `figma-conventions.yaml`, not in the skill docs. Screen naming, the state list, spacing values, section style, arrow style, sections excluded from audit, and tolerances are all there.
 
 ```
 ./figma-conventions.yaml              per project (wins if present)
       ↓ otherwise
 ~/.claude/figma-conventions.yaml      your shared config
       ↓ otherwise
-bundled defaults                      → the report says "running on defaults"
+plugin defaults                       → report notes "running on defaults"
 ```
 
-- **First run** — `/fig:setup` observes your file and drafts the config
-- **What `null` means** — not inferred, so that check is skipped
-- **Per-file values** — things that differ by file, like which pages are canonical versus archive, go under `files.<fileKey>`
+- **First run** — `/fig:setup` in the target file observes its conventions and drafts one
+- **What `null` means** — the value wasn't inferred, so that check is skipped
+- **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
+
+Once you have a draft, run `/fig:lint` once and judge it by the false-positive rate. If nearly everything is flagged, the config is wrong, not the file.
+
+---
+
+## Design principles
+
+**One place decides.** The skills that write to files (`prep`, `arrows`, `sync`) contain no audit code. `/fig:lint` is the only thing that judges right from wrong; everything else just fixes what it flagged. Spread the checks across skills and you get a gap — "I skipped that skill this time, so the check never ran."
+
+**Conventions are observed, not asked.** Every team names screens differently, spaces them differently, groups sections differently. `/fig:setup` doesn't ask — it reads the file and works it out. People get their own team's conventions wrong when answering from memory.
+
+**When unsure, leave it empty.** If the observation is ambiguous, meaning too few samples or a near-even split, the value stays `null` instead of being filled in. `null` means that check is skipped. Not knowing a rule and breaking a rule are different things, and mixing them buries the report in false positives until nobody reads it.
 
 ## Layout
 
 ```
 .claude-plugin/
-  plugin.json                name, version, author
+  plugin.json                plugin name, version, author
   marketplace.json           marketplace entry
 skills/
   setup  read  prep  arrows  lint
@@ -189,22 +219,22 @@ _figma-common/
   conventions.example.yaml   config schema + bundled defaults
   verify.py                  consistency check
   scripts/
-    audit-struct.js          membership · bounds · overlap · naming · order
-    audit-flow.js            arrow geometry · entry angle · crossings · labels · coverage
+    audit-struct.js          membership, bounds, overlap, naming, ordering
+    audit-flow.js            arrow geometry, entry direction, pass-through, labels, coverage
     audit-component.js       component default residue
-    arrow-build.js           arrow-building helpers
-    prep-ops.js              page-tidying helpers
+    arrow-build.js           arrow construction helper
+    prep-ops.js              page cleanup helper
     probe-page.js            convention observation
-    lib/                     config resolution · draft generation · syntax gate
+    lib/                     config resolution, draft generation, syntax check
 ```
 
-The Figma plugin sandbox has no file system. Config resolution therefore happens on the host: `resolve-config.py --js <fileKey>` prints one line that gets prepended to the script. Script paths are rooted at `${CLAUDE_PLUGIN_ROOT}`, since the install location differs per machine.
+Figma plugins have no filesystem access. So config resolution happens locally: `resolve-config.py --js <fileKey>` emits a single line that gets prepended to the script before it runs. Script paths are relative to `${CLAUDE_PLUGIN_ROOT}`, since install locations differ between environments.
 
-After editing a skill, run `python3 ${CLAUDE_PLUGIN_ROOT}/_figma-common/verify.py`.
+After editing a skill, run `python3 ${CLAUDE_PLUGIN_ROOT}/_figma-common/verify.py` to check consistency.
 
 ## Built with
 
-Claude Code skills (Markdown) + Figma Plugin API (JavaScript) + config resolution and aggregation (Python). PyYAML is the only external dependency.
+Claude Code skills (Markdown) + the Figma Plugin API (JavaScript) + config resolution and aggregation (Python). PyYAML is the only external dependency.
 
 ## Author
 
@@ -214,10 +244,10 @@ Junyoung Kim · [LinkedIn](https://www.linkedin.com/in/byjunyoung/)
 
 © 2026 Junyoung Kim · [LICENSE](LICENSE)
 
-**You are free to install and use it** — personally or inside your team — and to modify it for your own use.
+Installing and using it is free. Use it personally or inside your organization, and modify it if you need to.
 
-**Forking to redistribute, republishing it under your own name, or reselling it commercially requires permission.** That is why no standard open-source license is attached. Ask via [Issues](https://github.com/byjunyoung/claude-figma-skills/issues) or LinkedIn if you need it.
+Redistributing a fork, republishing it under another name, or reselling it commercially requires permission. That's why there's no standard open source license attached. Reach me through [Issues](https://github.com/byjunyoung/claude-figma-skills/issues) or LinkedIn.
 
 ## Feedback
 
-Bug reports and feature requests are welcome in [Issues](https://github.com/byjunyoung/claude-figma-skills/issues).
+Bug reports and feature ideas go in [Issues](https://github.com/byjunyoung/claude-figma-skills/issues).
