@@ -190,6 +190,29 @@ claude plugin install fig@byjunyoung
 플러그인 내장 기본값                    → 리포트에 "기본값으로 진행" 표시
 ```
 
+전체 스키마는 [`conventions.example.yaml`](_figma-common/conventions.example.yaml)에 있습니다. 14개 절, 112개 항목이고 값마다 무엇을 검사하는지 주석이 붙어 있어 그대로 복사해 고쳐 쓰면 됩니다. 생긴 모양은 이렇습니다.
+
+```yaml
+naming:
+  frame: "{screen}-{state}"           # 사람이 읽을 형태
+  frame_pattern: '^.+-[^-\s]+$'       # lint 가 그대로 정규식으로 쓴다
+  states: [Default, Empty, Loading, Error, Validation, Selected]
+  required_states:
+    list: [Default, Empty, Loading, Error]
+
+pages:
+  strict:   ['^\[UI\] ']              # 규칙 전면 적용
+  exclude_sections: ['^템플릿$']       # 검사 면제
+
+layout:
+  column_grid: 1560
+  frame_gap: 120
+
+arrows:
+  color: "#4A5463"
+  audit: { edge_tolerance: 2, gap_range: [9, 15] }
+```
+
 - **첫 실행** — 대상 파일에서 `/fig:setup`을 돌리면 관례를 관측해 초안을 만듭니다
 - **`null`의 의미** — 추정하지 않았다는 뜻이고, 해당 검사를 건너뜁니다
 - **파일별 설정** — 정본·아카이브 페이지 구분처럼 파일마다 다른 항목은 `files.<fileKey>`에 적습니다
