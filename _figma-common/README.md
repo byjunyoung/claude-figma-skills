@@ -67,3 +67,22 @@ ESM 으로 보면 `return` 을 거부한다. `check.sh` 가 같은 방식으로 
 
 **제외 섹션** — 세 갈래로 다르게 취급한다. 감사 대상에서 빼고, 커버리지에서도 빼되,
 **관통 대상에는 남긴다.** 선이 실제로 그 위를 지나면 제외 섹션이든 아니든 깨진 선이다.
+
+## 고치고 배포하기
+
+작업본은 `~/.claude/skills/fig/`, 배포본은 저장소다. 편집은 작업본에서 하고 저장소로 밀어 넣는다.
+
+```
+1  ~/.claude/skills/fig/ 에서 편집
+2  python3 _figma-common/verify.py          위반 0 확인
+3  .claude-plugin/plugin.json 의 version 판올림   ← 빠뜨리면 설치본이 안 바뀐다
+4  저장소에 반영
+5  claude plugin marketplace update byjunyoung
+6  claude plugin uninstall fig@byjunyoung && claude plugin install fig@byjunyoung
+```
+
+**3번이 핵심이다.** 설치본은 `plugins/cache/<마켓>/<플러그인>/<버전>/` 에 버전으로 고정돼 있어서,
+버전이 그대로면 마켓을 갱신해도 설치본은 옛 코드를 계속 쓴다.
+
+**실행 권한에 기대지 않는다.** GitHub Contents API 로 올린 파일에는 실행 비트가 따라오지 않는다.
+`check.sh` 를 직접 실행하면 설치본에서 `Permission denied` 가 난다 — `bash <path>` 로 부른다.
