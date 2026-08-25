@@ -71,4 +71,46 @@ for (let i = 0; i < secs.length; i++)
       issues.push(`[섹션겹침] ${a.name} ∩ ${b.name}`);
   }
 
+// ── 순번 어긋남 — 캔버스 배열(행 우선)과 NN. 순번이 맞는가 ─────────────────────
+// 보호 번호대는 재부여 대상이 아니므로 검사도 하지 않는다.
+const BUCKET = (C.layout || {}).row_bucket || 1000;
+const PROT = P.protected_numbers || [];
+const numbered = secs
+  .filter(s => !skipSection(s) && /^\d+\./.test(s.name) && !PROT.some(p => s.name.startsWith(p)))
+  .sort((a, b) => (Math.round(a.y / BUCKET) - Math.round(b.y / BUCKET)) || (a.x - b.x));
+numbered.forEach((s, i) => {
+  const want = String(i + 1).padStart(2, "0");
+  const have = s.name.match(/^(\d+)\./)[1];
+  if (have !== want) issues.push(`[순번] ${s.name} → ${want}. (캔버스 ${i + 1}번째)`);
+});
+
+// ── 상태 변형 분리 — 같은 화면의 상태 변형이 한 열에서 끊겼는가 ─────────────────
+// 부모 화면과 상태 변형 사이에 전환 결과(모달·다이얼로그)가 끼면 [state] 점선이
+// 직선이라 그걸 관통한다. 배치 단계에서 잡아야 화살표 단계가 깨끗해진다.
+const screenOf = n => n.replace(/-[^-]+$/, "");     // 마지막 접미사를 뗀 [화면명]
+for (const s of secs) {
+  if (skipSection(s)) continue;
+  const frames = s.children.filter(isScreen)
+    .map(f => ({ name: f.name, screen: screenOf(f.name), x: f.x, y: f.y, b: f.y + f.height }));
+  const byScreen = {};
+  for (const f of frames) (byScreen[f.screen] = byScreen[f.screen] || []).push(f);
+  for (const [screen, group] of Object.entries(byScreen)) {
+    if (group.length < 2) continue;
+    // 같은 열(x 근접)에 있는 것끼리만 본다 — 열이 다르면 애초에 [state] 대상이 아니다
+    const cols = {};
+    for (const f of group) { const k = Math.round(f.x / 8); (cols[k] = cols[k] || []).push(f); }
+    for (const col of Object.values(cols)) {
+      if (col.length < 2) continue;
+      col.sort((a, b) => a.y - b.y);
+      for (let i = 1; i < col.length; i++) {
+        const top = col[i - 1].b, bot = col[i].y;
+        const intruder = frames.find(o =>
+          o.screen !== screen && Math.abs(o.x - col[i].x) < 8 && o.y >= top && o.y < bot);
+        if (intruder)
+          issues.push(`[상태분리] ${s.name}: ${col[i - 1].name} 과 ${col[i].name} 사이에 ${intruder.name} 이(가) 끼어 있음`);
+      }
+    }
+  }
+}
+
 return issues.length ? issues : "STRUCT PASS";
