@@ -134,6 +134,9 @@ def main():
             if w in s:
                 fails.append(f"[고유값] {name}: '{w}'")
 
+    # 스킬 이름 참조는 SKILL.md 밖에서도 샌다. 예시 설정의 주석이 개명 전 이름을
+    # 그대로 달고 배포된 적이 있다 — 검사가 SKILL.md 만 보고 있었기 때문이다.
+    legacy_ref = re.compile(r"(?<![\w-])figma-([a-z-]+)")
     for f in (EXAMPLE, COMMON / "README.md"):
         if not f.exists():
             continue
@@ -141,6 +144,16 @@ def main():
         for w in IDENTITY_STRINGS:
             if w in t:
                 fails.append(f"[식별자] {f.name}: '{w}' — 배포본이 남의 회사를 가리킨다")
+
+        for ref in sorted(set(skill_ref.findall(t))):
+            if not (SKILLS / ref / "SKILL.md").exists():
+                fails.append(f"[상호참조] {f.name} → /{PLUGIN}:{ref} 가 없음")
+
+        # 개명 전 이름(figma-lint 등). figma-conventions.yaml 는 설정 파일명이라 예외다
+        for ref in sorted(set(legacy_ref.findall(t))):
+            if ref == "conventions":
+                continue
+            fails.append(f"[옛이름] {f.name}: 'figma-{ref}' — /{PLUGIN}:{ref} 로 바꿀 것")
 
     print("=" * 60)
     for x in warns:
