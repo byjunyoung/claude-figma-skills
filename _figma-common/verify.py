@@ -9,13 +9,15 @@
 
 종료 코드 0 통과 / 1 위반.
 """
-import json, re, subprocess, sys
+import json, os, re, subprocess, sys
 from pathlib import Path
 
-SKILLS = Path.home() / ".claude" / "skills"
+# 설치 위치는 CLAUDE_SKILLS_DIR 로 덮을 수 있다 — 홈을 하드코딩하면
+# 다른 자리에 깐 설치본을 검사기가 못 본다(설치 시험에서 드러났다).
+SKILLS = Path(os.environ.get("CLAUDE_SKILLS_DIR") or Path.home() / ".claude" / "skills")
 COMMON = SKILLS / "_figma-common"
 EXAMPLE = COMMON / "conventions.example.yaml"
-TEAM = Path.home() / ".claude" / "figma-conventions.yaml"
+TEAM = Path(os.environ.get("FIGMA_CONVENTIONS") or Path.home() / ".claude" / "figma-conventions.yaml")
 NAMES = ["figma-arrows", "figma-code", "figma-diff", "figma-lint", "figma-prep",
          "figma-proto", "figma-read", "figma-setup", "figma-sync", "figma-tokens"]
 
