@@ -1,0 +1,14 @@
+{
+  "name": "byjunyoung",
+  "owner": { "name": "김준영", "url": "https://www.linkedin.com/in/byjunyoung/" },
+  "metadata": { "description": "Figma 파일 운영 스킬" },
+  "plugins": [
+    {
+      "name": "fig",
+      "source": "./",
+      "description": "이미 그려진 Figma 파일을 정리·검증·동기화하는 스킬 묶음. 준비(prep) · 흐름 화살표(arrows) · 읽기 전용 검증 게이트(lint) · 정본 동기화(sync) · 코드 반영(code) 등 10개.",
+      "category": "design",
+      "tags": ["figma", "design", "lint", "design-ops", "handoff"]
+    }
+  ]
+}
