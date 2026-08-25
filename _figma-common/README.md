@@ -1,8 +1,11 @@
-# _figma-common — figma-* 스킬 공용 층
+# _figma-common — fig 플러그인 공용 층
 
-`figma-*` 스킬 10개가 공유하는 **규칙 원천**과 **실행 코드**가 여기 있다.
+`fig` 플러그인의 스킬 10개가 공유하는 **규칙 원천**과 **실행 코드**가 여기 있다.
 스킬 문서(SKILL.md)에는 판단만 적고, 값과 코드는 이 폴더 하나로 모은다 —
 두 벌이 되면 한쪽만 고쳐져 갈라지기 때문이다.
+
+스킬에서 이 폴더를 가리킬 때는 **절대경로가 아니라 `${CLAUDE_PLUGIN_ROOT}`** 를 쓴다.
+플러그인은 설치 위치가 환경마다 달라서, 홈 아래를 하드코딩하면 남의 기계에서 깨진다.
 
 ```
 conventions.example.yaml   스키마 + 내장 기본값. 주석이 곧 가이드다
@@ -13,7 +16,7 @@ scripts/
   audit-component.js       컴포넌트 기본값 잔재 (MODE=collect / compare)
   arrow-build.js           화살표 생성 프리앰블
   prep-ops.js              페이지 정리 프리앰블
-  probe-page.js            관례 역추출 관측 (/figma-setup 용)
+  probe-page.js            관례 역추출 관측 (/fig:setup 용)
   lib/
     resolve-config.py      설정 탐색·깊은병합·files 오버레이 → JSON 또는 `const CFG=`
     draft-conventions.py   관측치 집계 → conventions.yaml 초안
@@ -46,7 +49,7 @@ python3 scripts/lib/resolve-config.py --js <fileKey>   # → const CFG = {...};
 ## 고치고 나서
 
 ```bash
-python3 verify.py
+python3 ${CLAUDE_PLUGIN_ROOT}/_figma-common/verify.py
 ```
 
 검사하는 것 — 설정 2벌 파싱 · 팀 설정 키가 스키마 안에 있는가 · 스크립트 문법 ·
