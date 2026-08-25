@@ -26,6 +26,7 @@ const STATE = N.state_chain_prefix || "[state] ";
 
 const EDGE_TOL = A.edge_tolerance != null ? A.edge_tolerance : 2;
 const GAP = A.gap_range || [9, 15];
+const CLEAR = A.label_clear != null ? A.label_clear : 30;
 
 const skipSection = s => !!(SEC_EXCLUDE && SEC_EXCLUDE.test(s.name));
 const isScreen = n => n.type === "FRAME" && !n.name.startsWith(LABEL) &&
@@ -116,12 +117,45 @@ for (const s of liveSecs) {
     }
   }
 
-  // 라벨 z순서 — pill 이 자기 화살표보다 아래면 선이 라벨 텍스트를 관통한다
+  // ── 라벨 ──────────────────────────────────────────────────────
+  // 라벨은 세 가지로 깨진다. z순서가 낮으면 선이 글자를 관통하고,
+  // 화살촉에 붙으면 어디로 가는지를 가리고, 남의 선 위에 얹히면 소속이 모호해진다.
+  const segsOf = n => {
+    const vs = n.vectorNetwork.vertices.map(v => ({ x: s.x + n.x + v.x, y: s.y + n.y + v.y }));
+    const out = [];
+    for (let i = 1; i < vs.length; i++)
+      out.push({ x: Math.min(vs[i-1].x, vs[i].x), r: Math.max(vs[i-1].x, vs[i].x),
+                 y: Math.min(vs[i-1].y, vs[i].y), b: Math.max(vs[i-1].y, vs[i].y) });
+    return { segs: out, head: vs[vs.length - 1] };
+  };
+  const arrowsHere = s.children.filter(c => c.type === "VECTOR" && c.name.includes(ARROW) && !c.name.startsWith(STATE));
+
   for (const p of s.children) {
     if (!p.name.startsWith(LABEL)) continue;
-    const v = s.children.find(c => c.name === p.name.slice(LABEL.length));
+    const owner = p.name.slice(LABEL.length);
+    const v = s.children.find(c => c.name === owner);
     if (v && s.children.indexOf(p) < s.children.indexOf(v))
       issues.push(`[라벨] ${p.name}: pill 이 화살표보다 z순서 아래`);
+    if (p.width == null) continue;
+    const box = { x: s.x + p.x, y: s.y + p.y, r: s.x + p.x + p.width, b: s.y + p.y + p.height };
+
+    // 자기 화살촉을 가리는가 — pill 을 label_clear 만큼 넓힌 상자에 도착점이 들어오면 위반
+    if (v && v.type === "VECTOR") {
+      const { head } = segsOf(v);
+      if (head && head.x > box.x - CLEAR && head.x < box.r + CLEAR &&
+                  head.y > box.y - CLEAR && head.y < box.b + CLEAR)
+        issues.push(`[라벨] ${p.name}: 화살촉 ${CLEAR}px 이내 — 도착점을 가린다`);
+    }
+
+    // 다른 화살표의 선을 덮는가 — 공유 트렁크 위에 얹은 라벨이 주범이다
+    for (const a of arrowsHere) {
+      if (a.name === owner) continue;
+      const { segs } = segsOf(a);
+      if (segs.some(g => box.x < g.r && box.r > g.x && box.y < g.b && box.b > g.y)) {
+        issues.push(`[라벨] ${p.name}: ${a.name} 의 선을 덮음`);
+        break;
+      }
+    }
   }
 }
 
@@ -137,8 +171,13 @@ for (const s of allSecs)
     else if (c.name.includes(ARROW))
       c.name.split(ARROW).map(t => t.trim()).forEach(x => connected.add(x));
   }
-for (const f of frames)
-  if (!f.excluded && !connected.has(f.name))
-    issues.push(`[커버리지] orphan 프레임(흐름에서 빠짐): ${f.name} — ${f.sec}`);
+// 공통 페이지의 canonical 상태 프레임은 화면별 흐름에 안 걸리는 게 정상이다.
+// 그 페이지 전체를 커버리지에서 뺀다 — 설정이 null 이면 이 예외를 적용하지 않는다.
+const COMMON_RE = N.common_page_pattern ? new RegExp(N.common_page_pattern) : null;
+const isCommonPage = !!(COMMON_RE && COMMON_RE.test(figma.currentPage.name));
+if (!isCommonPage)
+  for (const f of frames)
+    if (!f.excluded && !connected.has(f.name))
+      issues.push(`[커버리지] orphan 프레임(흐름에서 빠짐): ${f.name} — ${f.sec}`);
 
 return issues.length ? issues : "FLOW PASS";
