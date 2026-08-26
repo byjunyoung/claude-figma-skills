@@ -23,6 +23,9 @@ TEAM_FILE = {"fig": "figma-conventions.yaml"}
 
 # Files that live as copies across plugins. Let them diverge and one gets fixed while the other ships —
 # during the fig rework the audit code had already split into three copies. Keep the copies, but check they match.
+# Config paths below which the keys are named by the user, not by the schema.
+FREE_KEY_MAPS = ("files.", "qa.environments.")
+
 SHARED = ["_common/scripts/lib/resolve-config.py"]
 
 # Team-value check. **One pattern at a time** — joining several with | tangles the escaping
@@ -112,7 +115,9 @@ def check_plugin(name, root, yaml):
     if team.exists() and known:
         tcfg = yaml.safe_load(team.read_text()) or {}
         for p in leaf_paths(tcfg):
-            if p.startswith("files."):        # per-file overlays take free-form keys
+            # Maps whose keys the user names — a fileKey, an environment name. The schema
+            # declares the map, never its members, so membership cannot be checked here.
+            if any(p.startswith(f) for f in FREE_KEY_MAPS):
                 continue
             if p not in known:
                 fails.append(f"[{name}] key present only in the team config: {p}")

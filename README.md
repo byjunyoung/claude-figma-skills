@@ -17,7 +17,7 @@ claude plugin install pm@byjunyoung      # if you also write specs
 
 Most of what follows is about `fig`. `pm` has [its own section](#pm--product-docs).
 
-[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles) · [pm](#pm--product-docs)
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Getting started](#getting-started) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Design principles](#design-principles) · [pm](#pm--product-docs)
 
 ---
 
@@ -208,19 +208,49 @@ Configuration lives in `pm-conventions.yaml`, layered the same way as `fig`.
 
 ---
 
-## Install
+## Getting started
+
+### Prerequisites
+
+| What | Why |
+|---|---|
+| **Claude Code** | These are Claude Code plugins |
+| **The Figma MCP plugin** (`plugin:figma`) | Every `fig` skill reads and writes Figma through it. Confirm it answers before going further |
+| **A Figma file you already work in** | `/fig:setup` infers conventions by measuring a real file. An empty one has nothing to observe |
+| **`python3` with PyYAML, and `node`** | Config resolution runs on the host, and the audit scripts are syntax-checked with `node --check` |
+| **A Figma personal access token** *(optional)* | Only `/fig:read` needs one, to enumerate every page over the REST API. Without it, it falls back to the MCP and may see only some pages |
+
+`pm` needs none of the Figma side. If you only write specs, install it alone.
+
+### 1. Install
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
-claude plugin install pm@byjunyoung
+claude plugin install pm@byjunyoung      # only if you write specs
 ```
 
-To update both: `claude plugin marketplace update byjunyoung`.
+`claude plugin list` should now show `fig@byjunyoung`. To update later: `claude plugin marketplace update byjunyoung`.
 
-- **Requires** — Claude Code, the Figma MCP plugin (`plugin:figma`), `python3` with PyYAML, `node`
-- **Verify** — `fig@byjunyoung` and `pm@byjunyoung` show up in `claude plugin list`
-- **Then** — run `/fig:setup` in your target file to create a config
+### 2. Let it read your file
+
+```
+/fig:setup <your figma file URL>
+```
+
+Nothing is written to Figma — this step only reads. It counts how the file already names frames, spaces sections, and styles arrows, takes the dominant value as the convention, and **leaves anything it can't settle as `null` rather than guessing.** A thin sample or a split vote produces a `null`, and it asks you about those rather than filling them in.
+
+The draft lands in `~/.claude/figma-conventions.yaml`, which survives uninstalling and reinstalling the plugin. Pass `out: ./figma-conventions.yaml` instead for a project-local one.
+
+Read the line comments before you accept it. They carry the evidence — `24/69 (35%)` means the value turned up in 24 of 69 observations, which is why that one came back `null`.
+
+### 3. Judge the first audit
+
+`/fig:setup` finishes by running `/fig:lint` for you. **Read the result by its false-positive rate, not its violation count.**
+
+If nearly every frame is flagged, the config is wrong and the file is fine — go loosen whichever pattern is doing the flagging, or set it to `null` to switch that check off. A handful of violations that you recognise as real means it's calibrated.
+
+That's setup done. [How you use it](#how-you-use-it) covers the loop from here.
 
 ## Configuration
 
@@ -234,7 +264,7 @@ plugin defaults                       base layer
 ./figma-conventions.yaml              per project (wins)
 ```
 
-The full schema lives in [`conventions.example.yaml`](_common/conventions.example.yaml) — 14 sections, 112 keys, each commented with what it governs, so you can copy it and edit in place. It looks like this:
+The full schema lives in [`conventions.example.yaml`](plugins/fig/_common/conventions.example.yaml) — 14 sections, 112 keys, each commented with what it governs, so you can copy it and edit in place. It looks like this:
 
 ```yaml
 naming:
@@ -263,6 +293,40 @@ arrows:
 - **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
 
 Once you have a draft, run `/fig:lint` once and judge it by the false-positive rate. If nearly everything is flagged, the config is wrong, not the file.
+
+---
+
+## Troubleshooting
+
+**The report says it ran on defaults.**
+Your config isn't being read at all. Run `python3 plugins/fig/_common/scripts/lib/resolve-config.py --where` from your project directory — it prints the files it actually found. Usually it's a filename typo, or the file sitting somewhere other than `~/.claude/`.
+
+**Everything in the file comes back as a violation.**
+The config is wrong, not the file. An over-strict naming pattern does this: one that limits a state suffix to Latin characters flags every non-Latin name in the file. Loosen the pattern, or set it to `null` to switch that check off entirely.
+
+**I changed a skill and nothing changed.**
+An installed plugin is pinned by version at `plugins/cache/<marketplace>/<plugin>/<version>/`. Leave the version in `plugin.json` alone and updating the marketplace still leaves the installed copy running the old code. Bump the version first, then `claude plugin marketplace update`, then uninstall and reinstall.
+
+**`check.sh` gives `Permission denied`.**
+Files shipped through the GitHub Contents API don't carry the executable bit. Call it as `bash <path>` rather than executing it directly.
+
+**A Figma token request comes back 401.**
+401 covers "no token", "expired", and "invalid" alike. `/fig:read` checks whether the environment variable exists before it calls, so a 401 means the value is present and was rejected — reissue the token in Figma's Security tab.
+
+**`/fig:read` only returns some of the pages.**
+That's the MCP fallback rather than the REST path. `get_metadata` with a fileKey alone is bound to the desktop app's open file and viewport. Enumerating every page needs REST, which needs a token.
+
+**`/fig:deck` says there are no assets.**
+Run `/fig:deck-setup` first — it measures your team's slide template into `~/.claude/deck-assets`. The plugin ships no template values at all, because deck backgrounds carry company wordmarks and can't be distributed.
+
+**A deck came out in the wrong font.**
+Your team font isn't installed in this environment. The build probes the candidates in `FAMS` in order and falls back to the next one, which changes the letter-spacing. Install the font, or accept the substitute and re-check where the lines break.
+
+**Reports come out in the wrong language.**
+`meta.language` decides it. `auto` follows whichever language you're talking in; a tag like `ko` or `en` pins it. The skill bodies being in English has no bearing on the output.
+
+**A skill wrote something you didn't expect.**
+Every external write — Figma nodes, a spec page, a branch — goes through a preview and an explicit go. If one happened without that, it's a bug worth [reporting](https://github.com/byjunyoung/claude-product-skills/issues).
 
 ---
 
