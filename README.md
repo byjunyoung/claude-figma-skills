@@ -10,7 +10,7 @@ Claude Code에서 디자인 파일과 기획 문서를 다루는 스킬 묶음 �
 | **pm** | 기획 문서를 양식에 맞춰 쓰고 검증 | 1 |
 
 ```bash
-claude plugin marketplace add byjunyoung/claude-figma-skills
+claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
 claude plugin install pm@byjunyoung      # 기획 문서까지 쓸 때
 ```
@@ -211,7 +211,7 @@ notion     Notion 페이지. prd.notion 절을 채워야 동작
 ## 설치
 
 ```bash
-claude plugin marketplace add byjunyoung/claude-figma-skills
+claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
 claude plugin install pm@byjunyoung
 ```
@@ -320,8 +320,8 @@ Claude Code 스킬(Markdown) + Figma Plugin API(JavaScript) + 설정 해석·집
 
 설치해서 쓰는 것은 자유입니다. 개인이든 팀 안에서든 쓰고, 필요하면 고쳐 써도 됩니다.
 
-포크해서 재배포하거나, 다른 이름으로 다시 배포하거나, 상업적으로 재판매하는 것은 허락이 필요합니다. 정식 오픈소스 라이선스를 붙이지 않은 이유입니다. 문의는 [Issues](https://github.com/byjunyoung/claude-figma-skills/issues)나 링크드인으로 남겨주세요.
+포크해서 재배포하거나, 다른 이름으로 다시 배포하거나, 상업적으로 재판매하는 것은 허락이 필요합니다. 정식 오픈소스 라이선스를 붙이지 않은 이유입니다. 문의는 [Issues](https://github.com/byjunyoung/claude-product-skills/issues)나 링크드인으로 남겨주세요.
 
 ## 피드백
 
-버그 제보나 기능 제안은 [Issues](https://github.com/byjunyoung/claude-figma-skills/issues)에 남겨주세요.
+버그 제보나 기능 제안은 [Issues](https://github.com/byjunyoung/claude-product-skills/issues)에 남겨주세요.
