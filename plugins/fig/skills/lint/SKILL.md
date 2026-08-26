@@ -4,139 +4,134 @@ description: Audits a Figma design page read-only — frame membership and bound
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 
-# fig:lint — 읽기 전용 구조·흐름 검증 (위반 리포트만)
+# fig:lint — read-only structure and flow audit (violations only)
 
-디자인 파일 한 페이지를 받아 **구조(배치)·흐름(화살표)·컴포넌트 사용을 한 번에 검사**하고 위반만 리포트한다. 검출과 수정을 분리하는 Design Lint 방식 — 이 스킬은 **검출만** 하고, 수정은 fig:prep(구조)·fig:arrows(흐름)가 한다.
+Takes one design page and **audits structure (placement), flow (arrows), and component usage in a single pass**, reporting only violations. Detection is separated from repair, the way a design lint should be — this skill **only detects**; fig:prep fixes structure and fig:arrows fixes flow.
 
-**핵심 효용**: 검증 로직의 **단일 출처·단일 게이트**. 어떤 맥락(prep·arrows·폼 복제·수동 편집)에서 캔버스를 건드렸든, 마지막에 이 스킬 하나만 돌리면 빠짐없이 검사된다. 검증이 작업 스킬마다 흩어져 있으면 "지금은 그 스킬이 아니라서 감사를 안 돌렸다"는 사각이 생긴다 — 그 사각을 없애려고 분리했다.
+**Why it exists**: to keep verification logic in **one place behind one gate**. Whatever touched the canvas — prep, arrows, a duplicated form, a manual edit — running this one skill at the end covers all of it. When verification is scattered across the working skills you get a blind spot shaped like "I wasn't using that skill this time, so the audit never ran." Removing that blind spot is the reason it is separate.
 
-**전제**: **쓰기 0.** `use_figma`는 노드 속성을 조회하는 **읽기 전용 스크립트**로만 쓴다(`return`으로 리포트만, 노드 변경 금지). `use_figma` 호출 전 `figma:figma-use` 로드.
+**Prerequisites**: **zero writes.** `use_figma` is used only for **read-only scripts** that inspect node properties — `return` a report, never mutate a node. Load `figma:figma-use` before calling `use_figma`.
 
 ## When to invoke
 
-- "검증해줘", "lint", "규칙 위반 봐줘", "감사 돌려줘" — 단독 호출
-- **fig:prep·fig:arrows의 필수 마지막 게이트** — 프레임 생성·복제·이동·화살표 생성/sync 등 쓰기 직후 항상 이걸로 통과 확인
-- **clone/move가 끼면 반드시** — 페이지 직속·경계 이탈 사고의 주범(격리 스크린샷으론 안 잡힘)
-- **화면을 복제해 새로 지은 직후 반드시** — 복제본이 물고 온 컴포넌트 기본값 잔재는 이 감사로만 잡힌다(눈으로는 계속 빠져나간다)
+- "lint this", "audit the design", "check for rule violations" — on its own
+- **As the mandatory final gate for fig:prep and fig:arrows** — always confirm through this right after creating, duplicating, moving frames, or generating and syncing arrows
+- **Always when clone or move was involved** — the main cause of page-level orphans and out-of-bounds frames, and an isolated screenshot will not catch either
+- **Always right after building a screen by duplicating another** — component default residue carried over by the copy is caught by this audit alone; the eye keeps missing it
 
 ## When NOT to invoke
 
-- 실제 수정·정리·placeholder 채움 → `/fig:prep`
-- 화살표 생성·sync → `/fig:arrows`
-- 토큰(variable) 바인딩 검수 → `/fig:tokens`
-- 작업분이 정본에 반영됐는지 대조·반영 → `/fig:sync`
-- 단순 구조 파악만 → `/fig:read`
+- Actually fixing, tidying, or stubbing placeholders → `/fig:prep`
+- Creating or syncing arrows → `/fig:arrows`
+- Auditing token (variable) bindings → `/fig:tokens`
+- Checking and applying work into the canonical page → `/fig:sync`
+- Just understanding the structure → `/fig:read`
 
 ## Inputs
 
-- `figma_url` (필수): 검사할 페이지 URL. 멀티 페이지면 페이지별로 나눠 병렬 호출한다
-- `scope` (선택): 구조만 / 흐름만 / 컴포넌트만. 생략하면 셋 다 검사한다
-- `reference_page` (선택): 컴포넌트 사용 관례를 뽑을 기존 운영 화면 페이지. 생략하면 같은 파일에서 대상과 같은 컴포넌트를 가장 많이 쓰는 페이지를 고른다
+- `figma_url` (required): the page to audit. For several pages, split the calls per page and run them in parallel
+- `scope` (optional): structure only / flow only / components only. Omitted, all three run
+- `reference_page` (optional): an existing production page to derive component usage conventions from. Omitted, the page in the same file that uses the most of the same components is chosen
 
-## 규칙 원천 — 설정 파일 (fig:prep·fig:sync와 동일 출처)
+## Where the rules come from — the config file (same source as fig:prep and fig:sync)
 
-네이밍 패턴·상태 목록·제외 섹션·허용오차·통계 임계는 **`figma-conventions.yaml`** 이 단일 출처다. 스킬 본문에 값을 적지 않는다.
+Naming patterns, the state list, excluded sections, tolerances, and statistical thresholds all come from **`figma-conventions.yaml`**, which is the single source. No values are written into this document.
 
 ```
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --js <fileKey>
 ```
 
-탐색 순서는 `./figma-conventions.yaml` → `~/.claude/figma-conventions.yaml` → `_common/conventions.example.yaml`(내장 기본값)이다. 내장 기본값으로 떨어지면 **리포트에 "기본값으로 진행"을 명시**한다.
+The layers merge bottom-up: bundled defaults → `~/.claude/figma-conventions.yaml` → `./figma-conventions.yaml`. If it ran on bundled defaults alone, **say so in the report**.
 
-- **패턴이 `null` 이면 그 검사를 건너뛴다.** 규약 없는 파일에서 전건을 오탐으로 올리지 않기 위한 것이다 — "규약을 모르는 것"과 "규약을 어긴 것"은 다르다
-- 설정이 아예 없는 낯선 파일이면 `/fig:setup` 으로 관례를 역추출해 초안을 만든 뒤 돌린다
-- 팀 가이드 문서가 따로 있으면 `guide_source` 에 적는다. **매 실행 fetch 하지 않는다** — 최초 1회 흡수해 설정을 채우는 입력일 뿐이다
+- **A `null` pattern means that check is skipped.** This is what keeps a file with no convention from having every frame reported — "not knowing the rule" and "breaking the rule" are different things
+- On an unfamiliar file with no config at all, run `/fig:setup` first to infer the conventions and draft one
+- If the team keeps a written guide, point `guide_source` at it. **It is not fetched on every run** — it is an input absorbed once to help fill the config
 
-**설정과 무관하게 항상 검사하는 것**: 프레임 소속·경계 이탈·섹션 겹침·화살표 수치·관통·orphan. 좌표와 부모는 규약이 아니라 기하의 문제라 규약이 없어도 참이다.
+**Checked regardless of config**: frame membership, out-of-bounds frames, section overlap, arrow geometry, pass-through, orphans. Coordinates and parentage are geometry, not convention, so they hold true with or without a written rule.
 
-## 검사 항목
+## What it checks
 
-### A. 구조 (배치) — fig:prep 영역
+### A. Structure (placement) — fig:prep's territory
 
-| 항목 | 기준 | 사고 빈도 |
+| Item | Basis | Frequency |
 |---|---|---|
-| **프레임 소속** | 화면 프레임의 `parent.type === "SECTION"` (엄격 페이지). **페이지 직속 = 흡수 누락** — `clone()`·`createFrame`은 기본 부모가 currentPage라 흡수 안 하면 여기로 샌다 | ★ 높음 |
-| **프레임 경계 이탈** | 프레임이 자기 섹션 bbox를 벗어남. 섹션 상대좌표 자리에 절대좌표를 박은 게 주원인 — 페이지 직속이 된 프레임이 엉뚱한 절대좌표로 튀어나오는 형태 | ★ 높음 |
-| **프레임 겹침** | 같은 섹션 내 화면 프레임끼리 bbox 교차(변형 스택의 의도된 인접 제외) | 중 |
-| 섹션 겹침 | 섹션 사각형끼리 가로·세로 동시 교차 — 명백한 위반. placeholder로 섹션을 늘려 옆/아래 행 침범이 주원인 | 중 |
-| 네이밍 위반 | 설정 `naming.frame_pattern`·`naming.section_pattern` 불일치 (`null` 이면 검사 안 함) | 낮 |
-| 순번 어긋남 | 섹션 `NN.` 순번이 캔버스 배열(행 우선)과 불일치 | 낮 |
-| 필수 상태 누락 ✋ | 설정 `naming.required_states` 대비 `[화면명]` 그룹별 누락 — **단 그 상태가 공통 페이지로 관리되고 화면 Default에 공통 참조 주석이 있으면 누락 아님**(fig:prep "공통 반복 요소") | 낮 |
-| 상태 변형 분리 | 같은 `[화면명]` 상태 변형이 한 열에서 다른 프레임에 끊김(부모와 변형 사이 전환 결과가 끼어 `[state]` 점선이 관통) | 중 |
+| **Frame membership** | A screen frame's `parent.type === "SECTION"` on strict pages. **Sitting directly on the page means the absorb step was missed** — `clone()` and `createFrame` default their parent to currentPage, so anything not absorbed leaks out here | ★ high |
+| **Out of bounds** | A frame outside its own section's bbox. Usually an absolute coordinate written where a section-relative one belongs — a frame that became page-level and shot off to a stray absolute position | ★ high |
+| **Frame overlap** | Screen frames within one section whose bboxes intersect (excluding the deliberate adjacency of a variant stack) | medium |
+| Section overlap | Section rectangles intersecting horizontally and vertically at once — an unambiguous violation. Usually a section stretched to fit a placeholder that then invades the row beside or below | medium |
+| Naming violation | Mismatch against `naming.frame_pattern` / `naming.section_pattern` (skipped when `null`) | low |
+| Ordering mismatch | A section's `NN.` number disagreeing with its position on the canvas (row-major) | low |
+| Missing required state ✋ | Missing states per `[screen]` group against `naming.required_states` — **unless that state is managed on a common page and the screen's Default carries a reference annotation to it** (see fig:prep, "repeated common elements") | low |
+| Split state variants | Variants of one `[screen]` broken apart in a column by an unrelated frame wedged between parent and variant, so the `[state]` dashed line passes through it | medium |
 
-### B. 흐름 (화살표) — fig:arrows 영역
+### B. Flow (arrows) — fig:arrows's territory
 
-| 항목 | 기준 |
+| Item | Basis |
 |---|---|
-| 전환 화살표 수치 | 시작점이 출발 변 위 `arrows.audit.edge_tolerance` 이내 / 화살촉이 도착 변에서 `arrows.audit.gap_range` 안 / **마지막 세그먼트가 도착 변에 수직(화살촉 정방향 진입)** / 어느 세그먼트도 무관 프레임 비관통 / 출발·도착 프레임 존재(orphan) |
-| 라벨 | pill이 자기 화살표보다 z순서 위 / 화살촉을 `arrows.audit.label_clear` 밖으로 회피 / 타 화살표 세그먼트 안 덮음 |
-| 커버리지 orphan | 모든 화면 프레임이 `-->`나 `[state]`에 최소 1회 등장 (orphan 0) |
-| `[state]` 점선 | 2-vertex 수직(엘보 금지) / 이름 순서 위→아래 / 끝점이 from 하변·to 상변에서 `arrows.audit.edge_tolerance` 이내 / 두 끝점 사이 다른 프레임 비관통 |
+| Transition arrow geometry | Start point within `arrows.audit.edge_tolerance` of the source edge / arrowhead within `arrows.audit.gap_range` of the target edge / **the final segment perpendicular to the target edge, so the head enters head-on** / no segment passing through an unrelated frame / both source and target frames exist (orphan) |
+| Labels | The pill above its own arrow in z-order / clearing the arrowhead by more than `arrows.audit.label_clear` / not covering another arrow's segment |
+| Coverage orphans | Every screen frame appears at least once in a `-->` or a `[state]` (zero orphans) |
+| `[state]` dashed lines | Two vertices, vertical, no elbows / name order top to bottom / endpoints within `arrows.audit.edge_tolerance` of the source's bottom edge and the target's top edge / no other frame between them |
 
-### C. 컴포넌트 사용 (기본값 잔재) — fig:prep 영역
+### C. Component usage (default residue) — fig:prep's territory
 
-새로 만들거나 복제한 인스턴스는 **컴포넌트 기본값을 그대로 물고 온다.** 라이브러리에서 켜져 있는 표시 토글(아이콘 슬롯·부가 영역·캡션 등)은 그 화면에서 쓰지 않아도 켜진 채 남아, 내용 없는 빈 자리가 렌더된다. 축소된 스크린샷에서는 잘 안 보여 눈검사로는 계속 빠져나가는 — **수치 감사로만 잡히는 항목**이다.
+An instance that was newly placed or duplicated **carries the component's defaults with it.** A display toggle that is on in the library — an icon slot, a supplementary area, a caption — stays on even where that screen does not use it, and renders an empty slot with nothing in it. At zoomed-out scale it is barely visible, so eye inspection keeps letting it through. **This is caught by measurement alone.**
 
-| 항목 | 기준 | 사고 빈도 |
+| Item | Basis | Frequency |
 |---|---|---|
-| **불리언 기본값 이탈** | 작업 페이지 인스턴스의 boolean 속성 값이, 같은 파일 기존 운영 화면에서 그 컴포넌트가 쓰는 **관례값과 다름** | ★ 높음 |
-| 빈 표시 토글 | 위와 같은 축 — 표시만 켜지고 내용이 비어 있는 슬롯·캡션·부가 영역 | 중 |
+| **Boolean default deviation** | An instance's boolean property on the working page differing from **the convention that same component follows on existing production screens in the same file** | ★ high |
+| Empty display toggle | Same axis — a slot, caption, or supplementary area switched on with nothing in it | medium |
 
-판정 기준은 규칙 문서가 아니라 **같은 파일의 실사용 관례**다(기존 자산 우선 원칙과 같은 축). 운영 화면에서도 값이 갈리는 속성은 위반이 아니라 **용도별 선택**이므로 보고하지 않는다 — 한쪽으로 압도적으로 쏠린 속성만 이탈로 본다. 임계는 설정 `component_audit.min_samples`·`dominance`.
+The basis is not a written rule but **how the same file actually uses the component** — the same principle as preferring existing assets. A property whose value also varies across production screens is a per-use choice, not a violation, and is not reported; only properties overwhelmingly settled one way count as deviation. The thresholds are `component_audit.min_samples` and `dominance`.
 
-### ✋ 표시 — 스크립트가 하지 않는 검사
+### The ✋ mark — a check the script does not do
 
-위 표에서 `✋` 가 붙은 **필수 상태 누락**은 감사 스크립트가 하지 않는다. 못 하는 게 아니라 **할 일이 아니다** —
-어느 상태가 필수인지는 그 화면이 목록인지 폼인지 검색인지에 달렸고, 그 판정은 화면 내용을 읽어야 나온다.
-정규식으로 흉내 내면 "이름에 목록이 들어가면 목록 화면"류가 되어 오탐만 는다.
+**Missing required state**, marked `✋` above, is not done by the audit script. Not because it can't be, but because **it shouldn't be** — which states are required depends on whether the screen is a list, a form, or a search, and that call requires reading the screen's content. Faking it with a regex produces "if the name contains 'list' it's a list screen", which only adds false positives.
 
-그래서 이 항목은 **에이전트가 3단계에서 직접 판정한다.** 대상 화면을 스크린샷으로 읽어 유형을 정하고,
-설정 `naming.required_states` 의 해당 목록과 대조해 빠진 상태를 리포트에 따로 적는다.
-유형이 애매하면 단정하지 말고 "유형 불명"으로 남긴다.
+So this item is **judged by the agent, in step 3.** Read the target screen as a screenshot, settle its type, compare against the matching list in `naming.required_states`, and write the missing states into the report separately. If the type is ambiguous, do not decide — record it as "type unclear".
 
-리포트에는 **스크립트가 낸 위반과 이 판정을 구분해서** 적는다 — 근거의 성격이 다르다.
-
+Keep **the script's violations and this judgement separate** in the report. They rest on different kinds of evidence.
 
 ## Procedure
 
-1. **대상 페이지 확정 + 설정 해석.** URL 에서 fileKey·페이지를 특정하고 `resolve-config.py --js <fileKey>` 로 `CFG` 를 얻는다. 멀티 페이지면 페이지별로 나눠 **병렬 호출**(각 스크립트 `setCurrentPageAsync` 1회씩 — figma-use 규칙).
-2. **읽기 전용 감사 실행** — 아래 실행 절의 스크립트(A 구조 / B 흐름 / C 컴포넌트)를 돌려 위반 수집. 노드 변경 0. C는 참조 페이지에서 관례를 뽑고(C-1) 작업 페이지와 대조하는(C-2) 2단계다 — 페이지가 다르니 호출도 나눈다.
-3. **필수 상태 판정(✋)·2차 시각 확인** — 화면 스크린샷으로 유형(목록·폼·검색)을 정하고 `naming.required_states` 와 대조해 빠진 상태를 추린다. 이어서 위반이 의심되거나 clone/move가 있었으면 **섹션 노드 전체 스크린샷**(프레임 격리 X)으로 재확인. 격리 스크린샷은 부모·위치 오류를 못 잡으니 PASS 판정 근거로 쓰지 않는다.
-4. **리포트** — 카테고리별 위반 노드 목록 + 한 줄 사유 + **어느 스킬로 고칠지**(구조→fig:prep / 흐름→fig:arrows). 위반 0이면 `PASS`.
+1. **Settle the target page and resolve the config.** Take fileKey and page from the URL and get `CFG` via `resolve-config.py --js <fileKey>`. For several pages, split per page and **call in parallel** — one `setCurrentPageAsync` per script, per the figma-use rule.
+2. **Run the read-only audits** — the scripts below (A structure / B flow / C components) and collect violations. Zero node changes. C is two stages: derive conventions from a reference page (C-1), then compare against the working page (C-2). Different pages, so different calls.
+3. **Judge required states (✋) and do the second visual pass** — settle the screen type (list, form, search) from a screenshot and compare against `naming.required_states`. Then, if a violation is suspected or clone/move was involved, confirm with **a screenshot of the whole section node**, not an isolated frame. Isolated renders cannot catch parent or position errors, so they are never grounds for a PASS.
+4. **Report** — violating nodes by category, a one-line reason each, and **which skill fixes it** (structure → fig:prep, flow → fig:arrows). Zero violations is `PASS`.
 
-## 실행
+## Running it
 
-감사 코드는 `${CLAUDE_PLUGIN_ROOT}/_common/scripts/` 에 있다. 이 문서에 스니펫을 복사해 두지 않는다 — 두 벌이 되면 한쪽만 고쳐져 갈라진다.
+The audit code lives in `${CLAUDE_PLUGIN_ROOT}/_common/scripts/`. Snippets are not copied into this document — two copies means one gets fixed and they drift apart.
 
 ```
-${CLAUDE_PLUGIN_ROOT}/_common/scripts/audit-struct.js       A. 구조
-${CLAUDE_PLUGIN_ROOT}/_common/scripts/audit-flow.js         B. 흐름
-${CLAUDE_PLUGIN_ROOT}/_common/scripts/audit-component.js    C. 컴포넌트 (MODE=collect / compare)
+${CLAUDE_PLUGIN_ROOT}/_common/scripts/audit-struct.js       A. structure
+${CLAUDE_PLUGIN_ROOT}/_common/scripts/audit-flow.js         B. flow
+${CLAUDE_PLUGIN_ROOT}/_common/scripts/audit-component.js    C. components (MODE=collect / compare)
 ```
 
-호출 절차는 셋 다 같다.
+All three are called the same way.
 
-1. `resolve-config.py --js <fileKey>` 로 `const CFG = {...};` 한 줄을 얻는다
-2. 그 줄 + 스크립트 전문을 이어 붙여 `use_figma` 에 넣는다. 대상 페이지가 첫 페이지가 아니면 맨 앞에 `setCurrentPageAsync` 한 줄을 더 붙인다 (스크립트당 1회)
-3. 반환값이 위반 배열이거나 `STRUCT PASS` · `FLOW PASS` · `COMPONENT PASS`
+1. Get the single `const CFG = {...};` line from `resolve-config.py --js <fileKey>`
+2. Concatenate that line and the whole script, and hand it to `use_figma`. If the target page is not the first page, prepend one `setCurrentPageAsync` line (once per script)
+3. The return value is either an array of violations or `STRUCT PASS` · `FLOW PASS` · `COMPONENT PASS`
 
-멀티 페이지는 페이지별로 호출을 나눠 **한 메시지에서 병렬로** 띄운다. 한 스크립트가 페이지를 두 번 바꾸지 않는다.
+For several pages, split the calls per page and **issue them in one message so they run in parallel**. One script never switches pages twice.
 
-**C 는 2단계고 호출이 나뉜다.** `MODE="collect"` 로 참조 페이지에서 STAT 을 뽑고, `MODE="compare"` 로 작업 페이지와 대조한다. 참조 한 페이지로 표본이 안 차면 폼이 많은 페이지와 목록이 많은 페이지 둘을 뽑아 STAT 을 합산한다.
+**C is two stages and its calls are split.** `MODE="collect"` derives STAT from the reference page; `MODE="compare"` checks the working page against it. If one reference page does not yield enough samples, take one form-heavy page and one list-heavy page and sum their STAT.
 
-스크립트를 고쳤으면 `scripts/lib/check.sh` 로 문법을 확인한다. `use_figma` 는 스크립트를 async 함수로 감싸 실행해서 top-level `await` 와 `return` 이 둘 다 되는데, `node --check` 만으로는 그 조합을 검사할 수 없다 — check.sh 가 같은 방식으로 감싼 뒤 돌린다.
+After editing a script, check its syntax with `scripts/lib/check.sh`. `use_figma` wraps scripts in an async function, so top-level `await` and `return` are both legal — a combination `node --check` alone cannot accept. check.sh wraps them the same way before checking.
 
 ## Constraints
 
-- **컴포넌트 기본값 검사(C)를 눈검사로 대체하지 않는다** — 빈 아이콘 슬롯·빈 부가 영역은 축소 스크린샷에서 안 보인다. 화면을 복제해 짓거나 필드를 복제한 뒤에는 항상 C를 돌린다. 검출분 수정은 fig:prep에서 **'조건에 맞는 첫 매치만 처리 → 재조회' while 루프**로(인스턴스 속성을 바꾸면 형제 핸들이 무효화된다)
-- **쓰기 0** — `use_figma`는 read-only(`return`만). 노드를 만들거나 바꾸지 않는다. 수정이 필요하면 별도 go로 fig:prep/fig:arrows
-- **격리 스크린샷만으로 PASS 판정 금지** — 메타데이터 수치 감사가 1차, 섹션 노드 전체 스크린샷이 2차. 프레임 단독 렌더는 부모·캔버스 위치 오류를 못 잡는다
-- 규약 의존 검사(네이밍 등)는 설정에 패턴이 있을 때만 단정한다. `null` 이면 그 검사를 건너뛰고, 내장 기본값으로 돌았으면 리포트에 그 사실을 적는다
-- **제외 섹션은 세 갈래로 다르게 취급한다** — 감사 대상에서 빼고, 커버리지에서도 빼되, **관통 대상에는 남긴다.** 선이 실제로 그 위를 지나면 제외 섹션이든 아니든 깨진 선이다. 대상 목록은 설정 `pages.exclude_sections`
-- 프레임 이름이 중복되면 이름 조회가 하나만 잡는다. `[중복이름]` 으로 먼저 보고하고 섹션 한정으로 좁혀 재실행한다
-- **공통 페이지로 관리되는 상태는 화면별 누락·orphan 으로 보지 않는다**(fig:prep "공통 반복 요소") — (1) Default 에 공통 페이지 참조 주석(annotation)이 달린 화면은 그 공통 상태가 커버된 것으로 본다, (2) 설정 `naming.common_page_pattern` 에 걸리는 페이지의 canonical 상태 프레임은 화면별 흐름에 안 걸리는 게 정상이라 커버리지 대상에서 뺀다. 설정이 `null` 이면 이 예외를 적용하지 않는다
+- **Never substitute eye inspection for the component default check (C)** — empty icon slots and empty supplementary areas are invisible at zoomed-out scale. Always run C after building a screen by duplication, or after duplicating a field. Repairs go through fig:prep as a **"handle the first match, then re-query" while loop** — changing an instance property invalidates sibling handles
+- **Zero writes** — `use_figma` is read-only (`return` only). Never create or change a node. Repairs go to fig:prep or fig:arrows behind their own go
+- **Never PASS on an isolated screenshot alone** — measured metadata is the first pass, a whole-section screenshot the second. A frame rendered by itself cannot show a parent or canvas-position error
+- Convention-dependent checks (naming and the like) are only decided when the config has a pattern. On `null`, skip the check; if it ran on bundled defaults, say so in the report
+- **Excluded sections are treated three different ways** — dropped from the audit, dropped from coverage, but **kept as pass-through targets.** If a line actually crosses one, it is a broken line whether the section is excluded or not. The list is `pages.exclude_sections`
+- Duplicate frame names make a name lookup return only one of them. Report `[duplicate name]` first, then narrow to a single section and re-run
+- **States managed on a common page are not counted as per-screen omissions or orphans** (see fig:prep, "repeated common elements") — (1) a screen whose Default carries a reference annotation to the common page counts that state as covered, (2) canonical state frames on a page matching `naming.common_page_pattern` are expected not to appear in per-screen flow, so they are dropped from coverage. If the setting is `null`, this exception does not apply
 
 ## Notes
 
-- fig:prep·fig:arrows 에는 감사 코드가 없다. 두 스킬은 쓰기 직후 이 스킬을 게이트로 호출하고, 검출된 위반을 **고치는 쪽**만 맡는다
-- 이 스킬은 "무엇이 틀렸나"만 본다 — "왜 그렇게 배치·연결해야 하나"의 근거는 fig:prep·fig:arrows 와 설정 파일 주석에 있다
+- fig:prep and fig:arrows contain no audit code. They call this skill as a gate right after writing, and handle only **the repair side** of what it finds
+- This skill only answers "what is wrong". The reasoning for "why it should be placed or connected that way" lives in fig:prep, fig:arrows, and the comments in the config file

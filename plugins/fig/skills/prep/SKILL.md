@@ -4,189 +4,189 @@ description: Prepares a Figma design page before the real work — normalizing f
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 
-# fig:prep — 페이지 준비 (정리·섹션화·누락 케이스 placeholder)
+# fig:prep — prepare the page (tidy, section, stub missing cases)
 
-요리의 *mise en place*처럼, 본 디자인·화살표 작업 전에 프레임이라는 재료를 전부 썰어 제자리에 갖춰두는 단계다.
+Like *mise en place* in a kitchen: before the design work and the arrows, every ingredient — every frame — gets cut and put where it belongs.
 
-디자인 파일의 한 페이지를 받아 (1) 프레임 이름을 규칙에 맞게 통일하고, (2) 기능 단위 Section으로 묶어 배치하고, (3) 각 화면의 실제 내용을 읽어 빠진 케이스를 placeholder 프레임으로 채운다. 정리가 끝난 페이지는 `/fig:arrows`로 흐름 화살표를 잇는 것까지가 한 세트다.
+Takes one page of a design file and (1) normalizes frame names to the convention, (2) groups them into feature-level sections and lays them out, and (3) reads what is actually on each screen to find missing cases and stub them as placeholder frames. A tidied page is only half done — connecting the flow with `/fig:arrows` completes the set.
 
-**전제**: `use_figma` 호출 전 반드시 `figma:figma-use` 스킬을 먼저 로드한다.
+**Prerequisites**: always load the `figma:figma-use` skill before calling `use_figma`.
 
 ## When to invoke
 
-- "이 페이지 가이드대로 정리해줘", "프레임 네이밍/섹션 정리"
-- "빠진 상태 케이스 placeholder로 채워줘"
-- 새 도메인 화면 설계 시작 전, 페이지 골격(섹션+placeholder)을 먼저 깔 때
+- "tidy this page to the convention", "fix the frame naming and sections"
+- "stub the missing states as placeholders"
+- Laying down the skeleton — sections plus placeholders — before designing a new domain's screens
 
 ## When NOT to invoke
 
-- 흐름 화살표 생성·sync → `/fig:arrows`
-- 규칙 위반 검증만(쓰기 0) → `/fig:lint`
-- 작업분이 정본에 반영됐는지 감사·반영 → `/fig:sync`
-- 화면 자체의 디자인 생성 → `figma:figma-generate-design`
-- 파일 전체 구조 파악만 → `/fig:read`
+- Creating or syncing flow arrows → `/fig:arrows`
+- Checking for violations only, zero writes → `/fig:lint`
+- Auditing and applying work into the canonical page → `/fig:sync`
+- Designing the screens themselves → `figma:figma-generate-design`
+- Just understanding the file structure → `/fig:read`
 
 ## Inputs
 
-- `figma_url` (필수): 정리할 페이지 URL. 페이지 prefix를 보고 적용 엄격도를 정한다
-- `mode` (선택): 정리 실행. 생략하면 `/fig:lint` 로 현황을 먼저 파악해 정리안을 제안한다
+- `figma_url` (required): the page to tidy. Its name decides how strictly the rules apply
+- `mode` (optional): run the tidy. Omitted, `/fig:lint` runs first to establish the current state and a plan is proposed from it
 
-## 규칙 원천 — 설정 파일 (fig:lint·fig:sync와 동일 출처)
+## Where the rules come from — the config file (same source as fig:lint and fig:sync)
 
-규칙은 스킬 문서가 아니라 **`figma-conventions.yaml`** 이 정한다. 본문에 값을 적지 않는다.
+The rules are set by **`figma-conventions.yaml`**, not by this document. No values are written here.
 
 ```
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --js <fileKey>
 ```
 
-읽어 쓰는 절 — `naming`(프레임·섹션 패턴, 상태 접미사, 화면 유형별 필수 상태) · `layout`(간격 토큰·열 그리드·행 버킷) · `section_style` · `placeholder_style` · `pages`(엄격도·제외 섹션·보호 번호대).
+Sections read: `naming` (frame and section patterns, state suffixes, required states per screen type) · `layout` (spacing tokens, column grid, row bucket) · `section_style` · `placeholder_style` · `pages` (strictness, excluded sections, protected numbers).
 
-- **대상 페이지의 이름으로 엄격도를 정한다.** `pages.readonly` 에 걸리면 작업을 거부하고 보고한다. `pages.free` 면 최소 규칙(프레임 네이밍)만 적용하고 섹션화·배치는 건드리지 않는다. `pages.strict` 여야 전 단계를 적용한다
-- 어느 목록에도 안 걸리는 페이지는 **엄격으로 올리지 말고 사용자에게 묻는다** — 규약을 모르는 것과 규약이 없는 것은 다르다
-- 설정이 없는 낯선 파일이면 `/fig:setup` 으로 관례를 역추출해 초안을 만든 뒤 시작한다
-- 팀 가이드 문서가 따로 있으면 설정 `guide_source` 에 적는다. **매 실행 fetch 하지 않는다** — 최초 1회 흡수용 입력이다
+- **Strictness comes from the target page's name.** A match in `pages.readonly` means refuse the work and say so. On `pages.free`, apply the minimum — frame naming — and leave sectioning and layout alone. Only `pages.strict` gets the full treatment
+- A page matching none of the lists is **not promoted to strict; ask the user** — not knowing the convention and there being no convention are different things
+- On an unfamiliar file with no config, run `/fig:setup` first to infer the conventions and draft one
+- If the team keeps a written guide, point `guide_source` at it. **It is not fetched on every run** — it is an input absorbed once
 
-## 핵심 컨벤션 (설정이 정하는 것과 이 스킬이 아는 것)
+## Core conventions (what the config sets, and what this skill knows)
 
-값은 설정에 있고, 아래는 **그 값을 어떻게 쓰는지**의 판단이다.
+The values live in the config. What follows is the judgement about **how to use them**.
 
-| 항목 | 규칙 |
+| Item | Rule |
 |---|---|
-| 프레임 이름 | `naming.frame` 형태 (예: `로그인-Default`, `로그인-ErrorModal`, `상품목록-Empty`) |
-| Section 단위 | **기능 기준** — 도메인×기능으로 균일하게. UI 패턴(페이지냐 모달이냐)으로 가르지 않는다 |
-| 분류 축 통일 | 한 Page 안에서 섹션 분리 기준은 하나로 — A 도메인은 기능별로 쪼개고 B 도메인은 통으로 두는 식의 혼용 금지 |
-| Section 이름 | `naming.section` 형태. 번호 순서 = 사용자 흐름 순서 |
-| Section 스타일 | `section_style` 그대로. **색을 구분 용도로 바꾸지 않는다** — 모든 섹션 동일 스타일 |
-| 배치 (섹션 내) | **플로우 우선**: 1행 = 해피패스(시작 화면 → 진행 단계 → 완료 피드백, 좌→우, `layout.column_grid` 열 그리드). 분기 화면(모달·다이얼로그)과 그 후속은 출발 화면 아래 행에 좌→우로, 오버레이의 상태 변형은 그 오버레이 바로 아래. 풀페이지 화면의 상태 변형과 형제 타입 화면은 섹션 하단 **변형 존**으로(`layout.section_gap_same_row` 만큼 띄워 구분). 목록 화면의 상태 스택(단일 열)은 그 자체가 변형 존. **상태 변형 연속 스택(필수): 같은 `[화면명]`의 상태 변형은 한 열에 끊김 없이 연속으로 쌓고, 부모 화면과 그 상태 변형 사이에 다른 화면(전환 결과 모달·다이얼로그 등)을 끼우지 않는다.** 상태 변형 자리(부모 바로 아래)와 분기 후속 자리(출발 화면 아래 행)가 충돌하면 **상태 변형을 우선해 바로 아래 연속**으로 두고 분기 후속은 옆 열·다음 줄로 민다 — `[state]` 점선이 직선이라 사이에 프레임이 끼면 관통하기 때문(/fig:arrows 상태 체인과 연동). 화살표가 가로=진행·세로=분기로 짧게 흐르는 게 목적이다. 배치가 화살표와 싸우면 배치를 고친다 |
-| 배치 (섹션 간) | **도메인 행**: 같은 도메인 섹션을 가로 한 행으로(좌→우 = 기능 순번), 도메인이 바뀌면 아래 새 행. 순번 = 행 우선. 행 상단 y 정렬. 간격은 `layout.section_gap_same_row`·`layout.domain_row_gap` |
-| 제외 대상 | `pages.exclude_sections` 에 걸리는 섹션과 `pages.protected_numbers` 번호대는 **모든 단계에서 건드리지 않는다** |
+| Frame names | The `naming.frame` shape, e.g. `Login-Default`, `Login-ErrorModal`, `ProductList-Empty` |
+| Section unit | **By feature** — domain × feature, uniformly. Never split by UI pattern (page versus modal) |
+| One axis per page | Within a page, sections are split on one basis only. Splitting domain A by feature while leaving domain B whole is not allowed |
+| Section names | The `naming.section` shape. Number order equals user-flow order |
+| Section style | `section_style` verbatim. **Never change the color to mean something** — every section looks identical |
+| Layout (within a section) | **Flow first**: row 1 is the happy path (entry screen → steps → completion feedback), left to right on the `layout.column_grid` pitch. Branch screens (modals, dialogs) and what follows them go on the row below their source, left to right, with an overlay's state variants directly beneath that overlay. State variants of full-page screens, and sibling-type screens, go in a **variant zone** at the bottom of the section, separated by `layout.section_gap_same_row`. A list screen's single-column state stack is itself a variant zone. **Continuous variant stacking (required): variants of one `[screen]` stack in one column with no gaps, and no other screen — a transition-result modal or dialog — is wedged between a parent and its variants.** When the variant slot (directly below the parent) collides with the branch-follow slot (the row below the source), **variants win and stay directly beneath, continuous**, and the branch-follow moves to the next column or row. The `[state]` dashed line is straight, so anything in between gets passed through (this pairs with the state chains in /fig:arrows). The goal is arrows that run short — horizontal for progress, vertical for branching. When layout fights the arrows, fix the layout |
+| Layout (between sections) | **Domain rows**: sections of one domain across a single row, left to right in feature order; a new domain starts a new row below. Numbering is row-major. Row tops align. Gaps are `layout.section_gap_same_row` and `layout.domain_row_gap` |
+| Never touched | Sections matching `pages.exclude_sections` and number bands in `pages.protected_numbers` are **left alone at every step** |
 
-## 공통 반복 요소 — 화면별 placeholder 대신 공통 페이지 + Default 주석
+## Repeated common elements — a common page plus a Default annotation, not per-screen placeholders
 
-여러 화면에서 **같은 모습으로 반복되는 상태·요소**(범용 Empty·Error·Loading, 공통 빈 결과·공통 에러·공통 토스트/다이얼로그 등)는 화면마다 placeholder 프레임을 만들지 않는다. 같은 패턴을 화면 수만큼 복제하면 단일 출처가 사라지고, 한 번 바뀌면 전부 손봐야 한다. 대신 단일 출처로 모은다:
+States and elements that **repeat identically across many screens** — generic Empty, Error, Loading, a shared empty-result, a shared error, a shared toast or dialog — do not get a placeholder frame on every screen. Copying one pattern as many times as there are screens destroys the single source, and one change then means touching all of them. Instead, gather them:
 
-1. **전용 공통 페이지에 canonical 한 벌** — 설정 `naming.common_page_pattern` 이 가리키는 페이지에 그 상태를 1세트만 둔다(접두사는 `naming.common_frame_prefix`). 이게 반복 패턴의 단일 출처. **기존 재사용 자산을 먼저 찾아 쓴다**(디자인시스템의 spinner·feedback 컴포넌트 등) — 없을 때만 새로 만든다.
-2. **각 화면은 placeholder 대신 Default에 주석** — 화면별로 빈/오류/로딩 프레임을 만들지 않고, 그 화면의 Default 프레임에 **Dev Mode 주석(annotation)**으로 공통 페이지를 참조한다. 주석은 클릭 점프되게 마크다운 링크로 단다(프리앰블 `commonRef`). 레이아웃을 침범하지 않으면서 "이 화면의 빈/오류/로딩 = 공통 참조"가 핸드오프에 남는다.
-3. **이미 흩어진 placeholder가 있으면 제거 후 전환** — 화면별로 만들어둔 공통-성격 placeholder 프레임은 삭제하고, 거기 걸린 `[state]`·`-->` 화살표 중 삭제 대상을 가리키던 것도 함께 정리(끊긴 흐름은 `/fig:arrows`로 재연결). **삭제 전 그 화면에 별도 Default 원본이 있는지 확인**(유일본 삭제 방지) → 미리보기 → go.
+1. **One canonical copy on a dedicated common page** — put a single set of those states on the page `naming.common_page_pattern` points at, prefixed with `naming.common_frame_prefix`. That is the single source for the repeated pattern. **Look for an existing reusable asset first** (a design system spinner or feedback component) and only build one when there is none.
+2. **Each screen gets an annotation on its Default, not a placeholder** — instead of empty/error/loading frames per screen, put a **Dev Mode annotation** on that screen's Default frame referencing the common page. Write it as a markdown link so it jumps on click (the `commonRef` helper). Nothing invades the layout, and "this screen's empty/error/loading is the common one" survives into handoff.
+3. **If placeholders are already scattered, remove them and convert** — delete the common-natured placeholder frames built per screen, and tidy the `[state]` and `-->` arrows that pointed at what was deleted (reconnect broken flows with `/fig:arrows`). **Before deleting, confirm that screen has its own separate Default** so the only copy is never destroyed → preview → go.
 
-**판단 — 공통이냐 화면 고유냐:** 그 상태가 *다수 화면에 같은 모습*으로 반복되면 공통 페이지로, *그 화면 고유*의 빈 문구·고유 에러·고유 인터랙션 결과면 종전대로 화면별 placeholder 유지(4단계). 애매하면 범위를 사용자에게 묻는다 — 화면 고유 상태까지 공통으로 몰지 않는다. **이미 설계가 채워진 실제 화면은 placeholder가 아니므로 삭제·주석 대상이 아니다**(이름에 `-Empty` 등이 붙어 있어도 내용이 설계돼 있으면 제외하고 보고).
+**Deciding common versus screen-specific:** if the state repeats *identically across many screens*, it goes on the common page. If it is *that screen's own* empty message, its own error, its own interaction result, it stays a per-screen placeholder (step 4). When it is ambiguous, ask about scope — do not sweep screen-specific states into the common pile. **A real screen that has already been designed is not a placeholder**, so it is neither deleted nor annotated, even if its name ends in `-Empty`; exclude it and say so.
 
-공통 페이지의 canonical 상태 프레임은 placeholder와 같은 식별 스타일(점선 테두리·`Placeholder —`/`TBD`)로 두되, 디자인이 채워지면 그 한 곳만 갱신하면 모든 참조 화면에 반영된 것으로 본다.
+Canonical state frames on the common page carry the same identifying style as placeholders (dashed border, `Placeholder —` / `TBD`). Once the design is filled in, updating that one place counts as updating every screen that references it.
 
-## 제약: 로컬 폰트와 reparent — group+ungroup 우회 (2026-06-05 확인)
+## Constraint: local fonts and reparenting — the group+ungroup workaround (confirmed 2026-06-05)
 
-기존 프레임에 로컬 폰트(클라우드 미동기화) 텍스트가 있으면 `appendChild`/`insertChild`로 **섹션 안에 넣을 수 없다** — 폰트 로드 실패로 스크립트가 통째로 거부된다(원자적이라 파일 변경은 없음). `loadFontAsync`도 로컬 폰트는 실패한다.
+If an existing frame contains text in a local font that is not synced to the cloud, `appendChild` and `insertChild` **cannot move it into a section** — the font fails to load and the whole script is rejected (atomically, so the file is unchanged). `loadFontAsync` also fails on local fonts.
 
-**그러나 `figma.group([frame], section)` → `figma.ungroup(group)`은 폰트 검증을 타지 않는다.** 그룹을 섹션 자식으로 만들면서 프레임을 끌고 들어간 뒤 해제하면 프레임이 섹션 직속이 된다 — 수동 드래그가 필요 없다. 프리앰블 `absorb()` 가 이걸 한다. 주의:
+**But `figma.group([frame], section)` → `figma.ungroup(group)` does not go through font validation.** Making a group as a child of the section drags the frame in with it; ungrouping leaves the frame a direct child of the section — no manual dragging needed. The `absorb()` helper does exactly this. Two cautions:
 
-1. 좌표 보정은 **group 호출 전의 부모를 확인**하고 한다 — 프레임이 이미 그 섹션의 자식이면 좌표가 이미 상대좌표라, 무조건 빼면 이중 차감으로 섹션 밖으로 튄다
-2. group+ungroup마저 실패하는 환경이면 폴백: 프레임을 섹션 영역 위로 좌표만 이동 → `figma.currentPage.selection`에 담기 → 사용자에게 "선택된 프레임을 살짝 드래그하면 섹션이 흡수합니다" 1회 요청
+1. Decide the coordinate correction from **the parent before the group call** — if the frame is already a child of that section its coordinates are already relative, and subtracting unconditionally double-counts and throws it outside the section
+2. If even group+ungroup fails in that environment, fall back: move the frame's coordinates over the section area, put it in `figma.currentPage.selection`, and ask the user once to "nudge the selected frame and the section will absorb it"
 
-새로 만드는 placeholder 는 설정된 클라우드 폰트만 쓰므로 이 제약이 없다 — **생성 시점에 올바른 섹션의 자식으로** 만든다.
+Newly created placeholders only use configured cloud fonts, so this constraint does not apply — **create them as children of the right section from the start.**
 
-## 현황 파악은 `/fig:lint`
+## Establishing the current state is `/fig:lint`
 
-정리 전에 무엇이 어긋나 있는지 보려면 `/fig:lint` 를 호출한다. **검사 항목·기준·감사 코드는 전부 거기 하나에 있다** — 검출과 수정을 분리하는 Design Lint 방식이고, 이 스킬은 고치는 쪽만 맡는다.
+To see what is out of line before tidying, call `/fig:lint`. **Every check, every criterion, and all the audit code live there** — detection is separated from repair, and this skill only repairs.
 
-lint 리포트의 `[소속]`·`[경계]`·`[프레임겹침]`·`[섹션겹침]`·`[네이밍]` 이 곧 이 스킬의 작업 목록이다. 그대로 아래 Procedure 2단계 정리안으로 옮긴다.
+The `[membership]`, `[bounds]`, `[frame overlap]`, `[section overlap]`, and `[naming]` entries in the lint report are this skill's work list. Carry them straight into the step 2 plan.
 
-검사 기준을 여기 다시 적지 않는다. 두 벌이 되면 개정할 때 갈라진다.
+The criteria are not repeated here. Two copies drift apart at the first revision.
 
 ## Procedure
 
-### 1. 가이드 + 인벤토리 수집
+### 1. Collect the conventions and the inventory
 
-- **설정 해석** — `resolve-config.py --js <fileKey>` 로 이번 실행 기준을 확정한다
-- 대상 페이지 이름으로 엄격도 결정 (`pages.readonly` 면 여기서 중단·보고)
-- 페이지 `get_metadata`로 프레임·섹션 이름과 좌표·크기 수집
-- 프레임 스크린샷으로 각 화면의 정체 파악 (5개씩 배치 병렬) — 이름만 보고 추측하지 않는다
-- 기존 섹션이 있으면 fill·이름 패턴을 읽어 따른다
+- **Resolve the config** — settle this run's basis with `resolve-config.py --js <fileKey>`
+- Decide strictness from the target page's name (stop and report on `pages.readonly`)
+- Collect frame and section names, coordinates, and sizes with page-level `get_metadata`
+- Identify each screen from its screenshot (batched five at a time, in parallel) — never guess from the name alone
+- If sections already exist, read their fill and name pattern and follow them
 
-### 2. 정리안 제안 (미리보기 필수)
+### 2. Propose the plan (preview required)
 
-리네임·섹션 구성·배치를 표로 제시:
+Present renames, section composition, and layout as a table:
 
 ```
-| 현재 이름 | → 새 이름 | 소속 섹션 |
+| current name | → new name | section |
 ```
 
-- 섹션 구성이 여러 방식으로 가능하면(통합 vs 분리 등) 선택지로 제시
-- 화면 정체가 불확실한 프레임은 추측 라벨 명시
-- **사용자 go 전에 쓰지 않는다**
+- When sections could reasonably be composed more than one way (merged versus split), offer the options
+- Flag frames whose identity is uncertain with an explicit guessed label
+- **Write nothing before the user's go**
 
-### 3. 실행 (단계 분할)
+### 3. Execute (split into steps)
 
-한 번에 다 하지 않는다 — 단계마다 검증 후 다음으로:
+Never all at once — verify after each step before the next:
 
-1. **리네임** — 폰트 무관, 일괄 가능
-2. **섹션 생성** — 빈 섹션을 목표 위치·크기로. 생성 직후 `figma.currentPage.insertChild(0, s)`로 z순서 맨 아래로 내린다 (안 내리면 새 섹션이 기존 프레임을 흰 배경으로 덮음)
-3. **프레임 배치** — 섹션 영역 위로 좌표 이동. 가이드 배치 규칙(폴백: 위 매트릭스·도메인 열·간격 토큰) 그리드로. **간격은 균일하게** — 가이드 토큰 값으로 통일 (Tidy Up과 같은 효과)
-4. **흡수** — `figma.group([frame], section)` → `figma.ungroup()`으로 API 흡수 (로컬 폰트 무관, 위 "제약" 절). 흡수 후 메타데이터로 부모·상대좌표 확인
-5. **섹션 리사이즈** — 섹션은 자동 리사이즈되지 않는다. 프리앰블 `resizeSection()` 이 `layout.section_resize_margin` 여백으로 처리한다. **리사이즈 직후 인접 섹션과의 겹침을 검사한다** — 늘린 섹션의 하단·우측이 아래·옆 행 섹션을 침범하면(특히 목록 상태 스택처럼 세로로 길어진 섹션) 침범당한 섹션을 `layout` 의 행 간격만큼 밀어 해소하고 재검사한다. placeholder 추가로 섹션을 키울 때 가장 흔한 사고
-6. **순번 재부여** — 배열 확정 후 프리앰블 `renumber()` 로 일괄 재부여. `pages.protected_numbers` 는 제외하고 그대로 둔다
-7. **레이어 순서 정렬 (옵션)** — 레이어 패널 순서를 캔버스 위치 순과 일치시킨다 (같은 부모 내 `insertChild` 재정렬이라 폰트 제약 없음). 가이드 요구사항은 아니므로 기본은 생략, 요청 시에만
+1. **Rename** — font-independent, safe to do in bulk
+2. **Create sections** — empty sections at the target position and size. Immediately after creation, send them to the bottom of z-order with `figma.currentPage.insertChild(0, s)` (otherwise a new section covers existing frames with a white background)
+3. **Place frames** — move coordinates over the section area, on the layout grid. **Keep gaps uniform** using the spacing tokens (the same effect as Tidy Up)
+4. **Absorb** — `figma.group([frame], section)` → `figma.ungroup()` (font-independent; see the Constraint section above). Confirm parent and relative coordinates from metadata afterwards
+5. **Resize sections** — sections do not auto-resize. The `resizeSection()` helper handles it with `layout.section_resize_margin` padding. **Check for overlap with neighbours immediately after resizing** — if the stretched section's bottom or right invades the row below or beside it (most likely with a vertically long list-state stack), push the invaded section out by the row gap in `layout` and re-check. This is the most common accident when placeholders grow a section
+6. **Renumber** — once the arrangement is settled, reassign `NN.` in bulk with `renumber()`. `pages.protected_numbers` are left as they are
+7. **Reorder layers (optional)** — align layer panel order with canvas position (an `insertChild` reorder within one parent, so no font constraint). Not required by the convention, so skipped by default and done only on request
 
-### 4. 누락 케이스 검출 → placeholder (미리보기 필수)
+### 4. Detect missing cases → placeholders (preview required)
 
-**먼저 공통이냐 고유냐 가른다** — 검출한 누락 케이스가 다수 화면에 같은 모습으로 반복되는 공통 상태(범용 Empty·Error·Loading 등)면 화면별 placeholder를 만들지 말고 위 "공통 반복 요소" 절대로(공통 페이지 + Default 주석). 그 화면 고유 케이스만 아래대로 화면별 placeholder.
+**First split common from specific** — a missing case that repeats identically across many screens (generic Empty, Error, Loading) does not get a per-screen placeholder; it follows the "repeated common elements" section above (common page plus a Default annotation). Only screen-specific cases get placeholders as below.
 
-두 축으로 검사한다:
+Check on two axes:
 
-**(a) 상태 변형 체크리스트** — 설정 `naming.required_states` 가 기준이다. 화면 유형(목록·폼·검색)을 화면 내용으로 판정한 뒤 그 유형의 목록과 대조한다. 설정에 없으면 아래를 폴백으로 쓰고 그 사실을 보고에 적는다:
+**(a) State variant checklist** — `naming.required_states` is the basis. Settle the screen type (list, form, search) from the screen's content, then compare against that type's list. If the config has none, use the fallback below and note that in the report:
 
-| 화면 유형 | 기대 상태 |
+| Screen type | Expected states |
 |---|---|
-| 목록/조회 | Default, Empty(0건), Loading, Error(불러오기 실패) |
-| 입력 폼 (추가/수정) | Default, Validation(필수·형식 오류), 저장 완료 피드백, 이탈 확인(작성 중 닫기) |
-| 검색/필터 | 결과 없음 |
+| List / browse | Default, Empty (zero rows), Loading, Error (load failure) |
+| Input form (create / edit) | Default, Validation (required and format errors), save confirmation, leave confirmation (closing mid-edit) |
+| Search / filter | No results |
 
-placeholder 이름의 상태 접미사는 설정 `naming.states` 에서 고른다 — 임의 접미사를 만들지 않는다.
+Pick the placeholder's state suffix from `naming.states` — never invent one.
 
-**(b) 인터랙션 결과 화면** — 스크린샷에서 실제 UI 요소를 읽고, 그 요소를 눌렀을 때의 화면이 있는지 확인:
+**(b) Interaction result screens** — read the actual UI elements from the screenshot and check whether the screen you land on after pressing them exists:
 
-| 화면에 보이는 단서 | 있어야 할 케이스 |
+| Clue visible on screen | Case that must exist |
 |---|---|
-| 삭제 버튼/링크 | 삭제 확인 다이얼로그 → 완료 피드백 |
-| 항목 행/카드 (클릭 가능) | 상세 또는 수정 진입 화면 |
-| 업로드 영역 | 업로드 실패/형식 오류 |
-| 최대 개수 제한 문구 | 초과 시 상태 |
+| Delete button or link | Delete confirmation dialog → completion feedback |
+| A clickable row or card | The detail or edit screen it opens |
+| Upload area | Upload failure / wrong format |
+| A maximum-count notice | The over-limit state |
 
-누락 목록을 표로 제시(어느 단서에서 추론했는지 근거 포함) → go 후 placeholder 생성. **정책이 미정인 케이스는 placeholder 설명에 `TBD(확인 필요): …`로 명시** — 임의로 확정처럼 그리지 않는다.
+Present the missing list as a table, including which clue each was inferred from → placeholders are created after a go. **Where the policy is undecided, write `TBD (needs confirmation): …` into the placeholder's description** — never draw an invented behaviour as though it were settled.
 
-### 5. 검증·다음 단계
+### 5. Verify and hand off
 
-**이 단계의 필수 마지막 동작 — `/fig:lint` 호출(Skill 도구로).** 쓰기(생성·복제·이동·배치)가 끝나면 **항상** `/fig:lint`를 호출해 `STRUCT PASS`·`FLOW PASS`를 받는다(특히 clone/move가 끼면 무조건). 위반이 나오면 고치고 재호출하며, **PASS 없이는 완료로 보고하지 않는다.**
+**The mandatory last action of this step — call `/fig:lint` (via the Skill tool).** Once writing is done (creating, duplicating, moving, placing), **always** call `/fig:lint` and get `STRUCT PASS` and `FLOW PASS` — unconditionally if clone or move was involved. Fix what it reports and call again; **never report completion without a PASS.**
 
-자가확인용 인라인 감사를 여기 두지 않는다. 같은 검사를 두 벌 들고 있으면 한쪽만 고쳐져 갈라진다 — 판정은 언제나 `/fig:lint` 하나가 한다.
+No inline self-check audit lives here. Holding the same check in two places means one gets fixed and they drift — the verdict always comes from `/fig:lint` alone.
 
-- **격리 스크린샷만으로 PASS 판정 금지.** `node.screenshot()`·단일 노드 캡처는 프레임을 단독 렌더해서 **부모·캔버스 위치 오류를 못 잡는다** — 프레임만 보면 멀쩡해 보인다. 1차는 `/fig:lint` 의 수치 감사, 2차는 **섹션 노드 전체 스크린샷**(프레임 격리 X)이다. clone/move 가 끼면 거의 항상 여기서 사고가 난다
-- **섹션별 핸드오프 URL 목록 출력** — `https://figma.com/design/{fileKey}/?node-id={섹션ID의 :를 -로}` 형식. 가이드의 "개발 전달은 Section URL 공유(Frame 개별 X)" 체크리스트에 대응
-- 출력 마지막에: 추측 라벨 목록(사용자 확인 필요), TBD 정책 목록, 그리고 `/fig:arrows`로 흐름 연결 제안
+- **Never PASS on an isolated screenshot.** `node.screenshot()` and single-node captures render a frame on its own and **cannot catch a parent or canvas-position error** — the frame looks perfectly fine by itself. The first pass is `/fig:lint`'s measurements; the second is **a screenshot of the whole section node**, not an isolated frame. When clone or move was involved, this is almost always where the accident shows
+- **Output the per-section handoff URLs** — `https://figma.com/design/{fileKey}/?node-id={section id with : replaced by -}`. This matches the "share section URLs for handoff, not individual frames" checklist
+- End the output with: the list of guessed labels needing confirmation, the list of TBD policies, and a suggestion to connect the flow with `/fig:arrows`
 
-## 구현 — 정리 헬퍼 프리앰블
+## Implementation — the tidy helper preamble
 
-쓰기 스크립트는 `${CLAUDE_PLUGIN_ROOT}/_common/scripts/prep-ops.js` 를 프리앰블로 쓴다. 설정 한 줄 + 이 파일 전문 + 실제 호출을 이어 붙여 `use_figma` 에 넣는다.
+Write scripts use `${CLAUDE_PLUGIN_ROOT}/_common/scripts/prep-ops.js` as a preamble. Concatenate the config line, the whole file, and the actual calls, then hand it to `use_figma`.
 
-| 헬퍼 | 하는 일 · 주의 |
+| Helper | What it does · caution |
 |---|---|
-| `createSection(name, x, y, w, h)` | 섹션 생성. **z순서를 맨 아래로 내리는 게 필수** — 안 내리면 새 섹션이 기존 프레임을 흰 배경으로 덮는다 |
-| `absorb(jobs)` | group+ungroup 흡수. 좌표 보정은 **호출 전 부모**로 판단한다(이중 차감 방지) |
-| `resizeSection(section, w, h)` | 리사이즈 후 **침범한 이웃 섹션 이름을 반환**한다. 빈 배열이어야 안전 |
-| `renumber()` | 캔버스 행 우선 순으로 `NN.` 재부여. 보호 번호대는 제외 |
-| `placeholder(section, name, desc, w, h, x, y)` | 점선 테두리 placeholder. 정책 미정이면 desc 에 `TBD(확인 필요)` 병기 |
-| `commonRef(frame, fileKey, pageId, label)` | Default 에 공통 페이지 참조 주석. 페이지 간 노드 하이퍼링크가 막혀 URL 딥링크를 쓴다 |
+| `createSection(name, x, y, w, h)` | Creates a section. **Sending it to the bottom of z-order is mandatory** — otherwise the new section covers existing frames with a white background |
+| `absorb(jobs)` | group+ungroup absorption. Coordinate correction is decided from **the parent before the call** (prevents double subtraction) |
+| `resizeSection(section, w, h)` | Resizes, then **returns the names of neighbouring sections it invaded**. An empty array means it is safe |
+| `renumber()` | Reassigns `NN.` in canvas row-major order. Protected number bands are excluded |
+| `placeholder(section, name, desc, w, h, x, y)` | Dashed-border placeholder. When the policy is undecided, put `TBD (needs confirmation)` in desc |
+| `commonRef(frame, fileKey, pageId, label)` | Annotates a Default with a reference to the common page. Cross-page node hyperlinks are blocked, so a URL deep link is used |
 
 ## Constraints
 
-- **쓰기 전 미리보기 → go** — 리네임·섹션·배치(2단계)와 placeholder 목록(4단계)은 각각 별도 go
-- `pages.exclude_sections` 에 걸리는 섹션은 리네임·이동·리사이즈·placeholder 어느 단계에서도 건드리지 않는다
-- 한 호출에 10개 이내 작업, 단계마다 메타데이터/스크린샷 검증 후 진행
-- **`clone()`·`createFrame`의 기본 부모는 currentPage(원래 노드의 섹션 아님).** 섹션 안에 두려면 흡수(group+ungroup) 후 좌표 설정해야 한다 — 안 하면 페이지 직속으로 남고, 거기에 섹션 상대좌표를 박으면 절대좌표로 해석돼 엉뚱한 곳으로 튄다. **복제·생성 직후 부모를 확인하고(`f.parent.type==="SECTION"`) 흡수 → 좌표 → 경계 감사**까지가 한 세트. 격리 스크린샷만으로 "됐다"로 끝내지 않는다(검증 5장)
-- 빈 섹션의 스크린샷은 겹친 비자식 프레임을 렌더하지 않는다(흰 박스) — 흡수 검증은 프레임 쪽 부모 조회로
-- placeholder에 출처 없는 정책을 확정처럼 쓰지 않는다 — 근거 없는 동작은 전부 TBD
+- **Preview → go before writing** — renames/sections/layout (step 2) and the placeholder list (step 4) each need their own go
+- Sections matching `pages.exclude_sections` are untouched at every step: rename, move, resize, placeholder
+- No more than ten operations per call, verifying with metadata or screenshots between steps
+- **`clone()` and `createFrame` default their parent to currentPage, not the original node's section.** To land inside a section you must absorb (group+ungroup) and then set coordinates — otherwise the node stays page-level, and section-relative coordinates written onto it are read as absolute and it shoots off somewhere else. **Right after duplicating or creating: confirm the parent (`f.parent.type === "SECTION"`), absorb, set coordinates, audit bounds** — that is one set. Never finish on an isolated screenshot alone (see step 5)
+- A screenshot of an empty section does not render overlapping non-child frames (you get a white box) — verify absorption by querying the frame's parent instead
+- Never write an unsourced policy into a placeholder as though it were settled — behaviour without evidence is all TBD
 
 ## Notes
 
-- 케이스 검출 표 (a)(b)는 시작점이지 전부가 아니다 — 화면을 실제로 읽고 "이 요소를 누르면 무슨 화면이 나와야 하나"를 화면마다 자문하는 게 본질
-- 정리 직후 프레임 좌표가 바뀌므로, 기존 흐름 화살표가 있던 페이지면 `/fig:arrows` sync 를 같이 제안한다
-- placeholder가 실제 디자인으로 채워지면 점선 테두리·"Placeholder —" 텍스트를 지우는 것까지가 완료 — 이름은 그대로 유지
+- The detection tables in (a) and (b) are a starting point, not the whole of it — the real work is reading each screen and asking, for that screen, "if I press this, what should I see?"
+- Frame coordinates change right after tidying, so if the page already had flow arrows, propose a `/fig:arrows` sync alongside
+- A placeholder is only finished when the real design replaces it *and* the dashed border and "Placeholder —" text are removed — the name stays as it is

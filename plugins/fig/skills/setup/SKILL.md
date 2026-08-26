@@ -4,108 +4,107 @@ description: Reads an unfamiliar Figma file and works backwards to its conventio
 allowed-tools: AskUserQuestion, Bash, Read, Write, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot
 ---
 
-# fig:setup — 파일 관례 역추출 · 설정 초안
+# fig:setup — infer a file's conventions, draft the config
 
-`figma-*` 스킬은 전부 `figma-conventions.yaml` 을 규칙 원천으로 읽는다. 이 스킬은 **그 파일이 없는 환경에서 첫 벌을 만든다.**
+Every skill here reads `figma-conventions.yaml` as its source of rules. This skill **produces the first copy in an environment that has none.**
 
-관례를 묻지 않고 **파일에서 관측한다.** 섹션 스타일·간격 토큰·화살표 스타일 같은 건 이미 캔버스에 박혀 있어서, 사람에게 물으면 오히려 기억으로 답해 틀린다. 대신 **사람만 아는 것**(어느 페이지가 정본인지, 어느 상태가 필수인지)은 관측하지 않고 묻는다.
+It does not ask for the conventions, it **observes them in the file.** Section style, spacing tokens, arrow style — those are already sitting on the canvas, and asking a person makes it worse, because they answer from memory and memory is wrong. What only a person knows — which page is canonical, which states are mandatory — is asked rather than observed.
 
-**전제**: `use_figma` 호출 전 `figma:figma-use` 로드. **쓰기 0** — Figma 파일은 건드리지 않는다. 쓰는 것은 로컬 설정 파일 하나뿐이다.
+**Prerequisites**: load `figma:figma-use` before calling `use_figma`. **Zero writes** — the Figma file is never touched. The only thing written is one local config file.
 
 ## When to invoke
 
-- 새 회사·새 파일에서 `figma-*` 스킬을 처음 켤 때
-- `resolve-config.py` 가 내장 기본값으로 떨어질 때(리포트에 "기본값으로 진행"이 찍힌다)
-- 파일 관례가 크게 바뀌어 설정을 다시 뽑아야 할 때
+- Opening these skills on a new company or a new file for the first time
+- When `resolve-config.py` falls through to the bundled defaults (the report says so)
+- When the file's conventions have changed enough that the config should be re-derived
 
 ## When NOT to invoke
 
-- 설정이 이미 있고 값 하나만 고치면 될 때 → 파일을 직접 편집
-- 규칙 위반 검사 → `/fig:lint`
-- 구조 정리 → `/fig:prep`
+- The config exists and one value needs changing → edit the file directly
+- Checking for rule violations → `/fig:lint`
+- Tidying structure → `/fig:prep`
 
 ## Inputs
 
-- `figma_url` (필수): 대상 파일 URL. fileKey 를 뽑아 쓴다
-- `out` (선택): 쓸 위치. 기본은 `~/.claude/figma-conventions.yaml`. 프로젝트 전용이면 `./figma-conventions.yaml`
+- `figma_url` (required): the target file URL. The fileKey is taken from it
+- `out` (optional): where to write. Defaults to `~/.claude/figma-conventions.yaml`; use `./figma-conventions.yaml` for a project-specific config
 
 ## Procedure
 
-### 1. 페이지 지형 파악 (읽기 전용)
+### 1. Read the page landscape (read-only)
 
-`figma.root.children` 으로 페이지 이름과 **순서**를 읽는다. `get_metadata` 의 파일 단위 응답은 페이지 목록이 불완전해 쓰지 않는다.
+Read page names and **order** from `figma.root.children`. The file-level response from `get_metadata` returns an incomplete page list, so it is not used here.
 
 ```js
 return figma.root.children.map((p, i) => `${i}\t${p.id}\t${p.name}`).join("\n");
 ```
 
-여기서 읽어낼 것 —
-- **구분선 페이지**(`---`, `## 라벨 ##` 같은 빈 페이지)가 있는가. 있으면 그 아래 대역이 곧 역할 그룹이고, `pages` 3축의 `match: divider` 후보다
-- **이름 접두 패턴이 보이는가.** 대괄호 태그·기호·머리말 무엇이든, 같은 접두를 공유하는 페이지 무리가 있으면
-  그게 역할 구분일 확률이 높다 — `pages.strict`·`free`·`readonly` 후보다. 접두가 무엇을 뜻하는지는
-  이름만 보고 단정하지 말고 4단계에서 묻는다
-- 관례가 안 보이면 **지어내지 않는다.** 빈 배열로 두면 그 등급이 없는 파일로 취급된다
+What to take from this —
 
-### 2. 대표 페이지 골라 프로브 (병렬)
+- **Are there divider pages** (empty pages named `---` or `## label ##`)? If so, the band beneath each one is a role group, and a candidate for `match: divider` on the three `pages` axes
+- **Is there a naming prefix?** Bracket tags, symbols, a leading word — any group of pages sharing a prefix is probably a role split, and a candidate for `pages.strict` / `free` / `readonly`. Do not decide from the name alone what a prefix *means*; ask in step 4
+- If no convention is visible, **do not invent one.** An empty list means the file simply has no such tier
 
-전 페이지를 훑지 않는다. **화면이 많고 정리가 된 페이지 3~5개**를 고른다 — 표본이 얇으면 우연을 관례로 굳히고, 정리 안 된 페이지를 넣으면 관례가 흐려진다.
+### 2. Probe representative pages (in parallel)
 
-각 페이지마다 `${CLAUDE_PLUGIN_ROOT}/_common/scripts/probe-page.js` 앞에 `const PAGE_ID = "<id>";` 를 붙여 `use_figma` 로 실행한다. **페이지별로 호출을 나눠 한 메시지에서 병렬로** 띄운다(스크립트당 `setCurrentPageAsync` 1회).
+Do not sweep every page. Pick **three to five pages that hold a lot of screens and are already tidy** — a thin sample hardens coincidence into convention, and an untidy page blurs it.
 
-프로브는 판정하지 않고 관측치만 낸다. 무엇을 관례로 볼지는 다음 단계에서 합산해 정한다.
+For each page, prepend `const PAGE_ID = "<id>";` to `${CLAUDE_PLUGIN_ROOT}/_common/scripts/probe-page.js` and run it through `use_figma`. **Split the calls per page and issue them in one message so they run in parallel** — each script sets `setCurrentPageAsync` exactly once.
 
-### 3. 초안 생성
+The probe does not judge; it only reports observations. What counts as convention is decided in the next step, once they are summed.
 
-프로브 결과를 각각 JSON 파일로 저장한 뒤:
+### 3. Generate the draft
+
+Save each probe result as JSON, then:
 
 ```
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/draft-conventions.py probe1.json probe2.json ... > draft.yaml
 ```
 
-생성기는 표본이 `MIN_SUPPORT` 미만이거나 최빈값이 `DOMINANCE` 미만이면 **값을 넣지 않고 `null` 로 둔다.** 각 줄 주석의 `n/m` 이 근거다.
+Where the sample is below `MIN_SUPPORT`, or the most common value is below `DOMINANCE`, the generator **writes no value and leaves `null`.** The `n/m` in the comment on each line is the evidence.
 
-`null` 은 실패가 아니라 **모른다는 표시**다. 그대로 두면 그 검사를 건너뛴다.
+`null` is not a failure, it is **a record of not knowing.** Left alone, it means that check is skipped.
 
-### 4. null 항목 인터뷰 (한 번에 하나씩)
+### 4. Interview for the nulls (one at a time)
 
-관측으로 안 나오는 것들이 남는다. 전체 목록을 먼저 보여 규모를 알린 뒤, 중요한 것부터 하나씩 묻는다. 각 질문에 **관측에서 나온 권장안**을 붙여 짧은 답으로 끝나게 한다.
+Some things never come out of observation. Show the full list first so the scale is clear, then ask one at a time, most important first. Attach **the recommendation the observation suggests** to each question so a short answer finishes it.
 
-| 항목 | 왜 관측이 안 되나 |
+| Item | Why observation can't settle it |
 |---|---|
-| `pages.strict` · `free` · `readonly` | 어느 페이지가 정본인지는 캔버스에 안 적혀 있다 |
-| `naming.required_states` | 화면 유형(목록·폼·검색) 판정이 선행돼야 한다 |
-| `layout.section_padding` | 프레임 위치만으로는 섹션 안쪽 여백이 안 갈라진다 |
-| `arrows.trunk` 계열 | 엘보 경로에서만 드러나 추정이 부정확하다 |
-| `component_audit.body_offset` | 화면 하나를 열어 내비 폭·상단바 높이를 재야 한다 |
-| `task_tracker` · `design_system` | 파일 밖의 사실이다 |
+| `pages.strict` · `free` · `readonly` | Which page is canonical is not written on the canvas |
+| `naming.required_states` | Requires first deciding the screen type (list, form, search) |
+| `layout.section_padding` | Frame positions alone don't separate out a section's inner padding |
+| the `arrows.trunk` family | Only shows up along elbow paths, so inference is unreliable |
+| `component_audit.body_offset` | You have to open one screen and measure nav width and top bar height |
+| `task_tracker` · `design_system` | Facts that live outside the file |
 
-모르면 `null` 로 남긴다. **채우려고 지어내지 않는다.**
+If it isn't known, leave `null`. **Do not invent a value to fill the blank.**
 
-### 5. 미리보기 → go → 쓰기
+### 5. Preview → go → write
 
-초안 전문과 "관측으로 채운 항목 / 인터뷰로 채운 항목 / `null` 로 남긴 항목" 세 묶음을 보여주고 go 를 받는다. 기존 파일이 있으면 덮지 말고 **차이만** 보여준다.
+Show the full draft plus three groups — what observation filled, what the interview filled, and what stayed `null` — and get a go. If a config already exists, do not overwrite it; show **only the differences**.
 
-### 6. 검증 — 오탐률로 초안을 시험한다 (필수)
+### 6. Verify — test the draft by its false-positive rate (required)
 
-**설정을 쓰고 끝내지 않는다.** 대표 페이지 하나에 `/fig:lint` 를 돌려 결과를 본다.
+**Do not write the config and stop.** Run `/fig:lint` against one representative page and read the result.
 
-- 위반이 **전건에 가깝게 나오면 파일이 엉망인 게 아니라 패턴이 틀린 것이다.** 특히 네이밍 — 정규식이 그 팀의 표기를 못 받는 경우가 흔하다
-- 실측 사례: 접미사를 `[A-Za-z]` 로 제한한 패턴이 61건 중 38건(62%)을 위반으로 올렸다. 접미사가 한글이어서였고, 제한을 풀자 2건(3%)으로 떨어졌으며 그 둘은 진짜 위반이었다
-- 오탐이 의심되면 위반 목록에서 **실제로 규칙을 어긴 게 맞는지 표본을 눈으로 확인**하고, 아니면 패턴을 고쳐 다시 돌린다
+- If **nearly everything is reported, the file is not a mess — the pattern is wrong.** Naming especially: a regex that can't accept how that team actually writes things
+- Measured case: a pattern that restricted the suffix to `[A-Za-z]` flagged 38 of 61 frames (62%). The suffixes were Korean. Lifting the restriction dropped it to 2 (3%), and both were genuine
+- When false positives are suspected, **open a sample of the reported violations and confirm by eye** that they really break the rule. If not, fix the pattern and run again
 
-이 단계를 건너뛰면 잘못된 설정이 그대로 굳고, 이후 모든 lint 결과가 오탐에 묻힌다.
+Skipping this step hardens a wrong config, and every lint run after it drowns in false positives.
 
 ## Constraints
 
-- **Figma 쓰기 0.** 이 스킬은 읽기만 한다. 쓰는 것은 로컬 설정 파일 하나
-- **추정을 확정처럼 쓰지 않는다.** 표본이 얇거나 갈리면 `null`. 근거(n/m)를 주석으로 남긴다
-- 기존 설정 파일을 덮어쓰기 전 **차이를 보여주고 go** — 손으로 채운 값이 지워지면 복구가 어렵다
-- 대표 페이지는 3~5개. 전 페이지 프로브는 토큰만 먹고 관례를 더 정확하게 만들지 않는다
-- 6단계 검증 없이 완료로 보고하지 않는다
+- **Zero Figma writes.** This skill only reads. The one thing it writes is a local config file
+- **Never present inference as settled.** Thin or split samples get `null`, with the evidence (n/m) left as a comment
+- Before overwriting an existing config, **show the diff and get a go** — hand-entered values are hard to recover once erased
+- Three to five representative pages. Probing every page costs tokens and does not make the conventions more accurate
+- Do not report completion without step 6
 
 ## Notes
 
-- 프로브가 간격을 셀 때 **인접 쌍만** 본다. 모든 쌍을 세면 2칸·3칸 건너뛴 거리가 목록을 덮어 최빈값이 무너진다(실측에서 `frame_gap` 이 35% 로 떨어져 추정 불가가 됐다)
-- 섹션 스타일·화살표 스타일·라벨 pill 은 관측 정확도가 높다. 실측에서 색·굵기·폰트·패딩이 손으로 쓴 값과 전부 일치했다
-- 반대로 `domain_row_gap` 처럼 표본이 적은 항목은 잘 안 잡힌다 — `null` 로 남는 게 정상이다
-- 파일별로 갈리는 항목(`pages` 3축 등)은 공통 절이 아니라 `files.<fileKey>` 에 적는다
+- The probe measures gaps between **adjacent pairs only.** Counting all pairs lets two- and three-step distances flood the list and collapse the mode — measured, `frame_gap` fell to 35% and became un-inferable
+- Section style, arrow style, and label pills observe accurately. In practice, color, weight, font and padding all matched the hand-written config exactly
+- Items with few samples, like `domain_row_gap`, do not come out well — staying `null` is the expected outcome
+- Anything that differs per file (the three `pages` axes, typically) belongs under `files.<fileKey>`, not in the shared section
