@@ -4,6 +4,7 @@ A bundle for product specs and the tasks that come out of them. Write the spec, 
 
 | Command | What it does |
 |---|---|
+| `/pm:setup` | Reads your tool schemas and drafts the config |
 | `/pm:prd` | Writes a new requirements document, or extends one |
 | `/pm:task-draft` | Turns a request source into a task's context table |
 | `/pm:task-publish` | Files one task as a ticket in the engineering tracker |
@@ -29,7 +30,7 @@ the plugin's bundled defaults        the floor
 ./pm-conventions.yaml                per project (strongest)
 ```
 
-Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`.
+Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`, and `/pm:setup` drafts it by reading your tools' schemas — including the board field and option ids that no interface shows you.
 
 ## What this skill holds to
 

@@ -142,6 +142,8 @@ Create it with the assembled title, body, labels and assignee.
 
 Anything under `task.mirror_extras` is read verbatim. This skill does not interpret it, which is what lets a tracker it has never seen still work.
 
+**The calls themselves live per tracker**, not in this document — `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md`. Two copies of a command means one gets fixed. Read the file matching `task.mirror.type` before this step, and the one matching `task.record.type` before step 8.
+
 ### 8. Write back into the record
 
 - **The link property** — always. This is what every later run matches on
