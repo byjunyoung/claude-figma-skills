@@ -20,6 +20,18 @@
         "design-ops",
         "handoff"
       ]
+    },
+    {
+      "name": "pm",
+      "source": "./plugins/pm",
+      "description": "기획 문서를 양식에 맞춰 쓰고 검증하는 스킬 묶음. 자료 수집 → 권장답안 → 모호어·빈 정의 검증 → 발행. 저장 대상(마크다운·git·Notion)은 설정이 정한다.",
+      "category": "productivity",
+      "tags": [
+        "prd",
+        "product",
+        "spec",
+        "planning"
+      ]
     }
   ]
 }
