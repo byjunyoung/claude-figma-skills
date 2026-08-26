@@ -11,7 +11,7 @@
     {
       "name": "fig",
       "source": "./plugins/fig",
-      "description": "이미 그려진 Figma 파일을 정리·검증·동기화하는 스킬 묶음. 준비(prep) · 흐름 화살표(arrows) · 읽기 전용 검증 게이트(lint) · 정본 동기화(sync) · 코드 반영(code) · QA(qa) 등 11개.",
+      "description": "이미 그려진 Figma 파일을 정리·검증·동기화하는 스킬 묶음. 준비(prep) · 흐름 화살표(arrows) · 읽기 전용 검증 게이트(lint) · 정본 동기화(sync) · 코드 반영(code) · QA(qa) · 발표 덱(deck) 등 13개.",
       "category": "design",
       "tags": [
         "figma",

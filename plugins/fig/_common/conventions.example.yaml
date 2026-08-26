@@ -141,6 +141,19 @@ task_tracker:
   annotation_category: "Changed"              # 재사용할 공용 카테고리. 새로 만들지 않는다
   scope_tags: []                              # 라벨 앞에 붙일 분류 태그 목록
 
+# --- 발표 덱 (/fig:deck · /fig:deck-setup) ---------------------------------------
+# 템플릿 값(색·타이포·좌표·아키타입)은 여기 적지 않는다. /fig:deck-setup 이
+# 팀 템플릿을 실측해 assets_dir 에 template-spec.md · template.js 로 만든다 —
+# 회사 워드마크가 박힌 배경 이미지가 딸려 오므로 배포본에 실으면 안 된다
+deck:
+  assets_dir: "./deck-assets"    # 여러 프로젝트가 같은 템플릿을 쓰면 ~/.claude/deck-assets
+  template_file: null           # 팀 템플릿 Slides 파일 key. null 이면 setup 이 물어본다
+  # 아키타입 충실도. 템플릿은 메뉴라 많이 골라 쓸수록 제목 위치가 흩어진다
+  #   title-unified       좌표는 아키타입 원본, 제목 계열만 하나로 제한
+  #   archetype-original  아키타입 전부 복귀. 상단 y 가 여러 값으로 흩어지는 게 정상
+  fidelity: title-unified
+  batch_size: 4                 # 한 use_figma 호출에 지을 슬라이드 수
+
 # --- QA (/fig:qa) -------------------------------------------------------------
 # 기준선 대조 QA. 라벨과 칸 이름은 그 조직 버그 트래커 표현을 그대로 쓴다 —
 # 여기 값을 바꾸면 리포트가 그 이름으로 나온다.

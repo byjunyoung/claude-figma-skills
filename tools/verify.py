@@ -32,8 +32,10 @@ SHARED = ["_common/scripts/lib/resolve-config.py"]
 #   · conventions 기본값·README 는 값을 담는 게 일이다. 다만 브랜드 색·제품명·문서 id 처럼
 #     남의 회사를 가리키는 것은 배포본에 실리면 안 된다 → 식별자만 검사
 TEAM_STRINGS = ["8306FF", "XDS", "1560", "BarisON", "[UI]", "[Update]",
-                "바리스", "라운지", "36131847b3e5", "매 실행 시 fetch"]
-IDENTITY_STRINGS = ["8306FF", "XDS", "BarisON", "바리스", "라운지", "36131847b3e5"]
+                "바리스", "라운지", "36131847b3e5", "매 실행 시 fetch",
+                "xyzcorp", "Pretendard", "townhall"]
+IDENTITY_STRINGS = ["8306FF", "XDS", "BarisON", "바리스", "라운지", "36131847b3e5",
+                    "xyzcorp"]
 
 fails, warns, counts = [], [], []
 

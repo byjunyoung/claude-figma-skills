@@ -2,7 +2,7 @@
  * arrow-build.js — 흐름 화살표 생성 헬퍼 (프리앰블)
  *
  * 이 파일은 감사가 아니라 **빌드용 프리앰블**이다. 앞에 설정을 붙이고, 뒤에
- * 실제 생성 호출을 이어 붙여 use_figma 에 넣는다. deck/figma-deck/preamble.js 와 같은 방식.
+ * 실제 생성 호출을 이어 붙여 use_figma 에 넣는다. deck/deck-assets/preamble.js 와 같은 방식.
  *
  *   const CFG = {...};        ← resolve-config.py --js
  *   <이 파일 전문>
