@@ -1,3 +1,5 @@
+<img src=".github/social-preview.png" alt="fig · pm — Claude Code plugins that keep a shared Figma file in order" width="100%">
+
 # fig · pm
 
 [한국어](README.ko.md) · **English**

@@ -1,3 +1,5 @@
+<img src=".github/social-preview.png" alt="fig · pm — 여럿이 쓰는 Figma 파일을 정리·검증·동기화하는 Claude Code 플러그인" width="100%">
+
 # fig · pm
 
 **한국어** · [English](README.md)
