@@ -124,6 +124,10 @@ Neither touches the file. Run one when you inherit a file someone else has been 
 
 `code` separates what the design owns (numbers, colors, copy, states) from what the code owns (file structure, naming, state management), so neither overwrites the other.
 
+### What it looks like
+
+<img src=".github/arrows-before-after.png" alt="Before and after running /fig:arrows on a section: the same four screens gain a labelled transition arrow and dashed state links" width="100%">
+
 ### The whole flow
 
 ```mermaid
