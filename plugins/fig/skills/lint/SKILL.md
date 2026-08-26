@@ -1,6 +1,6 @@
 ---
 name: lint
-description: Figma 디자인 페이지를 읽기 전용으로 검증한다 — 프레임 소속·경계, 섹션 겹침, 네이밍, 화살표 수치·진입 방향·관통, 커버리지 orphan, [state] 점선, 복제본이 물고 온 컴포넌트 기본값 잔재를 한 번에 검사해 위반 리포트만 출력(쓰기 0). 규칙은 figma-conventions.yaml 설정이 정하고 감사 코드는 ${CLAUDE_PLUGIN_ROOT}/_common/scripts 에 단일 출처로 둔다. fig:prep(구조)·fig:arrows(흐름)의 검증을 흡수한 단일 게이트로, 두 스킬의 쓰기 직후 마지막 통과 확인에도 호출. Triggers - "/fig:lint", "검증해줘", "lint", "규칙 위반 검사해줘", "감사 돌려줘", "프레임 소속·경계 확인", "화살표 감사", "피그마 검수", "화면 복제 후 검수".
+description: Audits a Figma design page read-only — frame membership and bounds, section overlap, naming, arrow geometry and entry direction and pass-through, coverage orphans, [state] dashed links, and component default residue carried over by duplication. Reports violations and writes nothing. Rules come from figma-conventions.yaml and the audit code lives in one place under ${CLAUDE_PLUGIN_ROOT}/_common/scripts. It is the single gate that absorbs the checks fig:prep and fig:arrows would otherwise each carry, and it is called again right after those skills write. Triggers - "/fig:lint", "lint this page", "audit the design", "검증해줘", "규칙 위반 검사해줘", "피그마 검수", "화면 복제 후 검수".
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 

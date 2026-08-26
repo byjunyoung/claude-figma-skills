@@ -1,78 +1,91 @@
 # =============================================================================
-# figma-conventions.yaml — fig 스킬 공통 설정
+# figma-conventions.yaml — shared config for the fig skills
 #
-# 이 파일이 규칙의 단일 출처다. 스킬 본문에는 규칙 값을 적지 않는다.
+# This file is the single source of truth for the rules. Skill bodies carry
+# judgement, never values.
 #
-# 겹쳐 읽는다 (아래가 위를 덮는다). 필요한 키만 적으면 된다
-#   1. 이 파일                            내장 기본값 (바닥)
-#   2. ~/.claude/figma-conventions.yaml  사용자 공통
-#   3. ./figma-conventions.yaml          프로젝트별 (가장 셈)
+# The layers are merged, each overriding the one above. Write only the keys
+# you need — anything you leave out falls back to the layer above.
+#   1. this file                          bundled defaults (base)
+#   2. ~/.claude/figma-conventions.yaml   your shared config
+#   3. ./figma-conventions.yaml           per project (wins)
 #
-# 새 환경에서 처음 켤 때는 /fig:setup 이 대상 파일을 훑어 이 파일 초안을 만든다.
-# 값을 모르면 지우지 말고 null 로 둔다 — null 은 "이 검사를 건너뛴다"는 뜻이다.
+# In a new environment, /fig:setup reads the target file and drafts this for you.
+# When you don't know a value, write null rather than deleting the key — null
+# means "skip that check", while deleting brings the default back.
+#
+# Report language follows meta.language below; the rules are read in English
+# either way.
 # =============================================================================
 
 meta:
-  profile: default          # 결과 보고에 찍히는 이름. 어느 설정으로 돌았는지 남긴다
+  profile: default          # name stamped on reports, so you know which config ran
+  language: auto            # report language — auto | en | ko | any BCP-47 tag.
+                            # auto follows the language you are talking in
 
-# --- 네이밍 -------------------------------------------------------------------
-# frame_pattern / section_pattern 은 lint 가 그대로 정규식으로 쓴다.
-# null 이면 그 네이밍 검사를 하지 않는다(패턴이 없는 파일에서 전건 오탐을 막는다).
+# --- Naming -------------------------------------------------------------------
+# lint uses frame_pattern / section_pattern verbatim as regexes.
+# null turns that naming check off — which is what you want on a file that has
+# no pattern at all, otherwise every frame is reported.
 naming:
-  frame: "{screen}-{state}"                   # 사람이 읽을 형태. 문서·미리보기 표기용
+  frame: "{screen}-{state}"                   # human-readable form, for docs and previews
   frame_pattern: '^.+-[^-\s]+$'
   section: "NN. {domain} - {feature}"
   section_pattern: '^\d{2}\. .+$'
   states: [Default, Empty, Loading, Error, Validation, Selected]
-  required_states:                            # 화면 유형별 필수 상태. 유형 판정은 화면 내용으로
+  required_states:                            # per screen type. the type is judged from content
     list:   [Default, Empty, Loading, Error]
     form:   [Default, Validation]
     search: [Default, Empty]
-  # 스캐폴딩 노드 이름 규약 — arrows 가 쓰고 lint·tokens 가 제외 대상으로 인식한다
+  # Scaffolding node names — arrows writes them, lint and tokens treat them as exempt
   arrow_delimiter: " --> "
   state_chain_delimiter: " ~ "
   label_prefix: "[label] "
   state_chain_prefix: "[state] "
-  # 공통 반복 상태를 한 벌만 두는 페이지. null 이면 공통 페이지 규약을 쓰지 않는다
-  common_page_pattern: null                   # 예: '^공통|^\[UI\] 공통'
-  common_frame_prefix: null                   # 예: "공통-"
+  # The page that holds one canonical copy of repeated states.
+  # null means this file has no such convention.
+  common_page_pattern: null                   # e.g. '^Common|^\[UI\] Common'
+  common_frame_prefix: null                   # e.g. "Common-"
 
-# --- 페이지 역할 ---------------------------------------------------------------
-# 페이지 이름 정규식으로 취급을 가른다. 빈 배열이면 그 등급이 없는 파일로 본다.
+# --- Page roles ----------------------------------------------------------------
+# Pages are sorted by name regex. An empty list means the file has no such tier.
 pages:
-  strict:   []                                # 규칙 전면 적용 (예: ['^\[UI\] '])
-  free:     []                                # 최소 규칙만 (예: ['^\[Update\] ', '^\d+\. .+ @'])
-  readonly: []                                # 쓰기 거부 (예: ['^\[Archive\]'])
-  exclude_sections: []                        # 검사 면제 섹션 정규식 (예: ['^템플릿$', '^\[?[Aa]rchive'])
-  protected_numbers: []                       # 순번 재부여에서 제외할 번호대 (예: ["99"])
+  strict:   []                                # all rules apply        e.g. ['^\[UI\] ']
+  free:     []                                # minimum rules only     e.g. ['^\[Update\] ']
+  readonly: []                                # writes refused         e.g. ['^\[Archive\]']
+  exclude_sections: []                        # sections exempt from audit  e.g. ['^Template$']
+  protected_numbers: []                       # number bands renumbering must not touch  e.g. ["99"]
 
-  # /fig:sync 3축. null 이면 sync 실행 시 사용자에게 묻고, 답을 여기 적어 다음부터 재사용한다.
-  # match 는 두 가지다 —
-  #   name    : 페이지 이름이 pattern 에 걸리는 페이지
-  #   divider : 구분선 페이지(`## 라벨 ##` 형태의 빈 페이지) 라벨이 pattern 에 걸리면,
-  #             그 아래부터 다음 구분선 전까지의 페이지 전부. 이름으로는 안 잡히는 대역용
-  canonical: null                             # 대조 기준이 되는 운영 페이지
-  archive:   null                             # 반영이 끝나 정리된 작업분
-  queue:     null                             # 개발은 끝났고 정본 반영이 안 된 것
+  # The three axes /fig:sync works on. null means sync asks you and you record
+  # the answer here so it stops asking.
+  # match has two forms —
+  #   name    : pages whose name matches pattern
+  #   divider : if a divider page (an empty page named `## label ##`) matches,
+  #             every page from there to the next divider. For bands that names
+  #             alone cannot capture
+  canonical: null                             # the page everything is compared against
+  archive:   null                             # applied work, already tidied away
+  queue:     null                             # shipped by engineering, not yet in canonical
 
-# --- 배치 토큰 -----------------------------------------------------------------
-# 파일에서 재는 값이라 기본값을 두지 않는다. /fig:setup 이 관측해 채운다 —
-# 남의 팀 간격을 기본값으로 실으면 그 파일 전건이 위반으로 나온다
+# --- Layout tokens -------------------------------------------------------------
+# These are measured off a file, so they ship with no default. /fig:setup
+# observes and fills them — shipping one team's spacing as a default makes
+# every frame in someone else's file report as a violation.
 layout:
-  column_grid:          null                  # 화면 열 간격(열 피치)
+  column_grid:          null                  # horizontal pitch between screens
   section_padding:      null
   frame_gap:            null
   section_gap_same_row: null
   domain_row_gap:       null
-  section_resize_margin: null                 # 섹션 리사이즈 시 내용 bbox 여백 하한·상한
-  # 아래 둘은 실측값이 아니라 판정 손잡이라 기본값을 둔다
-  row_bucket: 1000                            # 행 판정 반올림 단위. 페이지 스케일에 맞춰 조정
-  reference_frame_width: 1440                 # arrows 기본값이 기준으로 삼는 화면 폭
+  section_resize_margin: null                 # min and max padding around content bbox on resize
+  # The two below are tuning knobs rather than measurements, so they do have defaults
+  row_bucket: 1000                            # rounding unit for deciding what shares a row
+  reference_frame_width: 1440                 # screen width the arrow defaults assume
 
-# --- 섹션 스타일 ---------------------------------------------------------------
-# 모든 섹션이 같은 스타일이어야 한다. 색을 구분 용도로 쓰지 않는다.
+# --- Section style -------------------------------------------------------------
+# Every section looks the same. Color is never used to tell sections apart.
 section_style:
-  fill: "#6B7280"        # 중립 기본값 — 팀 색으로 바꿔 쓴다. /fig:setup 이 파일에서 관측해 채운다
+  fill: "#6B7280"        # neutral default — swap in your own. /fig:setup reads it off the file
   fill_opacity: 0.04
   stroke: "#6B7280"
   stroke_weight: 1
@@ -80,7 +93,7 @@ section_style:
   dash: [20, 20]
   corner_radius: 72
 
-# --- placeholder 스타일 ---------------------------------------------------------
+# --- Placeholder style ---------------------------------------------------------
 placeholder_style:
   fill: "#FAFAFB"
   stroke: "#B3B3BF"
@@ -90,114 +103,119 @@ placeholder_style:
   text_color: "#73787F"
   text_prefix: "Placeholder — "
 
-# --- 흐름 화살표 ----------------------------------------------------------------
-# 페이지에 기존 화살표가 있으면 그 stroke 를 읽어 따르고, 없을 때만 이 값을 쓴다.
+# --- Flow arrows ---------------------------------------------------------------
+# If the page already has arrows, their stroke is read and followed; these
+# values are only used when there are none.
 arrows:
   color: "#4A5463"
   stroke_weight: 3
-  dash_conditional: [12, 8]                   # 조건부 흐름·상태 체인 공용
-  head_gap: 12                                # 화살촉과 도착 변 사이
-  trunk: 120                                  # 분기 트렁크 진출 길이
-  trunk_to_target_min: 240                    # 라벨이 들어갈 트렁크→도착 최소 간격
-  parallel_offset: 24                         # 같은 두 프레임 사이 화살표 2개일 때 오프셋
+  dash_conditional: [12, 8]                   # conditional flows and state chains alike
+  head_gap: 12                                # between the arrowhead and the target edge
+  trunk: 120                                  # how far a branch trunk runs before splitting
+  trunk_to_target_min: 240                    # minimum trunk-to-target gap, to leave room for a label
+  parallel_offset: 24                         # offset when two arrows join the same pair of frames
   cap: { start: ROUND, end: ARROW_EQUILATERAL }
   label:
     font: { family: Inter, style: Medium, size: 20 }
-    padding: [10, 5]                          # 좌우 · 상하
+    padding: [10, 5]                          # horizontal · vertical
     corner_radius: 8
     fill: "#FFFFFF"
     stroke: "#D9DBE3"
     text_color: "#59616E"
-    offset_from_target: [36, 60]              # 도착 변 위 이 범위에 라벨을 둔다
-  audit:                                      # 수치 감사 허용 오차
-    edge_tolerance: 2                         # 시작점이 출발 변에서 벗어나도 되는 px
-    gap_range: [9, 15]                        # head_gap 의 허용 구간
-    label_clear: 30                           # 라벨이 화살촉에서 떨어져야 하는 최소 거리
+    offset_from_target: [36, 60]              # the band above the target edge where labels sit
+  audit:                                      # tolerances for the geometry audit
+    edge_tolerance: 2                         # px the start point may drift off the source edge
+    gap_range: [9, 15]                        # accepted range for head_gap
+    label_clear: 30                           # minimum clearance between a label and an arrowhead
 
-# --- 컴포넌트 기본값 감사 --------------------------------------------------------
-# 규칙 문서가 아니라 같은 파일의 실사용 분포로 관례를 정한다.
+# --- Component default audit ---------------------------------------------------
+# The convention comes from how the same file actually uses a component,
+# not from a written rule.
 component_audit:
-  min_samples: 5                              # 이 수 미만이면 관례로 인정하지 않는다
-  dominance: 0.9                              # 이 비율 이상 쏠린 속성만 관례
-  body_offset: { left: 270, top: 120 }        # 화면 공통 껍데기(내비 폭·상단바 높이) — 검사 제외
+  min_samples: 5                              # below this, no convention is inferred
+  dominance: 0.9                              # only properties this lopsided count as convention
+  body_offset: { left: 270, top: 120 }        # shared chrome (nav width, top bar height) — exempt
 
-# --- 디자인시스템 ---------------------------------------------------------------
+# --- Design system -------------------------------------------------------------
 design_system:
-  library: auto                               # auto = 파일에 연결된 라이브러리를 감지
-  token_prefixes: []                          # 조회할 토큰군 (예: ["fill/", "border/", "icon/"])
-  match_threshold_channel: 8                  # 1등급(색 사실상 불변) 판정 채널차 상한
+  library: auto                               # auto = detect the library the file is connected to
+  token_prefixes: []                          # token groups to look up  e.g. ["fill/", "border/", "icon/"]
+  match_threshold_channel: 8                  # max channel delta still counted as "the same color"
 
-# --- 정본 동기화 ----------------------------------------------------------------
+# --- Canonical sync ------------------------------------------------------------
 sync:
-  pair_patterns:                              # 작업 페이지의 대조쌍 섹션 이름
-    to_be: 'to.?be|개선|after'
-    as_is: 'as.?is|현행|before'
-  text_diff_max_len: 40                       # 이보다 긴 문자열은 diff 키워드로 안 쓴다
-  version_page_pattern: null                  # 예: '^\[Update\] v[\d.]+'
+  pair_patterns:                              # section names that form a comparison pair
+    to_be: 'to.?be|after'
+    as_is: 'as.?is|before|current'
+  text_diff_max_len: 40                       # strings longer than this are not used as diff keys
+  version_page_pattern: null                  # e.g. '^\[Update\] v[\d.]+'
 
-# --- 일감 트래커 ----------------------------------------------------------------
-# none 이면 /fig:diff 가 Figma annotation 까지만 하고 비교표는 마크다운으로 낸다.
+# --- Task tracker --------------------------------------------------------------
+# With none, /fig:diff stops at the Figma annotations and emits the table as markdown.
 task_tracker:
   type: none                                  # notion | github | none
-  ref: null                                   # DB id · 레포 이름 등
-  ui_section_heading: null                    # 변경점을 적을 문서 내 절 제목
-  annotation_category: "Changed"              # 재사용할 공용 카테고리. 새로 만들지 않는다
-  scope_tags: []                              # 라벨 앞에 붙일 분류 태그 목록
+  ref: null                                   # database id, repo name, and so on
+  ui_section_heading: null                    # heading in the doc where changes are written up
+  annotation_category: "Changed"              # a shared category to reuse. never create new ones
+  scope_tags: []                              # classification tags prefixed to labels
 
-# --- 발표 덱 (/fig:deck · /fig:deck-setup) ---------------------------------------
-# 템플릿 값(색·타이포·좌표·아키타입)은 여기 적지 않는다. /fig:deck-setup 이
-# 팀 템플릿을 실측해 assets_dir 에 template-spec.md · template.js 로 만든다 —
-# 회사 워드마크가 박힌 배경 이미지가 딸려 오므로 배포본에 실으면 안 된다
+# --- Presentation decks (/fig:deck · /fig:deck-setup) ---------------------------
+# Template values — colors, type, coordinates, archetypes — do not belong here.
+# /fig:deck-setup measures your team template into assets_dir as template-spec.md
+# and template.js. Those assets stay local: template backgrounds usually carry a
+# company wordmark, which must never ship inside a plugin.
 deck:
-  assets_dir: "./deck-assets"    # 여러 프로젝트가 같은 템플릿을 쓰면 ~/.claude/deck-assets
-  template_file: null           # 팀 템플릿 Slides 파일 key. null 이면 setup 이 물어본다
-  # 아키타입 충실도. 템플릿은 메뉴라 많이 골라 쓸수록 제목 위치가 흩어진다
-  #   title-unified       좌표는 아키타입 원본, 제목 계열만 하나로 제한
-  #   archetype-original  아키타입 전부 복귀. 상단 y 가 여러 값으로 흩어지는 게 정상
+  assets_dir: "./deck-assets"   # use ~/.claude/deck-assets if several projects share a template
+  template_file: null           # Slides file key of the team template. null means setup asks
+  # Archetype fidelity. A template is a menu, so the more archetypes you draw
+  # from, the more title positions scatter across the deck.
+  #   title-unified       keep each archetype's coordinates, but allow one title family
+  #   archetype-original  every archetype as-is. content tops landing on several values is expected
   fidelity: title-unified
-  batch_size: 4                 # 한 use_figma 호출에 지을 슬라이드 수
+  batch_size: 4                 # slides built per use_figma call
 
-# --- QA (/fig:qa) -------------------------------------------------------------
-# 기준선 대조 QA. 라벨과 칸 이름은 그 조직 버그 트래커 표현을 그대로 쓴다 —
-# 여기 값을 바꾸면 리포트가 그 이름으로 나온다.
+# --- QA (/fig:qa) --------------------------------------------------------------
+# Audit against a plan of record. Labels and field names are whatever your bug
+# tracker calls them — change them here and reports come out in those words.
 qa:
-  # 판정 근거를 어디서 찾나. null 인 항목은 수집을 건너뛴다
+  # Where the basis for a judgement is found. null skips that collection.
   baseline:
-    prd:    null                              # PRD 위치. 예: "collection://…" 또는 페이지 id
-    design: figma                             # 시안 원천 — figma | none
-    tasks:  null                              # 일감 트래커. 과거 결정·번복 이력을 본다
+    prd:    null                              # spec location, e.g. a page id or collection url
+    design: figma                             # design source — figma | none
+    tasks:  null                              # task tracker, for past decisions and reversals
 
-  severity:  [치명, 높음, 보통, 낮음]           # 결과의 크기 순. 앞이 가장 심하다
-  frequency: [항상, 가끔, 1회]
+  severity:  [Critical, High, Medium, Low]    # worst first
+  frequency: [Always, Sometimes, Once]
 
-  # 결함 한 건에 적을 칸. 쓰는 곳 버그 리포트 양식과 1:1 로 맞춘다
-  report_fields: [심각도, 빈도, 재현, 기대, 실제, 증거]
+  # Fields written per defect. Match your bug report form one to one.
+  report_fields: [Severity, Frequency, Steps, Expected, Actual, Evidence]
 
-  environments: {}                            # 이름 → 접속 주소. 예: dev: "https://dev.example.com"
-  allow_write: false                          # 참이어도 생성·삭제는 매번 확인받는다
+  environments: {}                            # name → url, e.g. dev: "https://dev.example.com"
+  allow_write: false                          # even when true, creates and deletes are confirmed each time
 
-# --- 도구 ----------------------------------------------------------------------
+# --- Tools ---------------------------------------------------------------------
 tools:
-  figma_token_env: FIGMA_TOKEN                # REST 경로용 PAT 환경변수 이름
-  frame_count_guard: 20                       # 이 수를 넘으면 스크린샷 수집 전 확인
-  proto_output_dir: "."                       # 동작 프로토타입 산출 위치
-  proto_publish: null                         # { repo:, account:, visibility: } 또는 null
+  figma_token_env: FIGMA_TOKEN                # env var holding the PAT, for REST paths
+  frame_count_guard: 20                       # above this many frames, confirm before collecting screenshots
+  proto_output_dir: "."                       # where working prototypes are written
+  proto_publish: null                         # { repo:, account:, visibility: } or null
 
-# --- 가이드 원천 (선택) ----------------------------------------------------------
-# 팀 가이드 문서가 따로 있으면 여기 적는다. 매 실행 fetch 하지 않고
-# /fig:setup 이 최초 1회 흡수해 위 값들을 채우는 데만 쓴다.
+# --- Guide source (optional) ---------------------------------------------------
+# If your team keeps a written guide, point at it here. It is not fetched on
+# every run — /fig:setup absorbs it once to help fill the values above.
 guide_source:
   type: none                                  # notion | file | url | none
   ref: null
 
-# --- 파일별 덮어쓰기 -------------------------------------------------------------
-# 위 값들은 기본값이고, 여기 fileKey 로 적은 값이 그 파일에서만 위를 덮는다(깊은 병합).
-# pages 3축처럼 파일마다 관례가 갈리는 항목을 여기 둔다.
-# fileKey 는 figma.com/design/<fileKey>/... 의 그 값이다.
+# --- Per-file overrides --------------------------------------------------------
+# Everything above is the default; values written here under a fileKey override
+# it for that file only (deep merge). Put things that genuinely differ per file
+# here — the three sync axes are the usual case.
+# fileKey is the value in figma.com/design/<fileKey>/...
 files: {}
 #  "AbCdEf123456":
-#    label: "제품 A 디자인 파일"          # 결과 보고용 이름
+#    label: "Product A design file"       # name used in reports
 #    pages:
 #      canonical: { match: name,    pattern: '^\[UI\] ' }
 #      archive:   { match: name,    pattern: '^\[Update\] ' }
-#      queue:     { match: divider, pattern: '개발 서버 업데이트 완료' }
+#      queue:     { match: divider, pattern: 'shipped to dev' }

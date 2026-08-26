@@ -1,6 +1,6 @@
 ---
 name: prep
-description: Figma 디자인 페이지를 본 작업 전에 준비시킨다 — 팀 관리 가이드에 맞게 프레임 네이밍(`[화면명]-[상태]`) 통일, 기능 단위 Section 생성·배치, 화면 내용을 읽어 누락 케이스(상태 변형·인터랙션 결과 화면)를 검출하고 placeholder 프레임으로 채움. 로컬 폰트 파일의 reparent 제약을 우회하는 흡수 워크플로 포함. 순번 재부여·핸드오프 URL 출력까지 맡고, 검증·위반 리포트는 하지 않는다(현황 파악도 완료 확인도 /fig:lint). Triggers - "/fig:prep", "프렙 해줘", "가이드대로 정리해줘", "프레임 정리해줘", "섹션으로 묶어줘", "빠진 케이스 채워줘", "placeholder 만들어줘".
+description: Prepares a Figma design page before the real work — normalizing frame names to `[screen]-[state]`, creating and placing feature-level sections, and reading screen content to find missing cases (state variants, interaction results) and stub them as placeholder frames. Includes the absorb workflow that works around reparenting limits with local font files. It handles renumbering and handoff URLs; it does not verify or report violations — both status checks and completion checks belong to /fig:lint. Triggers - "/fig:prep", "tidy this page", "group these into sections", "stub the missing states", "프렙 해줘", "가이드대로 정리해줘", "빠진 케이스 채워줘".
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 

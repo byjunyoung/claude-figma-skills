@@ -1,6 +1,6 @@
 ---
 name: qa
-description: 개발·스테이징 서버에 올라온 기능을 기획 기준(PRD 기능·정책, Figma 시안)과 대조해 QA한다. 기준선(체크리스트)만 뽑고 멈추는 모드와, 브라우저로 직접 눌러 검증하고 결함 리포트까지 내는 모드를 갖는다. 결함은 재현 절차·기대값·실제값·근거(요청 결과·화면) 형태로 정리해 그대로 개발에 전달할 수 있게 만든다. Triggers - "/fig:qa", "QA 해줘", "개발서버 확인해줘", "테스트해줘", "체크리스트 뽑아줘", "동작 확인해줘", "결함 정리해줘", "버그 재현해줘".
+description: Audits a feature that has shipped to a dev or staging server against the plan of record — spec entries and the Figma design. One mode stops once the checklist is drawn; the other clicks through the browser and files a defect report. Defects are written as reproduction steps, expected, actual, and evidence (request results, screens) so they can be handed to engineering as they are. Triggers - "/fig:qa", "QA this", "check what is on the dev server", "file the defects", "QA 해줘", "개발서버 확인해줘", "결함 정리해줘".
 allowed-tools: AskUserQuestion, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Notion__notion-query-data-sources, mcp__claude_ai_Slack__slack_read_thread, mcp__claude_ai_Slack__slack_read_channel, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__find, mcp__claude-in-chrome__read_page, mcp__claude-in-chrome__get_page_text, mcp__claude-in-chrome__read_console_messages, mcp__claude-in-chrome__read_network_requests
 ---
 

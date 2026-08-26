@@ -1,6 +1,6 @@
 ---
 name: deck
-description: 문서·데이터·구두 요청을 받아 Figma Slides 발표 덱으로 만든다. 소스를 읽고 아웃라인을 합의한 뒤, 팀 템플릿 아키타입으로 슬라이드를 짓고 겹침·표기까지 검수한다. 리서치 리포트·기획 공유·회고·제안 등 종류를 가리지 않는다. 템플릿 값은 /fig:deck-setup 이 뽑아둔 로컬 자산에서 읽는다. Triggers - "/fig:deck", "슬라이드로 만들어줘", "발표 자료 만들어줘", "덱 만들어줘", "이 문서 슬라이드로", "피그마 슬라이드 만들어".
+description: Turns a document, a dataset, or a spoken brief into a Figma Slides deck. Reads the source, agrees an outline before writing anything, then builds slides from the team template's archetypes and audits overlap and wording before handing back. Research reports, plans, retrospectives, proposals — it does not care which. Template values come from the local assets /fig:deck-setup produced. Triggers - "/fig:deck", "make this into a deck", "turn this doc into slides", "슬라이드로 만들어줘", "발표 자료 만들어줘", "덱 만들어줘".
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 

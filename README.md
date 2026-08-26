@@ -1,214 +1,214 @@
 # fig · pm
 
-**한국어** · [English](README.en.md)
+[한국어](README.ko.md) · **English**
 
-Claude Code에서 디자인 파일과 기획 문서를 다루는 스킬 묶음 둘. 한 저장소에 있고 설치는 따로 갑니다.
+Two Claude Code skill bundles — one for design files, one for product docs. They share a repo and install separately.
 
-| 플러그인 | 무엇을 | 스킬 |
+| Plugin | What it does | Skills |
 |---|---|---|
-| **fig** | 이미 그려진 Figma 파일을 정리·검증·동기화 | 13 |
-| **pm** | 기획 문서를 양식에 맞춰 쓰고 검증 | 1 |
+| **fig** | Organize, audit, and sync Figma files that already exist | 13 |
+| **pm** | Write and verify product requirement docs against a format | 1 |
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
-claude plugin install pm@byjunyoung      # 기획 문서까지 쓸 때
+claude plugin install pm@byjunyoung      # if you also write specs
 ```
 
-아래는 대부분 `fig` 이야기입니다. `pm`은 [따로 정리해 뒀습니다](#pm--기획-문서).
+Most of what follows is about `fig`. `pm` has [its own section](#pm--product-docs).
 
-[어떤 자리에 서는 도구인가](#어떤-자리에-서는-도구인가) · [누가 쓰면 좋은가](#누가-쓰면-좋은가) · [무엇을 해결하나](#무엇을-해결하나) · [어떻게 쓰나](#어떻게-쓰나) · [스킬 열세 개](#스킬-열세-개) · [설치](#설치) · [설정](#설정) · [설계 원칙](#설계-원칙) · [pm](#pm--기획-문서)
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles) · [pm](#pm--product-docs)
 
 ---
 
-## 어떤 자리에 서는 도구인가
+## Where it fits
 
-Figma를 다루는 도구는 크게 둘로 갈립니다. 화면을 그려내는 쪽과, 그려둔 파일을 관리하는 쪽.
+Figma tooling splits into two halves: the half that draws screens, and the half that keeps drawn files in order.
 
-공식 Figma 플러그인(`figma-use`, `figma-generate-design`, `figma-generate-library`)이 앞쪽입니다. 코드나 설명을 받아 화면과 컴포넌트를 만들어냅니다.
+Figma's official plugins (`figma-use`, `figma-generate-design`, `figma-generate-library`) are the first half. Give them code or a description and they produce screens and components.
 
-이 묶음은 뒤쪽입니다. 이미 있는 파일을 대상으로 이름이 규칙에 맞는지, 화면이 제자리에 있는지, 흐름 화살표가 실제로 이어지는지, 개발에 나간 변경이 정본에 반영됐는지를 검사하고 고칩니다. 공식 플러그인 위에서 동작하니 둘을 같이 씁니다.
+This bundle is the second half. It works on files that already exist — checking whether names follow the convention, whether screens sit where they belong, whether flow arrows actually connect, whether changes shipped to engineering made it back into the canonical page. It runs on top of the official plugins, so you use both.
 
-그리는 일은 공식 플러그인이, 그린 다음은 이 묶음이 맡습니다.
+Drawing is the official plugins' job. What happens around the drawing is this bundle's.
 
-## 누가 쓰면 좋은가
+## Who it's for
 
-파일 하나를 여러 사람이 오래 고쳐 쓰는 팀에 맞습니다. 새로 그리는 작업이든 그려둔 것을 고치는 작업이든 상관없습니다.
+Teams where one file is edited by several people over a long time. It doesn't matter whether you're drawing new screens or revising old ones.
 
-- 화면이 수백 개 쌓인 파일을 여럿이 함께 고치는 팀
-- 새 기능 화면을 한 벌 그려 개발에 넘기는 사이클이 반복되는 자리
-- 개발에 넘긴 시안과 Figma 정본을 계속 맞춰야 하는 자리
-- 파일 관리 규칙은 있는데 지켜지는지 확인할 방법이 없는 팀
+- Teams sharing a file that has grown to hundreds of screens
+- Anyone who repeats the cycle of drawing a feature's screens and handing them to engineering
+- Anyone who has to keep handed-off designs and the canonical Figma page in step
+- Teams that have file conventions but no way to check whether they're followed
 
-새로 그리는 작업에서는 이렇게 붙습니다. 화면 안을 그리는 것은 공식 플러그인이 맡고, 이 묶음은 그 앞뒤를 맡습니다.
+Here's where it attaches when you're drawing something new. The official plugins draw what's inside a screen; this bundle handles what comes before and after.
 
 ```
-그리기 전   섹션 골격을 잡고, 빠진 상태를 점선 껍데기로 세워 그릴 목록을 만든다
-그리는 중   화면을 복제해 변형을 만들 때 딸려온 설정 잔재를 검출한다
-다 그린 뒤  전환 화살표와 상태 묶음을 연결하고, 검사를 통과해야 넘긴다
+Before   Lay out the section skeleton, stub missing states as dashed placeholders — that stub list is your to-draw list
+During   Catch settings that tagged along when you duplicated a screen to make a variant
+After    Wire up transition arrows and state groups, then pass the audit before handing off
 ```
 
-안 맞는 경우도 적어둡니다.
+Where it isn't the right tool:
 
-- 화면 한두 장짜리 단발 작업이면 손으로 하는 편이 빠릅니다
-- 컴포넌트 라이브러리를 처음부터 만드는 일은 공식 `figma-generate-library` 쪽입니다
-- 규칙이 아직 없는 팀은 `/fig:setup`이 관례를 못 뽑습니다. 먼저 몇 가지를 정하는 편이 낫습니다
+- A one-off job of a screen or two is faster by hand
+- Building a component library from scratch belongs to the official `figma-generate-library`
+- If your team has no conventions yet, `/fig:setup` has nothing to observe. Settle a few of them first
 
-## 무엇을 해결하나
+## What it solves
 
-디자인 파일은 혼자 쓰면 잘 안 망가집니다. 문제는 사람이 여럿이고, 화면이 수백 개가 되고, 몇 달이 지났을 때 생깁니다. 네 가지가 반복됩니다.
+A design file rarely breaks when one person owns it. It breaks when there are several people, hundreds of screens, and a few months of history. Four things recur.
 
-- **복제 잔재** — 화면을 복제해 새로 만들면 원본 설정이 딸려옵니다. 안 쓰는 표시 토글이 켜진 채 남아 내용 없는 빈 자리가 렌더됩니다. 축소된 화면에서는 보이지 않습니다
-- **정본 지연** — 개발은 이미 배포됐는데 Figma 정본은 옛날 그대로입니다. 다음 사람이 옛 화면을 보고 기획합니다
-- **어긋난 화살표** — 화면을 옮기면 흐름 화살표가 따라오지 않습니다. 손으로 다시 그리는 비용 때문에 그냥 둡니다
-- **안 그린 화면** — "이 경우엔 뭐가 나오나요?" 개발이 물어서야 그 화면을 안 그렸다는 것을 압니다
+- **Duplication residue** — duplicate a screen to make a new one and the original's settings come along. An unused display toggle stays on, rendering an empty slot with nothing in it. It's invisible at zoomed-out scale
+- **Stale canonical page** — engineering has already shipped, but the canonical Figma page still shows the old screen. The next person plans against it
+- **Broken arrows** — move a screen and its flow arrows don't follow. Redrawing by hand costs enough that people leave them
+- **The screen nobody drew** — "what shows up in this case?" You find out that screen doesn't exist when engineering asks
 
-네 가지 다 눈으로는 안 잡힙니다. 잡히더라도 고칠 때쯤이면 이미 개발이 물어본 뒤입니다. 이 묶음은 그것을 수치로 검사해 미리 잡습니다.
+None of the four is catchable by eye, and by the time you do catch one, engineering has already asked. This bundle measures for them instead.
 
 ---
 
-## 어떻게 쓰나
+## How you use it
 
-세 가지 리듬으로 씁니다. 기능 하나를 그려 넘기는 한 사이클, 릴리스마다 도는 정본 맞추기, 그리고 아무 때나 돌리는 건강검진.
+Three rhythms: the cycle of drawing and handing off one feature, the per-release pass that keeps the canonical page current, and a health check you can run any time.
 
-### 한 사이클 — 기능 하나를 그려 넘길 때까지
-
-```
-/fig:setup    처음 여는 파일이면 관례를 관측해 설정 초안을 만든다
-/fig:prep     섹션 골격을 잡고, 빠진 상태를 점선 껍데기로 세운다
-   ·          화면을 그린다 (공식 플러그인 또는 손으로)
-/fig:arrows   전환 화살표와 상태 묶음을 연결한다
-/fig:lint     구조 · 흐름 · 컴포넌트를 한 번에 검사한다
-/fig:diff     기존 화면을 고친 일감이면 변경점에 주석 핀을 박는다
-```
-
-`prep`이 먼저 오는 이유는 그릴 목록을 만들기 위해서입니다. 목록 화면을 그리면 결과 없을 때 화면이 필요하고, 폼을 그리면 검증 실패 화면이 필요합니다. 이것을 점선 껍데기로 먼저 세워두면 빠진 화면이 눈에 보입니다. 개발이 물어보기 전에 드러나는 것이 핵심입니다.
-
-`lint`는 통과해야 넘기는 관문입니다. 파일을 쓰지 않으니 몇 번을 돌려도 안전합니다.
-
-### 주기 작업 — 릴리스가 나간 뒤 정본 맞추기
+### The cycle — drawing one feature through handoff
 
 ```
-/fig:sync     작업분이 정본에 반영됐는지 전수 대조 → 반영 → 아카이브 이관
+/fig:setup    First time in a file, observe its conventions and draft a config
+/fig:prep     Lay out the section skeleton, stub missing states as placeholders
+   ·          Draw the screens (official plugins, or by hand)
+/fig:arrows   Wire transition arrows and state groups
+/fig:lint     Audit structure, flow, and components in one pass
+/fig:diff     For revisions to existing screens, pin change annotations
 ```
 
-작업본과 정본은 화면 이름이 똑같아서 이름 비교로는 뭐가 빠졌는지 알 수 없습니다. 화면 안의 글자, 화면 높이, 컴포넌트 연결 세 가지를 함께 보고 판정합니다.
+`prep` comes first because it builds the to-draw list. A list screen needs an empty state; a form needs a validation-failure state. Stub those as dashed placeholders and the gaps become visible. The point is that they surface before engineering asks.
 
-구조가 같으면 화면을 통째로 옮기지 않고 값만 고칩니다. 노드 id가 유지돼 기획서나 티켓에 걸어둔 딥링크가 안 끊깁니다.
+`lint` is the gate you have to pass. It never writes to the file, so running it repeatedly is safe.
 
-### 수시 — 파일 건강검진
-
-```
-/fig:lint     구조 · 흐름 · 컴포넌트 검사 (쓰기 0)
-/fig:tokens   색이 디자인시스템 토큰에 묶여 있는지 검수
-```
-
-파일을 안 고치니 아무 때나 돌려도 됩니다. 남이 만진 파일을 넘겨받았을 때, 오래된 파일을 다시 열었을 때 먼저 한 번 돌려보면 상태를 알 수 있습니다.
-
-### 곁가지 두 개
+### Per release — bringing the canonical page current
 
 ```
-/fig:proto    개발 착수 전, 시안을 실제로 입력 · 저장되는 단일 HTML로 재현
-/fig:code     시안을 프론트엔드 레포에 반영
-/fig:qa       올라온 화면을 기획 기준과 대조해 결함 리포트
-/fig:deck     문서·데이터를 발표 덱으로 (자산은 deck-setup 이 먼저)
+/fig:sync     Full audit of what made it into canonical → apply → archive
 ```
 
-`proto`는 화면을 클릭해 넘기는 데모가 아닙니다. 값을 넣고 저장하면 목록에 반영됩니다. 눌러보면 시안에서는 안 보이던 순서 문제가 드러납니다.
+Working copies and the canonical page use identical screen names, so comparing names tells you nothing about what's missing. The audit judges on three signals together: the text inside a screen, the screen's height, and its component links.
 
-`deck`은 문서 하나를 발표 흐름으로 옮겨 Figma Slides 덱을 짓습니다. 팀 템플릿의 좌표·색·타이포를 그대로 쓰는 게 원칙이라, 카탈로그에 없는 형태가 나와도 레이아웃을 지어내지 않고 가장 가까운 아키타입에 맞춰 내용을 줄이거나 장을 쪼갭니다. 템플릿 값은 `/fig:deck-setup`이 실측해 로컬에 뽑아둡니다 — 워드마크가 박힌 배경 이미지가 딸려 오므로 배포본에는 안 실립니다.
+When the structure matches, it edits values rather than replacing the whole screen. Node ids survive, so deep links from specs and tickets keep working.
 
-`qa`는 개발 서버에 올라온 화면을 기획 기준과 대조합니다. "이상해 보인다"가 아니라 "어느 문서의 어느 규칙에 어긋난다"로 적는 게 원칙이라, 기준이 없는 항목은 결함이 아니라 확인 필요로 분리합니다.
+### Any time — a file health check
 
-`code`는 시안이 기준인 것(수치·색·문구·상태)과 코드가 기준인 것(파일 구조·이름 짓는 방식·상태 관리)을 갈라서, 어느 한쪽이 다른 쪽을 덮어쓰지 않게 합니다.
+```
+/fig:lint     Structure, flow, and component audit (zero writes)
+/fig:tokens   Check that colors are bound to design system tokens
+```
 
-### 전체 흐름
+Neither touches the file. Run one when you inherit a file someone else has been in, or when you reopen something old, and you'll know where it stands.
+
+### Two side branches
+
+```
+/fig:proto    Before engineering starts, rebuild the design as a single HTML page that really accepts input and saves
+/fig:code     Apply the design to a frontend repo
+/fig:qa       Audit a shipped screen against the spec and report defects
+/fig:deck     Turn a document into a deck (run deck-setup first)
+```
+
+`proto` isn't a click-through demo. Enter a value, save it, and it shows up in the list. Clicking through surfaces ordering problems that a static design hides.
+
+`deck` moves one source document into a presentation flow and builds a Figma Slides deck. It uses the team template's coordinates, colors and type as-is — when a content shape isn't in the catalog it never invents a layout, it fits the nearest archetype by trimming content or splitting the slide. `/fig:deck-setup` measures those values into local assets, which stay out of the published plugin since template backgrounds carry company wordmarks.
+
+`qa` audits what actually shipped against the spec. The rule is that a finding reads "this breaks rule X in document Y", never "this looks off" — anything without a baseline is filed as needs-checking rather than a defect.
+
+`code` separates what the design owns (numbers, colors, copy, states) from what the code owns (file structure, naming, state management), so neither overwrites the other.
+
+### The whole flow
 
 ```mermaid
 flowchart TD
-    setup["fig:setup<br/>관례 관측 → 설정 생성"]
-    prep["fig:prep<br/>섹션 골격 · 빠진 화면 자리"]
-    draw["화면 제작<br/>공식 플러그인 또는 손으로"]
-    arrows["fig:arrows<br/>흐름 화살표 · 상태 묶음"]
-    tokens["fig:tokens<br/>색상 토큰 검수"]
-    lint{"fig:lint<br/>검증 게이트 · 쓰기 0"}
-    proto["fig:proto<br/>동작 프로토타입"]
-    handoff["개발 전달"]
-    diff["fig:diff<br/>변경점 주석"]
-    code["fig:code<br/>프론트 코드 반영"]
-    sync["fig:sync<br/>릴리스 후 정본 반영"]
-    qa["fig:qa<br/>올라온 화면 기준 대조"]
+    setup["fig:setup<br/>observe → config"]
+    prep["fig:prep<br/>section skeleton · missing screens"]
+    draw["Draw screens<br/>official plugins or by hand"]
+    arrows["fig:arrows<br/>flow arrows · state groups"]
+    tokens["fig:tokens<br/>color token audit"]
+    lint{"fig:lint<br/>audit gate · zero writes"}
+    proto["fig:proto<br/>working prototype"]
+    handoff["Handoff"]
+    diff["fig:diff<br/>change annotations"]
+    code["fig:code<br/>apply to frontend"]
+    sync["fig:sync<br/>canonical page after release"]
+    qa["fig:qa<br/>audit what shipped"]
 
     setup --> prep --> draw --> arrows --> tokens --> lint
-    lint -- 위반 --> prep
-    lint -- 통과 --> proto
-    lint -- 통과 --> handoff
+    lint -- violations --> prep
+    lint -- pass --> proto
+    lint -- pass --> handoff
     handoff --> diff
     handoff --> code
     handoff --> qa
-    handoff -. 릴리스 후 .-> sync
+    handoff -. after release .-> sync
     sync --> lint
 ```
 
 ---
 
-## 스킬 열세 개
+## The thirteen skills
 
-| 명령 | 무엇을 |
+| Command | What it does |
 |---|---|
-| `/fig:setup` | 파일 관례를 관측해 설정 초안 생성 |
-| `/fig:read` | 페이지·화면 목록 수집 |
-| `/fig:prep` | 이름 통일 · 섹션 배치 · 누락 화면 placeholder |
-| `/fig:arrows` | 흐름 화살표 생성과 재동기화 |
-| `/fig:lint` | 읽기 전용 검증 게이트 (쓰기 0) |
-| `/fig:tokens` | 색상의 디자인시스템 토큰 바인딩 검수 |
-| `/fig:sync` | 정본 반영 전수 감사 → 반영 → 이관 |
-| `/fig:diff` | 변경점 주석 표기 · 일감 문서 정리 |
-| `/fig:proto` | 동작하는 단일 HTML 프로토타입 |
-| `/fig:code` | 프론트엔드 레포 코드 반영 |
-| `/fig:qa` | 올라온 화면을 기획 기준과 대조해 결함 리포트 |
-| `/fig:deck-setup` | 팀 발표 템플릿을 실측해 덱 자산 생성 |
-| `/fig:deck` | 소스를 발표 덱(Figma Slides)으로 |
+| `/fig:setup` | Observe a file's conventions and draft a config |
+| `/fig:read` | Collect the page and screen inventory |
+| `/fig:prep` | Normalize names · place into sections · stub missing screens |
+| `/fig:arrows` | Create and re-sync flow arrows |
+| `/fig:lint` | Read-only audit gate (zero writes) |
+| `/fig:tokens` | Audit design system token binding for colors |
+| `/fig:sync` | Full canonical-page audit → apply → archive |
+| `/fig:diff` | Annotate changes · write up the task doc |
+| `/fig:proto` | Working single-file HTML prototype |
+| `/fig:code` | Apply the design to a frontend repo |
+| `/fig:qa` | Audit a shipped screen against the spec and report defects |
+| `/fig:deck-setup` | Measure a team slide template into local deck assets |
+| `/fig:deck` | Turn a source document into a Figma Slides deck |
 
-### `/fig:lint`가 보는 것
+### What `/fig:lint` looks at
 
-| 무엇을 | 어떤 문제를 잡나 |
+| Area | What it catches |
 |---|---|
-| 구조 | 화면이 섹션 밖으로 빠짐 · 섹션 경계 이탈 · 화면끼리 겹침 · 이름 규칙 위반 · 섹션 순번과 배치 불일치 |
-| 흐름 | 화살표가 엉뚱한 화면을 관통 · 화살촉이 허공을 가리킴 · 어떤 흐름에도 안 걸린 화면 · 라벨이 화살촉이나 다른 선을 가림 |
-| 컴포넌트 | 복제할 때 딸려온 불필요한 설정이 남아 빈자리가 렌더됨 |
+| Structure | Screens outside any section · screens past section bounds · overlapping screens · naming violations · section number vs. placement mismatch |
+| Flow | Arrows cutting through unrelated screens · arrowheads pointing at empty space · screens on no flow at all · labels covering an arrowhead or another line |
+| Components | Settings that tagged along in a duplicate, leaving an empty slot rendered |
 
-화살촉 방향은 거리만 재면 안 잡힙니다. 12px 떨어져 있어도 도착 변에 평행하면 화살촉이 옆 허공을 가리킵니다. 그래서 마지막 선분이 도착 변에 수직인지를 따로 봅니다.
+Arrowhead direction isn't catchable by distance alone. An arrow can sit 12px away and still point into empty space if its last segment runs parallel to the target edge. So the audit checks perpendicularity separately.
 
-컴포넌트 검사는 규칙 문서가 없어도 동작합니다. 같은 파일의 기존 화면들이 그 컴포넌트를 어떻게 쓰는지 분포를 뽑아 대조하는 방식입니다.
+The component audit works without any written convention. It derives the usage distribution from how other screens in the same file use that component, and compares against it.
 
 ---
 
-## pm — 기획 문서
+## pm — product docs
 
-요구사항 문서(PRD)를 양식에 맞춰 쓰고, 쓰기 전에 검증하는 별도 플러그인입니다. `/pm:prd` 하나로 시작합니다.
+A separate plugin for writing requirement docs against a format and verifying them before they ship. One skill so far: `/pm:prd`.
 
-**저장 대상을 안 가립니다.** 골격은 어디에 쓰든 같고, `prd.target`이 발행 방식만 가릅니다.
+**It doesn't care where the doc lives.** The structure is the same everywhere; `prd.target` only changes how it's published.
 
 ```
-markdown   로컬 파일. 기본값 — 다른 도구가 필요 없다
-git        마크다운으로 쓰고 브랜치·PR 까지
-notion     Notion 페이지. prd.notion 절을 채워야 동작
+markdown   local files. the default — no other tooling required
+git        writes markdown, then branch and PR
+notion     Notion pages. requires the prd.notion section
 ```
 
-지키는 것이 셋입니다.
+Three things it holds to.
 
-**모호함을 남기지 않습니다.** 판정·집계의 단위, 필터·정렬의 대상, '대표' 선정 기준, 상태 전환의 정의 — 이 넷이 비면 기능이 성립하지 않으니 값으로 채웁니다. 자료로 정할 수 있는데 TBD로 둔 칸이 하나라도 있으면 검증을 통과시키지 않습니다.
+**No leftover vagueness.** The unit a decision is made in, what a filter or sort acts on, how a "primary" item is chosen, what a state transition means — a feature doesn't hold together without these, so they get concrete values. If any field could have been settled from the material and was left as TBD, verification fails.
 
-**기획 문서를 개발 문서로 만들지 않습니다.** `forbidden_terms`에 적힌 말이 본문에 있으면 반려합니다. "무엇(요구)"까지만 쓰고 "어떻게(구현)"는 개발에 위임하거나 TBD로 둡니다.
+**A product doc is not an engineering doc.** Anything in `forbidden_terms` appearing in the body is rejected. It writes *what* is required and leaves *how* to engineering or to a TBD.
 
-**쓰기 전에 멈춥니다.** 검증은 읽기 전용이고, 발행은 미리보기 → "go" 뒤에만, 그것도 뼈대 → 사용자 그룹 → 기능 항목으로 쪼개서 합니다.
+**It stops before writing.** Verification is read-only, publishing happens only after a preview and an explicit go, and even then in stages — skeleton, then user groups, then feature entries.
 
-설정은 `pm-conventions.yaml`입니다. `fig`와 같은 방식으로 겹쳐 읽습니다.
+Configuration lives in `pm-conventions.yaml`, layered the same way as `fig`.
 
 ---
 
-## 설치
+## Install
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
@@ -216,37 +216,37 @@ claude plugin install fig@byjunyoung
 claude plugin install pm@byjunyoung
 ```
 
-갱신은 `claude plugin marketplace update byjunyoung` 한 줄이고, 두 플러그인에 함께 적용됩니다.
+To update both: `claude plugin marketplace update byjunyoung`.
 
-- **필요한 것** — Claude Code, Figma MCP 플러그인(`plugin:figma`), `python3` + PyYAML, `node`
-- **설치 확인** — `claude plugin list`에 `fig@byjunyoung`·`pm@byjunyoung`이 보이면 됩니다
-- **설치 뒤** — 대상 파일에서 `/fig:setup`을 먼저 돌려 설정을 만듭니다
+- **Requires** — Claude Code, the Figma MCP plugin (`plugin:figma`), `python3` with PyYAML, `node`
+- **Verify** — `fig@byjunyoung` and `pm@byjunyoung` show up in `claude plugin list`
+- **Then** — run `/fig:setup` in your target file to create a config
 
-## 설정
+## Configuration
 
-규칙은 스킬 문서가 아니라 `figma-conventions.yaml` 하나가 정합니다. 화면 이름 규칙, 상태 목록, 간격 값, 섹션 스타일, 화살표 스타일, 검사에서 뺄 섹션, 허용 오차가 모두 여기 있습니다.
+Conventions live in one file, `figma-conventions.yaml`, not in the skill docs. Screen naming, the state list, spacing values, section style, arrow style, sections excluded from audit, and tolerances are all there.
 
 ```
-플러그인 내장 기본값                    바닥
-      ↓ 덮어씀
-~/.claude/figma-conventions.yaml      내 공통 설정
-      ↓ 덮어씀
-./figma-conventions.yaml              프로젝트별 (가장 셈)
+plugin defaults                       base layer
+      ↓ overridden by
+~/.claude/figma-conventions.yaml      your shared config
+      ↓ overridden by
+./figma-conventions.yaml              per project (wins)
 ```
 
-전체 스키마는 [`conventions.example.yaml`](_common/conventions.example.yaml)에 있습니다. 14개 절, 112개 항목이고 값마다 무엇을 검사하는지 주석이 붙어 있어 그대로 복사해 고쳐 쓰면 됩니다. 생긴 모양은 이렇습니다.
+The full schema lives in [`conventions.example.yaml`](_common/conventions.example.yaml) — 14 sections, 112 keys, each commented with what it governs, so you can copy it and edit in place. It looks like this:
 
 ```yaml
 naming:
-  frame: "{screen}-{state}"           # 사람이 읽을 형태
-  frame_pattern: '^.+-[^-\s]+$'       # lint 가 그대로 정규식으로 쓴다
+  frame: "{screen}-{state}"           # human-readable form
+  frame_pattern: '^.+-[^-\s]+$'       # lint uses this as a regex directly
   states: [Default, Empty, Loading, Error, Validation, Selected]
   required_states:
     list: [Default, Empty, Loading, Error]
 
 pages:
-  strict:   ['^\[UI\] ']              # 규칙 전면 적용
-  exclude_sections: ['^템플릿$']       # 검사 면제
+  strict:   ['^\[UI\] ']              # full rules apply
+  exclude_sections: ['^Template$']    # exempt from audit
 
 layout:
   column_grid: 1560
@@ -257,71 +257,71 @@ arrows:
   audit: { edge_tolerance: 2, gap_range: [9, 15] }
 ```
 
-- **첫 실행** — 대상 파일에서 `/fig:setup`을 돌리면 관례를 관측해 초안을 만듭니다
-- **부분만 적어도 됩니다** — 세 층을 겹쳐 읽습니다. 안 적은 키는 기본값이 채우고, 적은 키만 덮입니다
-- **`null`의 의미** — 추정하지 않았다는 뜻이고, 해당 검사를 건너뜁니다. 검사를 끄려면 키를 지우지 말고 `null`을 적으세요 — 지우면 기본값이 살아납니다
-- **파일별 설정** — 정본·아카이브 페이지 구분처럼 파일마다 다른 항목은 `files.<fileKey>`에 적습니다
+- **First run** — `/fig:setup` in the target file observes its conventions and drafts one
+- **Partial configs are fine** — the three layers are merged, so keys you omit fall back to defaults and only what you write is overridden
+- **What `null` means** — the value wasn't inferred, so that check is skipped. To disable a check, write `null` rather than deleting the key — deleting it brings the default back
+- **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
 
-초안이 나오면 `/fig:lint`를 한 번 돌려 오탐률로 검증합니다. 위반이 전건에 가까우면 파일이 잘못된 게 아니라 설정이 틀린 것입니다.
+Once you have a draft, run `/fig:lint` once and judge it by the false-positive rate. If nearly everything is flagged, the config is wrong, not the file.
 
 ---
 
-## 설계 원칙
+## Design principles
 
-**검증은 한 곳에서만 합니다.** 파일을 고치는 스킬(`prep`·`arrows`·`sync`)에는 검사 코드가 없습니다. 맞는지 틀린지 판정하는 것은 `/fig:lint` 하나뿐이고, 나머지는 지적된 것을 고치는 역할만 맡습니다. 검증이 스킬마다 흩어져 있으면 "이번엔 그 스킬을 안 써서 검사를 건너뛰었다"는 구멍이 생기기 때문입니다.
+**One place decides.** The skills that write to files (`prep`, `arrows`, `sync`) contain no audit code. `/fig:lint` is the only thing that judges right from wrong; everything else just fixes what it flagged. Spread the checks across skills and you get a gap — "I skipped that skill this time, so the check never ran."
 
-**규칙은 묻지 않고 관측합니다.** 팀마다 화면 이름 붙이는 법도, 간격도, 섹션 묶는 단위도 다릅니다. `/fig:setup`은 그것을 물어보지 않고 파일을 직접 훑어서 알아냅니다. 사람은 자기 팀 규칙도 기억으로 답하면 틀리기 때문입니다.
+**Conventions are observed, not asked.** Every team names screens differently, spaces them differently, groups sections differently. `/fig:setup` doesn't ask — it reads the file and works it out. People get their own team's conventions wrong when answering from memory.
 
-**모르면 비워둡니다.** 관측 결과가 애매하면, 즉 표본이 적거나 값이 반반으로 갈리면 채우지 않고 `null`로 둡니다. `null`은 그 검사를 건너뛴다는 뜻입니다. 규칙을 모르는 것과 규칙을 어긴 것은 다르고, 둘을 섞으면 리포트가 오탐에 묻혀 아무도 안 읽게 됩니다.
+**When unsure, leave it empty.** If the observation is ambiguous, meaning too few samples or a near-even split, the value stays `null` instead of being filled in. `null` means that check is skipped. Not knowing a rule and breaking a rule are different things, and mixing them buries the report in false positives until nobody reads it.
 
-## 구조
+## Layout
 
 ```
 .claude-plugin/
-  marketplace.json             마켓플레이스 항목 (플러그인 목록)
+  marketplace.json             marketplace entry (plugin list)
 plugins/
   fig/
     .claude-plugin/plugin.json
     README.md
     skills/
       setup  read  prep  arrows  lint
-      tokens sync  diff  proto   code    각 SKILL.md
+      tokens sync  diff  proto   code    one SKILL.md each
     _common/
-      conventions.example.yaml           설정 스키마 + 내장 기본값
+      conventions.example.yaml           config schema + bundled defaults
       scripts/
-        audit-struct.js                  소속·경계·겹침·네이밍·순번
-        audit-flow.js                    화살표 수치·진입방향·관통·라벨·커버리지
-        audit-component.js               컴포넌트 기본값 잔재
-        arrow-build.js                   화살표 생성 헬퍼
-        prep-ops.js                      페이지 정리 헬퍼
-        probe-page.js                    관례 관측
-        lib/                             설정 해석·초안 생성·문법 검사
+        audit-struct.js                  membership, bounds, overlap, naming, ordering
+        audit-flow.js                    arrow geometry, entry direction, pass-through, labels, coverage
+        audit-component.js               component default residue
+        arrow-build.js                   arrow construction helper
+        prep-ops.js                      page cleanup helper
+        probe-page.js                    convention observation
+        lib/                             config resolution, draft generation, syntax check
 tools/
-  verify.py                    정합성 검사 (저장소 도구, 설치본에는 안 실림)
+  verify.py                    consistency check (repo tool, not shipped)
 ```
 
-한 저장소가 플러그인 여럿을 담습니다. `marketplace.json`의 `plugins`가 배열이라, 설치는 따로 가면서 저장소·검사기는 한 벌만 관리합니다.
+One repo holds several plugins. `plugins` in `marketplace.json` is an array, so they install separately while sharing one repo and one checker.
 
-Figma 플러그인은 파일 시스템에 접근할 수 없습니다. 그래서 설정 해석은 로컬에서 처리하고, `resolve-config.py --js <fileKey>`가 출력한 한 줄을 스크립트 앞에 붙여 실행합니다. 스크립트 경로는 `${CLAUDE_PLUGIN_ROOT}` 기준입니다. 설치 위치가 환경마다 다르기 때문입니다.
+Figma plugins have no filesystem access. So config resolution happens locally: `resolve-config.py --js <fileKey>` emits a single line that gets prepended to the script before it runs. Script paths are relative to `${CLAUDE_PLUGIN_ROOT}`, since install locations differ between environments.
 
-스킬을 수정한 뒤에는 저장소에서 `python3 tools/verify.py`로 정합성을 확인합니다. 마켓플레이스에 등록된 플러그인을 전부 검사하고, 플러그인 사이에 사본으로 도는 파일이 갈렸는지도 함께 봅니다.
+After editing a skill, run `python3 tools/verify.py` from the repo root. It checks every plugin listed in the marketplace, and flags shared files that have drifted apart between them.
 
-## 기술 스택
+## Built with
 
-Claude Code 스킬(Markdown) + Figma Plugin API(JavaScript) + 설정 해석·집계(Python). 외부 의존성은 PyYAML 하나입니다.
+Claude Code skills (Markdown) + the Figma Plugin API (JavaScript) + config resolution and aggregation (Python). PyYAML is the only external dependency.
 
-## 만든 사람
+## Author
 
-김준영 · [LinkedIn](https://www.linkedin.com/in/byjunyoung/)
+Junyoung Kim · [LinkedIn](https://www.linkedin.com/in/byjunyoung/)
 
-## 라이선스
+## License
 
 © 2026 Junyoung Kim · [LICENSE](LICENSE)
 
-설치해서 쓰는 것은 자유입니다. 개인이든 팀 안에서든 쓰고, 필요하면 고쳐 써도 됩니다.
+Installing and using it is free. Use it personally or inside your organization, and modify it if you need to.
 
-포크해서 재배포하거나, 다른 이름으로 다시 배포하거나, 상업적으로 재판매하는 것은 허락이 필요합니다. 정식 오픈소스 라이선스를 붙이지 않은 이유입니다. 문의는 [Issues](https://github.com/byjunyoung/claude-product-skills/issues)나 링크드인으로 남겨주세요.
+Redistributing a fork, republishing it under another name, or reselling it commercially requires permission. That's why there's no standard open source license attached. Reach me through [Issues](https://github.com/byjunyoung/claude-product-skills/issues) or LinkedIn.
 
-## 피드백
+## Feedback
 
-버그 제보나 기능 제안은 [Issues](https://github.com/byjunyoung/claude-product-skills/issues)에 남겨주세요.
+Bug reports and feature ideas go in [Issues](https://github.com/byjunyoung/claude-product-skills/issues).

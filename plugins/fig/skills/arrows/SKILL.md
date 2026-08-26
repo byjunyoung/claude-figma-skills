@@ -1,6 +1,6 @@
 ---
 name: arrows
-description: Figma 디자인 파일에 화면 흐름 화살표(벡터)와 라벨을 자동 생성·재동기화한다. 프레임 변 중점 앵커·직각 엘보·분기 트렁크·요소 앵커·흐름 의미별 선 스타일 등 Autoflow/Overflow류 플러그인의 동작을 코드로 재현. 이름 규칙(`출발 --> 도착`)에 흐름 정보를 저장해 프레임 재배치 후에도 한 마디로 전체 재동기화 가능. Triggers - "/fig:arrows", "화살표 그려줘", "흐름 화살표 추가", "화살표 sync", "화살표 정리해줘", "플로우 연결해줘".
+description: Generates and re-syncs flow arrows and their labels on a Figma design page. Reproduces in code what Autoflow-style plugins do — edge-midpoint anchors, right-angle elbows, branch trunks, element anchors, line styles that carry meaning. Flow information is stored in the node name (`source --> target`), so the whole page re-syncs with one command after frames move. Triggers - "/fig:arrows", "draw the flow arrows", "connect these screens", "re-sync the arrows", "화살표 그려줘", "흐름 화살표 추가", "화살표 sync", "플로우 연결해줘".
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot
 ---
 
