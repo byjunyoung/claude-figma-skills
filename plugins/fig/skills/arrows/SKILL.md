@@ -4,257 +4,272 @@ description: Generates and re-syncs flow arrows and their labels on a Figma desi
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot
 ---
 
-# fig:arrows — 화면 흐름 화살표 생성·동기화
+# fig:arrows — draw and sync screen flow arrows
 
-디자인 파일에서 프레임 간 사용자 흐름을 화살표 벡터 + 라벨로 그린다. Figma의 마그네틱 커넥터(ConnectorNode)는 FigJam 전용이라 디자인 파일에선 일반 벡터로 그려야 하는데, 이 스킬은 흐름 정보를 **노드 이름에 저장**해서 마그네틱이 아니어도 재동기화를 자동화한다.
+Draws user flow between frames in a design file as arrow vectors with labels. Figma's magnetic connector (ConnectorNode) is FigJam-only, so in a design file these have to be plain vectors — this skill **stores the flow in the node name**, which makes re-syncing automatic even without magnetism.
 
-**전제**: `use_figma` 호출 전 반드시 `figma:figma-use` 스킬을 먼저 로드한다.
+**Prerequisites**: always load the `figma:figma-use` skill before calling `use_figma`.
 
 ## When to invoke
 
-- "이 섹션 흐름대로 화살표 그려줘", "A에서 B로 화살표"
-- 프레임 재배치 후 "화살표 sync/정리"
-- 기존 수동 화살표(Flow Chart 플러그인 산출물)와 혼용되는 페이지의 흐름 정리
+- "draw the arrows for this section's flow", "arrow from A to B"
+- "sync the arrows" after frames were rearranged
+- Tidying flow on a page where hand-drawn arrows (from a Flow Chart plugin) are mixed in
 
 ## When NOT to invoke
 
-- 화살표 수치·커버리지 검증만(쓰기 0) → `/fig:lint`
-- 도메인 간 전체 플로우 조망 → FigJam에 `generate_diagram` (figma:figma-generate-diagram 스킬)
-- FigJam 파일 안에서의 연결 → ConnectorNode 직접 생성이 정석
+- Auditing arrow geometry or coverage only, zero writes → `/fig:lint`
+- An overview of flow across domains → `generate_diagram` into FigJam (the figma:figma-generate-diagram skill)
+- Connections inside a FigJam file → creating ConnectorNodes directly is the right answer there
 
 ## Inputs
 
-- `figma_url` (필수): 화살표를 그릴·재동기화할 대상 페이지·섹션 URL
-- `mode` (선택): 생성 / sync. 생략하면 기존 `-->` 벡터 유무로 판단한다 — 같은 이름 벡터가 있으면 생성이 아니라 sync로 전환
+- `figma_url` (required): the page or section to draw or re-sync
+- `mode` (optional): create / sync. Omitted, it decides from whether `-->` vectors already exist — a vector with the same name means switch to sync, not create
 
-## 핵심 컨벤션
+## Core conventions
 
-| 항목 | 규칙 |
+| Item | Rule |
 |---|---|
-| 화살표 이름 | `출발프레임명 --> 도착프레임명` (예: `로그인-Default --> 로그인-ErrorModal`) |
-| 라벨 이름 | `[label] 출발프레임명 --> 도착프레임명` |
-| 화살표 대상 | **사용자 액션 전환만** (버튼 클릭, 항목 선택 등). 조건 변형(-Empty/-Loading/-Error)은 전환 화살표로 그리지 않음 — 분기 박스 영역이거나, 같은 화면의 상태면 `[state]` 묶음 점선(아래 "상태 체인" 절) |
-| 라벨 문구 | 전환 트리거 (예: "저장", "댓글 클릭"). 화면에서 확인한 버튼명 기준, 추정이면 사용자에게 명시 |
-| 부모 | 출발 프레임과 같은 Section의 자식으로 생성 (섹션 이동 시 함께 이동) |
-| 상태 체인 이름 | `[state] {위프레임} ~ {아래프레임}` — 같은 화면의 인접 상태 변형을 잇는 화살촉 없는 점선(전환 아님, 묶음 표시). "상태 체인" 절 |
+| Arrow name | `source frame --> target frame`, e.g. `Login-Default --> Login-ErrorModal` |
+| Label name | `[label] source frame --> target frame` |
+| What gets an arrow | **User-action transitions only** (a button press, selecting an item). Conditional variants (-Empty / -Loading / -Error) are not drawn as transition arrows — they belong to a branch box, or, when they are states of the same screen, to a `[state]` dashed grouping (see "State chains") |
+| Label text | The trigger for the transition, e.g. "Save", "tap a comment". Based on the button name confirmed on screen; if it is a guess, say so |
+| Parent | Created as a child of the source frame's section, so it travels with the section |
+| State chain name | `[state] {upper frame} ~ {lower frame}` — a headless dashed line joining adjacent state variants of one screen. Not a transition, a grouping. See "State chains" |
 
-이름이 곧 데이터다 — sync는 이름 파싱만으로 동작하므로, 이름 규칙을 깨면 sync 대상에서 빠진다.
+The name *is* the data — sync works by parsing names alone, so anything that breaks the naming convention drops out of sync.
 
-상태 접미사의 정식 목록은 설정 `naming.states` 가 단일 출처다 — 이 문서의 예시는 설명용이고, 실제 분류는 fig:prep 이 부여한 프레임 이름을 그대로 따른다. 임의로 새 접미사를 만들지 않는다.
+The authoritative list of state suffixes is `naming.states` in the config. Examples in this document are illustrative; the actual classification follows whatever frame names fig:prep assigned. Never invent a new suffix.
 
-## 대표 화면 원칙 — 형제 변형은 공통 도착지로 화살표를 중복하지 않는다
+## The representative-screen rule — sibling variants do not each draw to a shared destination
 
-**화살표는 과하게 그리지 않는다. 메인 플로우는 대표 화면에서만 나간다.** 같은 기능의 **형제 변형**(병렬 타입 화면들, `[state]`로 묶인 상태 변형 등)이 **동일한 공통 도착지**(공통 에러·완료 토스트·공통 다이얼로그 등)로 가는 전환은, 변형마다 각각 그리지 말고 **그 그룹의 대표 화면 1개**(메인 플로우 화면)에서만 그린다.
+**Do not over-draw. The main flow leaves from the representative screen only.** When **sibling variants** of one feature — parallel screen types, state variants grouped by `[state]` — all transition to **the same shared destination** (a common error, a completion toast, a shared dialog), draw it from **one representative screen** in that group, not from every variant.
 
-- "전 변형 → 공통 도착지"가 아니라 "**대표 1개 → 공통 도착지**". 변형마다 `-->`를 복제하면 한 점으로 수렴하는 화살표 다발이 생겨 핸드오프 가독성을 크게 해친다(2026-06-09 사용자 지적).
-- 나머지 형제 변형은 `[state]` 묶음으로 이미 흐름에 등장하므로 **커버리지(orphan)는 그것으로 충족**된다 — 공통 도착지로 또 잇지 않아도 orphan이 아니다.
-- 공통 도착지(공통 에러 등)의 '공통성'은 **이름·배치(전용 열)와 대표 연결 1개**로 전달한다. 공통 도착지 자체는 그 대표 연결 1개로 orphan이 해소된다.
-- 판단: 출발 후보가 `[state]`로 한 그룹에 묶여 있고 같은 도착지로 향하면 → 대표 1개만. 서로 독립된 화면이 우연히 같은 도착지로 가는 것(예: 진짜 다른 진입점)은 이 규칙 밖 — 각각 그린다.
+- Not "every variant → shared destination" but "**one representative → shared destination**". Duplicating the `-->` per variant produces a fan of arrows converging on one point, which badly hurts handoff readability (raised by the user, 2026-06-09)
+- The remaining siblings already appear in the flow through their `[state]` grouping, so **coverage is satisfied by that** — not drawing them to the shared destination does not make them orphans
+- The "sharedness" of a shared destination is conveyed by its name, its placement in a dedicated column, and that one representative connection. That single connection also resolves its own orphan status
+- The call: if the candidate sources are grouped together by `[state]` and head to the same destination → one representative only. Genuinely independent screens that happen to share a destination (real separate entry points) fall outside this rule — draw each
 
-## 팬아웃 트렁킹 — 한 출발에서 여러 갈래는 줄기 하나로
+## Fan-out trunking — many branches from one source share one trunk
 
-한 출발 화면이 **같은 UI 어포던스**(바로가기 메뉴·패널·탭바 등 한 요소)로 **3개 이상**의 목적지로 갈라질 때, 목적지마다 각자 긴 선을 끌면 평행선·교차가 쌓여 추적이 어렵다. 이때는 **공유 트렁크**로 묶는다.
+When one source screen branches to **three or more** destinations through **the same UI affordance** (a shortcut menu, a panel, a tab bar — one element), dragging a long line to each destination piles up parallel lines and crossings. Bundle them into a **shared trunk** instead.
 
-- **줄기 공유**: 모든 갈래가 같은 출발점에서 나가 **같은 줄기를 겹쳐 타고** 목적지 그룹 근처까지 간 뒤, **끝에서만** 각 목적지로 분기. 줄기 구간은 겹쳐 한 줄로 보이고 분기는 도착 직전 짧게. ("분기 트렁크" 지오메트리를 팬아웃 전체에 적용)
-- **라벨 1개**: 목적지마다 라벨을 달지 말고 **줄기 위에 그 어포던스 이름 라벨 1개만**. 갈래 수만큼 라벨을 복제하면 도착점마다 pill이 쌓여 지저분해진다.
-- **화살표는 목적지마다 유지**: 줄기를 공유해도 화살표 노드는 `출발 --> 각 목적지`로 그대로 둔다 — 커버리지(orphan)가 유지되고 어디로 가는지가 도착점으로 드러난다.
-- **줄기를 줄이려면 배치**: 목적지 그룹을 출발 화면 인접(아래 행 등)에 모으면 줄기가 짧아진다. 배치가 화살표와 싸우면 배치를 고친다(fig:prep와 연동).
+- **Share the stem**: every branch leaves the same start point, **overlaps along the same stem** to near the destination group, and **splits only at the end**. The stem reads as a single line; the splits are short and near arrival. (The branch-trunk geometry, applied to the whole fan-out)
+- **One label**: do not label each destination — put **one label naming the affordance on the stem**. Duplicating the label per branch stacks pills at every arrival point and makes a mess
+- **Keep an arrow per destination**: sharing a stem does not merge the nodes. They stay `source --> each destination`, which keeps coverage intact and shows where each one goes
+- **To shorten the stem, fix the layout**: gathering the destination group next to the source (the row below, typically) shortens it. When layout fights the arrows, fix the layout (pairs with fig:prep)
 
-[[대표 화면 원칙]]이 "형제 변형 → 공통 도착지"의 수렴 다발을 줄인다면, 이건 "한 출발 → 여러 목적지"의 발산 다발을 줄기로 묶는 규칙. 둘 다 화살표 다발을 줄여 핸드오프 가독성을 지키는 것.
+Where the representative-screen rule reduces the *converging* fan of "sibling variants → shared destination", this reduces the *diverging* fan of "one source → many destinations". Both exist to keep handoff readable.
 
-## 저장류 액션의 결과 — 이동만 실선, 같은-화면 결과는 상태/점선
+## The result of a save-type action — only navigation is solid; same-screen results are states or dashed
 
-폼의 저장·제출 같은 한 액션은 대개 세 갈래로 갈린다: ① 성공(다른 화면으로 **이동**) ② 검증 실패(같은 화면에 인라인 오류/토스트) ③ 처리 실패(같은 화면에 에러 토스트). 이 스킬의 원칙은 **"사용자 액션의 화면 이동만 화살표, 조건 변형은 화살표 아님"** 이다. 셋을 시각적으로 구분한다:
+One action like a form save or submit usually splits three ways: (1) success, which **navigates** to another screen, (2) validation failure, which stays on the screen as an inline error or toast, (3) processing failure, which stays as an error toast. The principle here is **"only a user action that changes screens gets an arrow; conditional variants do not."** The three are told apart visually:
 
-- **성공(이동)** → **실선** `-->` 화살표 (예: 라벨 "저장" → 완료 토스트/목록 화면)
-- **같은 화면에 머무는 조건 결과**(-Validation/-Error 등 상태 변형) → `[state]` 점선 묶음(전환 아님). 같은 `[화면명]`·같은 열이면 그대로 묶는다
-- **그 조건 결과 화면이 여러 흐름에 공유되는 공통 화면**(공통 에러 등)이라 특정 열에 `[state]`로 못 붙을 때 → 대표 화면에서 **점선 조건 화살표**(화살촉 유지)로 1줄만. 실선(이동)보다 강등돼 '같은-화면 조건 결과'임이 드러난다. [[대표 화면 원칙]]과 세트 — 변형마다 잇지 않고 대표 1개만
+- **Success (navigation)** → a **solid** `-->` arrow, e.g. labelled "Save", to the completion toast or list screen
+- **A conditional result that stays on the screen** (-Validation, -Error and the like) → a `[state]` dashed grouping, not a transition. If it shares the `[screen]` name and column, group it there
+- **When that conditional result is a shared screen** used by several flows (a common error) and so cannot attach to one column via `[state]` → one **dashed conditional arrow** (arrowhead kept) from the representative screen. Being demoted from solid marks it as a same-screen conditional result. This pairs with the representative-screen rule — one representative, not every variant
 
-요약 위계: **실선 = 화면 이동 / 점선 화살표 = 공유 조건 결과 화면 / 점선 묶음 `[state]` = 같은 화면 상태.** (2026-06-09 사용자 결정 — 저장 결과의 validation·error는 둘 다 '같은 화면에 머무는 결과'라 이동(성공)만 실선으로 분리)
+The hierarchy in short: **solid = screen change / dashed arrow = shared conditional result screen / dashed `[state]` grouping = state of the same screen.** (Decided by the user 2026-06-09 — validation and error are both "results that stay on the screen", so only success, the navigation, stays solid)
 
-## 지오메트리 규칙 (Autoflow/Overflow 동작 재현)
+## Geometry rules (reproducing Autoflow / Overflow behaviour)
 
 ```
-출발점: 프레임당 한 점 — 출발 변의 중점.
-        나가는 화살표가 여러 개여도 모두 같은 점에서 출발(분기 트렁크).
-변 선택: 도착 프레임의 상대 위치로 결정 — 오른쪽이면 우변→좌변, 아래면 하변→상변.
-경로:   최단 경로, 필요할 때만 꺾는다 —
-        교차축 좌표가 같으면 직선, 다르면 직각 엘보
-        (출발점 → 트렁크 수직 진출 arrows.trunk → 수직 분기 → 도착 변 진입).
-회피:   직선/엘보 경로가 다른 프레임 영역과 교차하면 상·하변으로 우회(ㄷ자).
-        경로의 각 세그먼트와 프레임 사각형의 교차를 검사해서 판단.
-도착점: 도착 변의 중점, 화살촉 앞 arrows.head_gap 여백.
-진입:   마지막 세그먼트는 도착 변에 수직 — 화살촉이 프레임을 정방향으로 찌르게.
-        세로 변(좌·우)은 마지막을 가로로, 가로 변(상·하)은 세로로 진입.
-        위/아래로 우회해 닿을 땐 좌·우변(가로 진입)이 아니라 상·하변 중점(세로 진입)을 타겟 —
-        좌변 노리고 수직 하강하면 화살촉이 변과 평행해 옆 허공을 가리킨다
-        (거리는 맞아서 수치 검사는 통과하고 방향만 틀린다 — 2026-06-16 확인).
-라벨:   배경 pill로 만들어 선 위에 겹쳐 배치(배경이 선을 가림). 화살촉은 가리지 않게 —
-        직선·단독 엘보: 선(수직 가지) 중앙 / 분기 트렁크·복도(여러 가지가 한 선을 공유):
-        반드시 각자의 도착 직전 세그먼트(arrows.label.offset_from_target)에 — 공유 선 위에 일렬로 두면
-        다른 가지의 선·코너를 pill 배경이 가리고 라벨 소속이 모호해진다 (2026-06-05 확인).
-z순서:  pill은 항상 자기 화살표(및 교차하는 다른 화살표)보다 위 —
-        화살표를 전부 만든 뒤 pill을 append. 어기면 선이 라벨 텍스트를 관통한다.
+Start point: one per frame — the midpoint of the source edge.
+             Several outgoing arrows all leave from that same point (branch trunk).
+Edge choice: decided by the target's relative position — to the right means
+             right edge → left edge; below means bottom edge → top edge.
+Path:        shortest, bending only when it must —
+             a straight line when the cross-axis coordinates match, otherwise
+             a right-angle elbow (start → trunk runs out by arrows.trunk →
+             branches vertically → enters the target edge).
+Avoidance:   if a straight or elbow path crosses another frame's area, detour
+             over the top or bottom edge (a U shape). Decided by testing each
+             segment of the path against frame rectangles.
+End point:   the midpoint of the target edge, leaving arrows.head_gap before the head.
+Entry:       the final segment is perpendicular to the target edge, so the head
+             enters the frame head-on. Vertical edges (left, right) are entered
+             horizontally; horizontal edges (top, bottom) vertically.
+             When detouring above or below, target the midpoint of the top or
+             bottom edge (vertical entry) rather than the left or right edge —
+             dropping vertically onto a left edge leaves the head parallel to
+             the edge, pointing at empty space beside it. The distance is right,
+             so a numeric check passes and only the direction is wrong
+             (confirmed 2026-06-16).
+Labels:      built as a background pill placed over the line, the background
+             hiding the line. Never covering the arrowhead —
+             straight lines and single elbows: the middle of the vertical branch;
+             branch trunks and corridors (several branches sharing one line):
+             always on each one's own final segment before arrival
+             (arrows.label.offset_from_target). Lining them up along the shared
+             line makes a pill background cover another branch's line or corner
+             and leaves it unclear which arrow the label belongs to
+             (confirmed 2026-06-05).
+z-order:     a pill always sits above its own arrow and any arrow crossing it —
+             build every arrow first, then append the pills. Get this wrong and
+             lines run through the label text.
 ```
 
-### 요소 앵커 모드 (Overflow의 핫스팟 방식)
+### Element anchor mode (Overflow's hotspot approach)
 
-사용자가 트리거 요소를 지정하면("저장 버튼에서 출발") 출발점을 변 중점 대신 **그 요소의 교차축 좌표**에 맞춘다:
+When the user names the trigger element ("start from the Save button"), the start point matches **that element's cross-axis coordinate** instead of the edge midpoint:
 
-1. 출발 프레임 안에서 요소를 이름/텍스트로 검색 (`frame.query('TEXT[name*=저장]')` 등)
-2. 요소 중심의 절대좌표 → 출발 변에서 그 y(또는 x) 위치에서 진출
-3. 같은 프레임의 다른 화살표가 변 중점 출발이어도, 요소 앵커가 지정된 것만 예외
+1. Find the element inside the source frame by name or text
+2. Take the element centre's absolute coordinate and leave the source edge at that y (or x)
+3. Other arrows on the same frame keep the edge midpoint; only the anchored one is the exception
 
-화면의 실제 인터랙션 위치와 화살표가 일치해서 핸드오프 가독성이 높다. 단 요소를 못 찾으면 추측하지 말고 변 중점으로 폴백 + 보고.
+The arrow then lines up with where the interaction actually is on screen, which reads better in handoff. If the element is not found, do not guess — fall back to the edge midpoint and report it.
 
-### 흐름 의미별 선 스타일 (Autoflow의 path 구분)
+### Line style by flow meaning (Autoflow's path types)
 
-| 흐름 유형 | 스타일 | 지정 방법 |
+| Flow type | Style | How to ask for it |
 |---|---|---|
-| 기본/happy path | 실선 | 기본값 |
-| 조건부/보조 흐름 | 점선 (`arrows.dash_conditional`) | "조건부로", "점선으로" |
-| 왕복(양방향) | 양끝 화살촉 (양 끝 vertex 모두 ARROW_EQUILATERAL) | "양방향" |
+| Default / happy path | solid | the default |
+| Conditional / secondary | dashed (`arrows.dash_conditional`) | "make it conditional", "dashed" |
+| Round trip (bidirectional) | heads at both ends (both vertices ARROW_EQUILATERAL) | "bidirectional" |
 
-색은 설정 `arrows.color` 1색을 유지한다. 흐름 종류는 색이 아니라 실선·점선·화살촉으로 가른다 — 색까지 쓰면 섹션 스타일·상태 표기와 신호가 섞인다. 색 구분 요청이 오면 그 점을 알린 뒤 진행한다.
+Colour stays at the single `arrows.color`. Flow type is carried by solid versus dashed and by the heads, not by colour — bringing colour in mixes the signal with section style and state marking. If asked to distinguish by colour, say this first, then proceed.
 
-같은 두 프레임 사이에 화살표가 2개(A→B, B→A 또는 중복 전환)면 설정 `arrows.parallel_offset` 만큼 평행 이동해 겹침을 막는다.
+When two arrows join the same pair of frames (A→B and B→A, or a duplicate transition), offset them by `arrows.parallel_offset` so they do not overlap.
 
-스타일 우선순위: **페이지에 기존 화살표가 있으면 그 stroke(색·굵기·dash)를 읽어 따른다.** 없을 때만 설정 `arrows` 의 값을 쓴다 — 색·굵기·화살촉·라벨 폰트·pill 패딩이 거기 있다.
+Style precedence: **if the page already has arrows, read their stroke — colour, weight, dash — and follow it.** The `arrows` config values are used only when there are none; colour, weight, heads, label font, and pill padding all live there.
 
-라벨 폰트 크기를 키울 때 주의한다. 인접 프레임 간 화살표는 트렁크 길이 정도로 짧아서, pill 이 커지면 화살촉을 덮는다(2026-06-05 28px→20px 하향). 로컬 폰트는 MCP 가 로드하지 못하므로 라벨 폰트는 클라우드 폰트로 둔다.
+Be careful raising the label font size. Arrows between adjacent frames are only about as long as the trunk, so a bigger pill covers the arrowhead (dropped 28px → 20px on 2026-06-05). MCP cannot load local fonts, so keep the label font a cloud font.
 
-## Procedure — 생성
+## Procedure — creating
 
-### 1. 대상 파악
+### 1. Understand the target
 
-- 대상 섹션/프레임의 메타데이터 조회 (`get_metadata` 또는 use_figma 읽기 스크립트)
-- 프레임 이름·좌표·크기 수집. 스크린샷으로 버튼명 확인(라벨 문구 근거)
-- **기존 `-->` 벡터를 먼저 수집해 중복을 검사한다.** 만들려는 이름과 같은 화살표가 이미 있으면 생성 대상에서 제외하고, 위치가 어긋나 있으면 생성이 아니라 sync로 전환 — 같은 이름 벡터가 2개 생기면 이후 sync가 둘 다 재생성해 꼬인다
-- **좌표는 쓰기 직전에 실시간 조회한 값만 쓴다.** 이전 대화·기억 속 좌표로 계산 금지 — 사용자가 그 사이 캔버스를 재배치했을 수 있다. 좌표 계산은 쓰기 스크립트 안에서 `find()` 헬퍼(아래 스니펫)로 노드 좌표를 직접 읽어 수행
+- Read metadata for the target section or frames (`get_metadata`, or a read-only use_figma script)
+- Collect frame names, coordinates, sizes. Confirm button names from screenshots — that is the evidence for label text
+- **Collect existing `-->` vectors first and check for duplicates.** If an arrow with the name you are about to create already exists, drop it from the create list; if it exists but is misplaced, switch to sync rather than create — two vectors with the same name make every later sync regenerate both and tangle
+- **Use only coordinates read live, immediately before writing.** Never compute from coordinates remembered from earlier in the conversation — the user may have rearranged the canvas since. Do the coordinate work inside the write script, reading node coordinates through the `find()` helper
 
-### 2. 흐름 목록 제안 (미리보기 필수)
+### 2. Propose the flow list (preview required)
 
-화면 내용 기반으로 전환 목록을 추정해 표로 제시:
+Infer the transitions from screen content and present them as a table:
 
 ```
-| # | 이름 (출발 --> 도착) | 라벨 (추정) | 스타일 |
+| # | name (source --> target) | label (inferred) | style |
 ```
 
-- 라벨이 추정이면 명시. 조건 변형 프레임은 제외했음을 알림
-- **사용자 go 전에 쓰지 않는다**
+- Mark inferred labels as inferred. Note that conditional variant frames were excluded
+- **Write nothing before the user's go**
 
-### 3. 생성
+### 3. Create
 
-- 직선/엘보/우회 판정 → 벡터 생성 (아래 스니펫)
-- 라벨 pill 생성: `loadFontAsync({family:"Inter", style:"Medium"})` 선행
-- 한 호출에 10개 이내, 초과 시 분할
+- Decide straight / elbow / detour → create the vectors
+- Create the label pills, loading the label font first
+- Ten or fewer per call; split beyond that
 
-### 4. 검증
+### 4. Verify
 
-스크린샷 눈검사만으로 끝내지 않는다 — 작은 어긋남은 축소된 스크린샷에서 안 보인다. 생성·sync 직후 **`/fig:lint` 를 호출해 `FLOW PASS` 를 받는다.** 무엇을 어떤 허용오차로 보는지는 전부 거기 있다(수치·진입 방향·관통·orphan·라벨). 같은 검사를 여기 두 벌로 두지 않는다.
+Do not finish on an eyeballed screenshot — small misalignments are invisible at zoomed-out scale. Right after creating or syncing, **call `/fig:lint` and get a `FLOW PASS`.** What is checked and at what tolerance all lives there: geometry, entry direction, pass-through, orphans, labels. The same check is not kept in two places.
 
-이 스킬이 따로 아는 것 하나 — **요소 앵커 화살표는 변 중점 일치 검사에서 뺀다.** 트리거 요소에 맞춰 일부러 중점을 벗어난 것이라 위반이 아니다. lint 가 중점 이탈을 올리면 그 화살표가 요소 앵커인지 먼저 확인한다.
+One thing this skill knows on its own — **element-anchored arrows are exempt from the edge-midpoint check.** They deliberately leave the midpoint to match the trigger element, so it is not a violation. When lint reports a midpoint deviation, first check whether that arrow is element-anchored.
 
-**라벨 위반 자동 수정 에스컬레이션** — 검출 시 아래 순서로 옮기고 재감사, PASS까지 반복 (2026-06-05 확립):
-1. 그 화살표만 지나는 **배타 세그먼트**(분기 하강선·코리도 하강선) 중앙으로
-2. 배타 세그먼트가 없으면 **첫 코너**(출발 가로 세그먼트 끝)로
-3. 첫 코너도 공유 지점이면 **출발 변을 분리** — 혼잡 트렁크의 코리도 화살표를 다른 변(상변 등)으로 재배선해 세로선을 배타화
-4. 화살표가 너무 짧으면(~150px↓) 라벨을 **선 위 40~50px 부유** — 선·화살촉 안 덮고 인접성 유지
-5. 그래도 안 되면 라벨 폰트 축소 (최후)
+**Label violation repair, in escalating order** — move and re-audit, repeating until PASS (established 2026-06-05):
 
-감사 통과 후 스크린샷(필요 시 crop 확대)으로 라벨 위치 등 시각 요소만 추가 확인. 이슈가 나오면 수정 후 재감사.
+1. To the middle of a segment **only that arrow uses** (its branch descent or corridor descent)
+2. If there is no exclusive segment, to **the first corner** (the end of the horizontal segment leaving the source)
+3. If the first corner is shared too, **split the source edge** — reroute the corridor arrow of a congested trunk out of another edge (the top, say) so its vertical line becomes exclusive
+4. If the arrow is too short (under about 150px), **float the label 40–50px above the line** — clear of the line and the head, still visibly attached
+5. Only as a last resort, shrink the label font
 
-## Procedure — sync (재배치 후 재동기화)
+After the audit passes, use a screenshot (cropped and zoomed if needed) to check only the visual matters, label position among them. Fix and re-audit anything it turns up.
 
-1. 페이지/섹션에서 sync 대상 수집 — `-->` 포함 VECTOR(전환 화살표)와 `~` 포함 `[state]` VECTOR(상태 체인). 타입별 재계산 규칙은 전환 화살표가 아래 2~6번, `[state]`는 "상태 체인" 절
-2. 이름을 `출발 --> 도착`으로 파싱, 같은 페이지에서 프레임을 이름으로 검색
-3. 양쪽 프레임이 있으면: 지오메트리 규칙으로 재계산 → 기존 벡터 삭제 후 재생성, **기존 stroke 스타일·dashPattern·양방향 여부는 보존**. 라벨 pill도 새 위치로 재배치하고 **재생성된 화살표보다 z순서 위로 다시 올린다** (재생성 벡터가 기존 pill 위에 얹히므로 pill을 re-append)
-4. 한쪽이라도 없으면(이름 변경·삭제): **고치지 말고 orphan 목록으로 보고** — 사용자가 처리 결정
-5. 손으로 그린/수정한 화살표도 이름 규칙에 맞으면 sync 대상 — 덮어씀을 미리 고지
-6. **수치 감사 실행** ("검증" 섹션과 동일) — 0건 통과해야 sync 완료로 보고
+## Procedure — sync (re-syncing after rearrangement)
 
-**섹션 간 화살표는 캔버스 재배치에 깨진다** — 출발 섹션의 자식이라 출발 섹션만 따라가고, 도착 섹션이 따로 움직이면 화살촉이 허공을 가리킨다(섹션 내 화살표는 상대 좌표가 보존돼 무사). 사용자가 섹션을 옮긴 흔적이 보이면(감사에서 도착 여백 수백 px 이상) 먼저 sync를 제안. 라벨 pill도 화살표와 함께 재배치 대상.
+1. Collect what to sync from the page or section — VECTORs containing `-->` (transitions) and `[state]` VECTORs containing `~` (state chains). Transitions follow steps 2–6 below; `[state]` follows the "State chains" section
+2. Parse the name as `source --> target` and find the frames by name on the same page
+3. When both exist: recompute by the geometry rules, delete the old vector and recreate it, **preserving the existing stroke style, dashPattern, and whether it was bidirectional**. Reposition the label pill too, and **raise it above the regenerated arrow in z-order again** — the new vector lands on top of the old pill, so re-append it
+4. When either is missing (renamed or deleted): **do not repair it — report it as an orphan** and let the user decide
+5. Hand-drawn or hand-edited arrows are sync targets too if their names fit the convention. Say so before overwriting
+6. **Run the audit** (as in Verify) — sync is only reported complete at zero violations
 
-## 상태 체인 (전환 아닌 묶음 표시)
+**Cross-section arrows break when the canvas is rearranged** — they are children of the source section, so they follow that one, and if the target section moves separately the head ends up pointing at empty space. (Arrows within one section survive, because relative coordinates are preserved.) When there are signs the user moved a section — the audit showing hundreds of px of arrival gap — propose a sync first. Label pills are repositioned along with their arrows.
 
-전환 화살표(`-->`)와 별개로, **같은 화면의 상태 변형을 묶는** 보조 표식. 조건 변형(-Empty/-Loading/-Error 등)은 사용자 액션 전환이 아니라 화살표 대상이 아니지만, "이것들이 한 화면의 상태"임을 보이고 싶을 때 쓴다. 분기 박스(Flow Chart 류)를 대신하는 가벼운 대안이다.
+## State chains (a grouping, not a transition)
 
-- **`[state]` 상태 체인** — 같은 `[화면명]`을 공유하고 **한 열에 세로로 스택된** 인접 상태 변형을, 위 프레임 하변 중점 → 아래 프레임 상변 중점으로 잇는 **화살촉 없는** 점선. 스택 순서대로 인접쌍마다 한 가닥. 이름 `[state] {위프레임} ~ {아래프레임}`. 출발 프레임과 같은 섹션의 자식.
-  - **인접의 정의 = 같은 열에서 위아래로 맞닿음** — 두 프레임 사이의 같은 열 구간에 다른 프레임이 없어야 한다. 점선이 직선이라, 사이에 전환 결과 프레임(모달·다이얼로그·토스트 등)이 끼면 그 프레임을 관통해 '프레임을 가리키는' 깨진 선이 된다(2026-06-08 확인: `배지-EditModal ~ 배지-EditModal-Validation` 사이에 `배지-DeleteDialog`가 끼어 관통). 이 경우 직선으로 긋지 말 것 — 아래 '대상 선별'·감사 참고.
+A secondary marking, separate from transition arrows, that **groups the state variants of one screen**. Conditional variants (-Empty, -Loading, -Error) are not user-action transitions and get no arrow, but sometimes you want to show "these are states of one screen". This is the light alternative to a branch box.
 
-**대상 선별** — 상태 체인은 **같은 열에 위아래로 인접한 변형끼리만** 잇는다. 기준은 '다열이냐'가 아니라 '**열을 가로지르냐**'다 — 유형별 열이 여러 개 나란해도(음료/푸드/굿즈 등) 각 열 안에서 세로로 인접하면 정상이고(커버리지 lint 처리와 동일 기준), **다른 열로 떨어진 변형은 `[state]` 직선으로 못 이으니 긋지 말고 보고**한다(배치를 같은 열로 모으면 그때 연결, 무리한 적용 금지). **두 변형이 같은 열이라도 사이에 다른 프레임이 끼어 있으면**(전환 결과 모달·다이얼로그 등이 부모 화면과 상태 변형 사이에 배치된 경우) 직선 점선이 그 프레임을 관통하므로 **긋지 말고 '배치 문제'로 보고**한다 — 억지로 엘보로 우회하지 않는다. 근본 해소는 fig:prep 배치 규칙(같은 `[화면명]` 상태 변형을 부모 화면 바로 아래 **연속 스택**, 전환 결과는 옆 열/다음 줄로)으로 — 배치를 고치면 점선이 다시 깨끗한 직선이 된다. 색은 전환 화살표와 같은 1색을 유지한다.
+- **`[state]` chain** — a **headless** dashed line joining adjacent state variants that share a `[screen]` name and are **stacked vertically in one column**, from the upper frame's bottom-edge midpoint to the lower frame's top-edge midpoint. One strand per adjacent pair, in stack order. Named `[state] {upper} ~ {lower}`. A child of the source frame's section.
+  - **Adjacent means touching vertically in the same column** — there must be no other frame in that column between the two. The dashed line is straight, so a transition-result frame wedged in between (a modal, a dialog, a toast) gets passed through, and the line reads as pointing at that frame instead (confirmed 2026-06-08: a delete dialog sitting between an edit modal and its validation variant). Do not draw it straight in that case — see Selection below.
 
-생성·sync 는 프리앰블의 `stateLink(section, from, to)` 를 쓴다 ("구현" 절).
+**Selection** — chains join **only variants vertically adjacent in the same column**. The test is not "are there multiple columns" but "**does it cross a column**" — several parallel columns by type are fine as long as each is vertically adjacent within itself (the same basis lint uses for coverage), while **a variant that sits in a different column cannot be joined by a straight `[state]`, so do not draw it — report it.** (Connect it once the layout gathers them into one column; never force it.) **Even in the same column, if another frame sits between the two variants** — a transition result placed between a parent screen and its variant — the straight dashed line would pass through it, so **do not draw it; report it as a layout problem.** Never work around it with an elbow. The real fix is fig:prep's layout rule: variants of one `[screen]` stack **continuously** directly below the parent, and transition results move to the next column or row. Fix the layout and the dashed line is a clean straight line again. Colour stays the same single colour as transitions.
 
-**sync** (Procedure — sync 1번에서 수집한 `[state]`):
-- `[state]` VECTOR: 이름을 ` ~ `로 파싱 → 두 프레임 검색 → 양쪽 있으면 기존 벡터 삭제 후 `stateLink`로 재생성(**dashPattern 보존**), 한쪽 없으면 **고치지 말고 orphan 보고**.
+Creating and syncing both go through the `stateLink(section, from, to)` helper (see Implementation).
 
-**감사는 `/fig:lint` 가 한다** — 끝점 위치·orphan·비수직 엘보·관통을 본다. 여기서 아는 건 **검출됐을 때 어떻게 처리하느냐**다.
+**Sync** (for the `[state]` collected in sync step 1):
+- `[state]` VECTOR: parse the name on ` ~ ` → find both frames → if both exist, delete and recreate via `stateLink` (**preserving dashPattern**); if either is missing, **do not repair — report as an orphan**.
 
-- **관통이 잡히면 그 벡터를 삭제하고 '배치 문제'로 보고**한다. 직선을 억지로 유지하거나 엘보로 우회하지 않는다 — 근본 해소는 fig:prep 배치(상태 변형을 부모 바로 아래 연속 스택)다
-- **비수직/엘보가 잡히면** 같은 열 수직 직선으로 재생성하거나, 변형이 가로로 떨어져 있으면 배치를 같은 열로 모은 뒤 연결한다. 엘보 잔재는 자기 from·to 위를 휘감아 관통 검사를 빠져나가므로 따로 잡는 것이다(2026-06-09 `Set~Single` 엘보가 to 프레임을 가로지른 사례)
-- **이름 순서 역전이 잡히면** 이름을 `[state] {위} ~ {아래}` 로 정정한다. 뒤집힌 채로 두면 `stateLink` 가 음수 길이로 꼬인다
+**The audit is `/fig:lint`'s job** — it checks endpoint positions, orphans, non-vertical elbows, and pass-through. What this skill knows is **what to do when something is found**.
 
-나머지 시각 검증은 단순 수직선이라 스크린샷으로 충분하다.
+- **On a pass-through, delete that vector and report a layout problem.** Do not force the straight line or work around it with an elbow — the real fix is fig:prep's layout (variants stacked continuously below the parent)
+- **On a non-vertical or elbowed line**, recreate it as a vertical straight line in one column, or, if the variants are horizontally separated, gather the layout into one column first and then connect. Elbow leftovers curl over their own from and to and slip past the pass-through check, which is why they are caught separately (2026-06-09: a `Set~Single` elbow cutting across the target frame)
+- **On a reversed name order**, correct the name to `[state] {upper} ~ {lower}`. Left flipped, `stateLink` tangles on a negative length
 
-## 연결 커버리지 lint (모든 프레임 최소 1연결)
+The rest is a plain vertical line, so a screenshot is enough for visual checking.
 
-**원칙: 모든 화면 프레임은 전환 화살표(`-->`)나 상태 점선(`[state]`)에 최소 1번 등장해야 한다.** 어디에도 안 걸린 고립(orphan) 프레임은 핸드오프에서 "흐름에서 빠진 화면"으로 읽힌다 — validation·error 같은 상태 변형이 특히 잘 누락된다. **생성·sync 직후 항상 돌리고, 결과 보고에 orphan 수를 포함한다.**
+## Connection coverage (every frame connected at least once)
 
-**검출은 `/fig:lint` 의 `[커버리지]` 항목이 한다.** 제외 섹션(템플릿·아카이브)의 프레임은 연결을 요구하지 않는다 — 참고 자료라 흐름에 안 걸리는 게 정상이다.
+**The principle: every screen frame must appear at least once in a transition arrow (`-->`) or a state chain (`[state]`).** A frame connected to nothing reads in handoff as "a screen left out of the flow" — validation and error variants go missing most often. **Always run this right after creating or syncing, and include the orphan count in the report.**
 
-**처리** — orphan을 성격별로 연결(미리보기 → go):
-- **상태 변형**(-Validation/-Error/-Empty/-Loading 등, 같은 `[화면명]` 공유) → `[state]` 점선으로 같은 화면 형제와 연결. 유형별로 열이 나뉘어도(예: 음료/푸드/굿즈/세트) 각 열이 세로 스택이면 수직 점선, 열이 떨어졌으면 엘보 점선. **"다열이라 점선 부적합"으로 섣불리 빼지 말 것** — 대개 열 안에서 세로로 잇을 수 있다. **단 같은 열이라도 부모 화면과 상태 변형 사이에 다른 프레임(전환 결과 등)이 끼어 있으면** 직선 점선이 그걸 관통하므로 연결하지 말고 배치 문제로 보고 — fig:prep로 상태 변형을 부모 바로 아래 연속 스택으로 옮긴 뒤 연결한다.
-- **전환 결과 화면**(모달·다이얼로그·토스트·드롭다운) → `-->` 전환 화살표(사용자 액션 트리거). 단 **여러 형제 변형이 같은 전환 결과로 갈 때는 대표 화면 1개에서만**(위 "대표 화면 원칙") — 변형마다 잇지 않는다.
-- **이미 `[state]`에 등장하는 프레임은 orphan이 아니다** — 공통 도착지로 추가 `-->`를 만들어 "연결"을 늘리지 않는다. orphan 0이 목표지 연결 최대화가 목표가 아니다.
+**Detection is the `[coverage]` item in `/fig:lint`.** Frames in excluded sections (templates, archives) are not required to connect — they are reference material, and staying out of the flow is correct for them.
 
-**완료 기준: orphan 0.** (단 연결을 과하게 늘리지 않는다 — "대표 화면 원칙"과 함께 읽는다)
+**Handling** — connect orphans according to their nature (preview → go):
 
-## 구현 — 빌드 프리앰블
+- **State variants** (-Validation, -Error, -Empty, -Loading, sharing a `[screen]` name) → join to their siblings with a `[state]` dashed line. Multiple columns by type are fine — a vertical dashed line within each column if each is a vertical stack, an elbowed one if the columns are apart. **Do not dismiss them as "multi-column, so dashed doesn't fit"** — usually they can be joined vertically within a column. **But if another frame (a transition result) sits between a parent and its variant even in the same column**, the straight line would pass through it, so do not connect — report a layout problem, move the variants into a continuous stack below the parent with fig:prep, then connect.
+- **Transition result screens** (modals, dialogs, toasts, dropdowns) → a `-->` transition arrow triggered by the user action. But **when several sibling variants lead to the same result, only from the representative screen** (see the representative-screen rule) — not from every variant.
+- **A frame that already appears in a `[state]` is not an orphan** — do not add a `-->` to a shared destination just to raise the connection count. The goal is zero orphans, not maximum connections.
 
-생성·sync 스크립트는 `${CLAUDE_PLUGIN_ROOT}/_common/scripts/arrow-build.js` 를 프리앰블로 쓴다. 스타일·지오메트리 상수는 전부 설정에서 오므로 **이 문서에 숫자를 적지 않는다.**
+**Done means zero orphans.** (While not over-connecting — read this together with the representative-screen rule.)
+
+## Implementation — the build preamble
+
+Create and sync scripts use `${CLAUDE_PLUGIN_ROOT}/_common/scripts/arrow-build.js` as a preamble. Every style and geometry constant comes from the config, so **no numbers are written into this document.**
 
 ```
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --js <fileKey>
 ```
 
-그 한 줄 + `arrow-build.js` 전문 + 실제 호출을 이어 붙여 `use_figma` 에 넣는다.
+Concatenate that one line, the whole of `arrow-build.js`, and the actual calls, then hand it to `use_figma`.
 
-| 헬퍼 | 하는 일 |
+| Helper | What it does |
 |---|---|
-| `find(section, name)` | 프레임 좌표 실시간 조회. **좌표를 밖에서 계산해 넘기지 않는다** — 그 사이 캔버스가 바뀌었을 수 있다 |
-| `arrow(parent, name, pts, opts)` | 꼭짓점 배열로 생성. 2점이면 직선, 3점 이상이면 직각 엘보. `opts.dashed`·`opts.bidirectional` |
-| `straight` · `trunkElbow` · `detour` | 경로 패턴 3종. 이름은 헬퍼가 규칙대로 붙인다 |
-| `pill(section, arrowName, text, cx, cy)` | 라벨. **화살표를 다 만든 뒤** 호출해야 z순서가 맞는다 |
-| `stateLink(section, from, to)` | `[state]` 화살촉 없는 수직 점선 |
-| `hits(section, pts, exclude)` | 경로가 지나는 프레임 이름. `straight` 로 판정 후 걸리면 `trunkElbow`·`detour` 로 승격한다 |
+| `find(section, name)` | Reads frame coordinates live. **Never compute coordinates outside and pass them in** — the canvas may have changed since |
+| `arrow(parent, name, pts, opts)` | Creates from a vertex array. Two points is a straight line, three or more a right-angle elbow. `opts.dashed`, `opts.bidirectional` |
+| `straight` · `trunkElbow` · `detour` | The three path patterns. The helper applies the naming rules |
+| `pill(section, arrowName, text, cx, cy)` | The label. Call it **after every arrow is built** so z-order comes out right |
+| `stateLink(section, from, to)` | The headless vertical dashed `[state]` line |
+| `hits(section, pts, exclude)` | Names of frames a path crosses. Judge with `straight` first; if it hits something, escalate to `trunkElbow` or `detour` |
 
-**요소 앵커 검색** — 트리거 요소를 이름·텍스트로 찾는다. `query()` 셀렉터는 **ASCII 만** 받으므로 한글 키워드는 `findAll` 로 찾아야 한다.
+**Finding an anchor element** — search for the trigger element by name or text. `query()` selectors accept **ASCII only**, so non-ASCII keywords have to go through `findAll`.
 
 ```js
-const kw = "저장";
+const kw = "Save";
 const trigger = sourceFrame.findAll(n =>
   ["TEXT", "FRAME", "INSTANCE"].includes(n.type) &&
   ((n.type === "TEXT" && n.characters.includes(kw)) || n.name.includes(kw)))[0];
-// trigger.absoluteBoundingBox 로 출발 변에서의 진출 위치를 계산한다.
-// 못 찾으면 추측하지 말고 변 중점으로 폴백하고 보고한다.
+// Compute the exit position on the source edge from trigger.absoluteBoundingBox.
+// If it isn't found, don't guess — fall back to the edge midpoint and report it.
 ```
 
-수치 감사는 여기 없다 — `/fig:lint` 의 `audit-flow` 가 단일 출처다. 생성·sync 직후 그걸 호출해 `FLOW PASS` 를 받는 것이 완료 조건이다.
+The numeric audit is not here — `audit-flow` under `/fig:lint` is the single source. Calling it right after creating or syncing and getting a `FLOW PASS` is the completion condition.
 
 ## Constraints
 
-- **완료 전 필수 마지막 동작 — `/fig:lint` 호출(Skill 도구로).** 화살표 생성·sync 가 끝나면 **항상** 호출해 `STRUCT PASS`·`FLOW PASS` 를 받는다(흐름뿐 아니라 프레임 소속·경계까지 한 번에). 이 스킬에는 감사 코드가 없다 — 판정은 전부 거기서 한다. 위반이 나오면 고치고 재호출하며, **PASS 없이는 완료로 보고하지 않는다**
-- **쓰기 전 미리보기 → go** (흐름 목록 표). sync도 변경 대상 수를 먼저 보고
-- ConnectorNode·createConnector는 디자인 파일에서 호출 금지 (FigJam 전용, 에러 남)
-- 새로 만드는 벡터·텍스트·pill 은 설정된 라벨 폰트만 쓰므로 로컬 폰트 제약이 없다. 기존 화살표를 다른 Section 으로 reparent 하는 것보다 **생성 시점에 올바른 Section 에 넣는 게 원칙**
-- 이름에 `-->`가 있지만 깨진 잔재(좌표 0,0 부근, 대상 프레임 없음)는 sync에서 제외하고 orphan으로 보고
-- 라벨 pill이 화살촉이나 다른 라벨과 겹치면 선 방향으로 위치를 옮겨 회피
+- **The mandatory last action before completion — call `/fig:lint` (via the Skill tool).** Once arrows are created or synced, **always** call it and get `STRUCT PASS` and `FLOW PASS` (frame membership and bounds come along with the flow). This skill has no audit code — every verdict comes from there. Fix what it reports and call again; **never report completion without a PASS**
+- **Preview → go before writing** (the flow list table). For sync, report how many will change first
+- Never call ConnectorNode or createConnector in a design file (FigJam only; it errors)
+- Newly created vectors, text, and pills use only the configured label font, so the local-font constraint does not apply. **Put a node in the right section at creation time** rather than reparenting an existing arrow
+- Broken leftovers whose names contain `-->` but which sit near (0,0) with no target frame are excluded from sync and reported as orphans
+- If a label pill overlaps an arrowhead or another label, move it along the line to clear
 
 ## Notes
 
-- 이 라우팅 규칙은 Autoflow(최단 경로·필요시만 꺾임·장애물 회피·path 유형별 선 스타일)와 Overflow(요소/핫스팟 앵커·라벨 배경·독립 스타일)의 동작을 Plugin API로 단순화한 것
-- `arrows` 기본값은 설정 `layout.reference_frame_width` 기준으로 잡혀 있다. 파일 스케일이 다르면 비례 조정한다 — 트렁크·화살촉 여백·pill 패딩이 함께 움직여야 한다
-- 라벨 달린 분기 행은 트렁크→도착 진입 간격을 `arrows.trunk_to_target_min` 이상 확보한다. 트렁크 길이와 같게 두면 트렁크와 화살촉 사이가 좁아 라벨이 물리적으로 안 들어간다 — fig:prep 의 배치 토큰과 연동
-- 같은 도메인 안의 흐름은 디자인 파일 화살표로, 도메인을 가로지르는 전체 플로우는 FigJam 으로 나눈다
-- 진짜 마그네틱 커넥터가 꼭 필요하면 FigJam으로 옮기거나 Superconnector류 플러그인(디자인 파일에 FigJam 커넥터를 그려주는 플러그인)을 수동으로 쓰는 선택지가 있음 — API 자동화 범위 밖
+- These routing rules are a Plugin API simplification of Autoflow (shortest path, bending only when needed, obstacle avoidance, line style per path type) and Overflow (element and hotspot anchors, label backgrounds, independent styling)
+- The `arrows` defaults are set against `layout.reference_frame_width`. On a file at a different scale, adjust proportionally — trunk, head gap, and pill padding have to move together
+- A labelled branch row needs at least `arrows.trunk_to_target_min` between the trunk and arrival. Leaving it equal to the trunk length makes the space between trunk and arrowhead too narrow for the label to physically fit — this pairs with fig:prep's layout tokens
+- Flow within one domain belongs in design-file arrows; flow that crosses domains belongs in FigJam
+- If a genuine magnetic connector is required, the options are moving to FigJam or manually using a Superconnector-type plugin that draws FigJam connectors into a design file — outside what the API can automate
