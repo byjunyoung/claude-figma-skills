@@ -9,7 +9,7 @@ claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
 ```
 
-[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The ten skills](#the-ten-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles)
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The eleven skills](#the-eleven-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles)
 
 ---
 
@@ -102,9 +102,12 @@ Neither touches the file. Run one when you inherit a file someone else has been 
 ```
 /fig:proto    Before engineering starts, rebuild the design as a single HTML page that really accepts input and saves
 /fig:code     Apply the design to a frontend repo
+/fig:qa       Audit a shipped screen against the spec and report defects
 ```
 
 `proto` isn't a click-through demo. Enter a value, save it, and it shows up in the list. Clicking through surfaces ordering problems that a static design hides.
+
+`qa` audits what actually shipped against the spec. The rule is that a finding reads "this breaks rule X in document Y", never "this looks off" — anything without a baseline is filed as needs-checking rather than a defect.
 
 `code` separates what the design owns (numbers, colors, copy, states) from what the code owns (file structure, naming, state management), so neither overwrites the other.
 
@@ -123,6 +126,7 @@ flowchart TD
     diff["fig:diff<br/>change annotations"]
     code["fig:code<br/>apply to frontend"]
     sync["fig:sync<br/>canonical page after release"]
+    qa["fig:qa<br/>audit what shipped"]
 
     setup --> prep --> draw --> arrows --> tokens --> lint
     lint -- violations --> prep
@@ -130,13 +134,14 @@ flowchart TD
     lint -- pass --> handoff
     handoff --> diff
     handoff --> code
+    handoff --> qa
     handoff -. after release .-> sync
     sync --> lint
 ```
 
 ---
 
-## The ten skills
+## The eleven skills
 
 | Command | What it does |
 |---|---|
@@ -150,6 +155,7 @@ flowchart TD
 | `/fig:diff` | Annotate changes · write up the task doc |
 | `/fig:proto` | Working single-file HTML prototype |
 | `/fig:code` | Apply the design to a frontend repo |
+| `/fig:qa` | Audit a shipped screen against the spec and report defects |
 
 ### What `/fig:lint` looks at
 
