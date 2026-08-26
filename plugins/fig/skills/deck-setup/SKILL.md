@@ -4,110 +4,110 @@ description: Measures a team slide template into local deck assets — template-
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 
-# deck-setup — 발표 템플릿 추출
+# deck-setup — extracting a presentation template
 
-`/fig:deck`은 팀 템플릿의 좌표·색·타이포를 그대로 쓴다. 그 값이 어디서 오느냐가 이 스킬이다. **매 실행 원격 템플릿을 읽지 않고**, 여기서 한 번 뽑아둔 로컬 자산을 읽는다.
+`/fig:deck` uses the team template's coordinates, colours, and typography exactly as they are. Where those values come from is this skill. **It does not read a remote template on every run** — it reads local assets extracted here once.
 
-**핵심 전제**: 값을 지어내지 않는다. 관측이 애매하면 채우지 말고 비워 둔다. 빈 칸은 `/fig:deck`이 "그 아키타입은 없다"로 읽고 다른 것을 고른다. 없는 것과 못 잰 것을 섞으면 덱이 템플릿에서 조용히 벗어난다.
+**The premise**: never invent a value. Where an observation is ambiguous, leave it empty rather than fill it. An empty slot is read by `/fig:deck` as "that archetype does not exist", and it picks another. Mix up "not there" with "could not measure" and the deck quietly drifts away from the template.
 
 ## When to invoke
 
-- 새 환경·새 회사에서 `/fig:deck`을 처음 쓸 때
-- 팀 템플릿이 개정돼 값이 달라졌을 때
-- 자산 폴더가 없거나 `/fig:deck`이 "자산 없음"으로 멈출 때
+- Using `/fig:deck` for the first time in a new environment, at a new company
+- The team template has been revised and the values have moved
+- The assets folder is missing, or `/fig:deck` has stopped with "no assets"
 
 ## When NOT to invoke
 
-- 덱을 만드는 것 자체 → `/fig:deck`
-- 디자인 파일 관례 추출 → `/fig:setup` (별개다. 이건 Slides 템플릿 전용)
+- Building the deck itself → `/fig:deck`
+- Extracting design-file conventions → `/fig:setup` (a separate thing. This one is for Slides templates only)
 
-## 설정
+## Configuration
 
-`deck.assets_dir`가 자산을 둘 곳이다. 기본값은 `./deck-assets`이고, 여러 프로젝트에서 같은 템플릿을 쓰면 `~/.claude/deck-assets`으로 옮겨도 된다.
+`deck.assets_dir` is where the assets go. The default is `./deck-assets`; if several projects share one template, move it to `~/.claude/deck-assets`.
 
-**자산은 플러그인 안에 두지 않는다.** 팀 템플릿 스크린샷과 배경 이미지에는 워드마크·주소 같은 회사 자산이 들어 있어 배포본에 실리면 안 된다.
+**The assets do not live inside the plugin.** Team template screenshots and background images carry company assets — a wordmark, an address — that must not ship in a distribution.
 
-## 1. 템플릿에 닿는다
+## 1. Reach the template
 
-원천 템플릿 파일은 대개 MCP 권한 밖이다. 그럴 때는 미러를 만든다.
+The source template file is usually outside MCP's reach. When it is, make a mirror.
 
-1. 빈 Slides 파일을 만든다 — `create_new_file`, editorType `slides`
-2. **사용자에게 Templates 패널에서 팀 템플릿을 적용해 달라고 요청하고 기다린다.** MCP로는 적용되지 않는다
-3. 적용하면 샘플 슬라이드가 통째로 딸려 들어온다. 이게 카탈로그의 원본이다
+1. Create an empty Slides file — `create_new_file`, editorType `slides`
+2. **Ask the user to apply the team template from the Templates panel, and wait.** MCP cannot apply it
+3. Applying it pulls in the sample slides wholesale. Those are the source for the catalog
 
-적용 여부를 먼저 확인한다. 텍스트가 `Inter`·'Pick a style'로 남아 있으면 아직 안 된 것이다.
+Confirm it was applied before going on. Text still reading `Inter` or 'Pick a style' means it has not been.
 
-## 2. 실측 (읽기 전용)
+## 2. Measure (read-only)
 
-딸려 들어온 샘플을 전수로 잰다. 눈으로 보지 말고 값을 읽는다.
+Measure every sample that came in. Read the values; do not eyeball them.
 
-| 무엇 | 어떻게 |
+| What | How |
 |---|---|
-| 캔버스 | 슬라이드 `absoluteBoundingBox`의 폭·높이 |
-| 여백 | 각 슬라이드 자식의 최소·최대 x — 최빈값이 좌우 여백이다 |
-| 타이포 | 모든 TEXT의 `fontSize`·`fontName`·`letterSpacing`·`lineHeight` 분포 |
-| 컬러 | 모든 `fills`·`strokes`의 색 분포. `getLocalPaintStyles`도 함께 |
-| 텍스트 스타일 | `getLocalTextStylesAsync` — named 스타일이 곧 타입 사다리다 |
-| 아키타입 | 슬라이드마다 이름·자식 구성·제목 위치·콘텐츠 상단 y |
+| Canvas | Width and height from a slide's `absoluteBoundingBox` |
+| Margins | Min and max x of each slide's children — the mode is the left/right margin |
+| Typography | The distribution of `fontSize`, `fontName`, `letterSpacing`, and `lineHeight` across every TEXT |
+| Colour | The colour distribution across every `fills` and `strokes`. `getLocalPaintStyles` alongside |
+| Text styles | `getLocalTextStylesAsync` — the named styles *are* the type scale |
+| Archetypes | Per slide: name, child composition, title position, content top y |
 
-`/fig:setup`과 같은 판정 기준을 쓴다. **표본이 얇거나 값이 갈리면 채우지 않는다.** 한 값이 표본 5개 이상에서 9할 넘게 쏠릴 때만 관례로 굳힌다.
+Use the same criteria as `/fig:setup`. **Where the sample is thin or the values are split, do not fill it in.** A value becomes a convention only when it dominates 5 or more samples by more than 90%.
 
-**타입 사다리는 named 텍스트 스타일에서 가져온다.** 실측 `fontSize` 분포에는 손으로 고친 예외가 섞여 있어, 그걸 사다리로 삼으면 사다리가 무의미해진다.
+**Take the type scale from the named text styles.** The measured `fontSize` distribution has hand-tweaked exceptions mixed in, and a scale built from those is not a scale at all.
 
-## 3. 아키타입 카탈로그
+## 3. The archetype catalog
 
-슬라이드 하나가 아키타입 하나다. 각각에 대해 적는다.
+One slide is one archetype. For each, record:
 
-    번호 · 이름 · 쓰임 한 줄
-    제목 위치 계열 (상단형 / 좌제목 세로중앙형 / 캡션형 / 제목 없음)
-    콘텐츠 상단 y · 열 수 · 열 폭 · 열 간격
-    슬롯 (제목·부제·본문·이미지·수치 각각의 좌표와 크기)
+    number · name · one line on what it is for
+    title-position family (top / left title vertically centred / caption / no title)
+    content top y · column count · column width · column gap
+    slots (coordinates and size for title, subtitle, body, image, figure)
 
-**계열을 세어 보고한다.** 제목 위치가 넷, 콘텐츠 상단 y가 여섯 가지로 나오는 것이 정상이다. 템플릿은 덱이 아니라 메뉴라 골라 쓰라고 만든 대안 목록이다. 이 숫자를 `/fig:deck` 3단계에서 사용자가 충실도를 고를 때 근거로 쓴다.
+**Count the families and report them.** Four title positions and six distinct content-top y values is normal. A template is a menu, not a deck — a list of alternatives made to be chosen from. That count is the evidence the user picks fidelity from in step 3 of `/fig:deck`.
 
-참조 이미지가 필요하면 아키타입마다 스크린샷을 떠 `template-assets/`에 번호 이름으로 둔다. 없어도 동작하지만, 있으면 고를 때 정확해진다.
+Where reference images help, screenshot each archetype into `template-assets/` named by number. It works without them, but they make the choosing accurate.
 
-## 4. 자산 쓰기
+## 4. Write the assets
 
-`deck.assets_dir`에 셋을 만든다. 로컬 파일이라 미리보기 없이 바로 쓰되, 이미 있으면 덮기 전에 알린다.
+Create three things in `deck.assets_dir`. They are local files, so write them without a preview — but say so before overwriting anything already there.
 
-**`template-spec.md`** — 사람이 읽는 스펙.
+**`template-spec.md`** — the human-readable spec.
 
 ```
-캔버스·그리드      폭·높이·여백·열 폭·열 간격
-타이포            패밀리 후보 · 사다리(크기·굵기·자간·행간)
-컬러              이름 → hex. 의미가 붙은 것만
-아키타입 카탈로그   위 3장 형식으로 전수
-선택 규칙          내용 형태 → 아키타입 매핑
+canvas and grid    width · height · margin · column width · column gap
+typography         family candidates · scale (size, weight, letter-spacing, line-height)
+colour             name → hex. Only the ones that carry meaning
+archetype catalog  all of them, in the 3-line form above
+selection rules    content shape → archetype mapping
 ```
 
-**`template.js`** — 빌드 스크립트에 붙일 상수와 빌더. `_common/scripts/deck-base.js` **다음에** 붙는 것을 전제로 쓴다.
+**`template.js`** — the constants and builders that attach to a build script. Written on the assumption that it is concatenated **after** `_common/scripts/deck-base.js`.
 
 ```js
-const FAMS = ['<팀 폰트>', 'Inter'];        // 선호 순
+const FAMS = ['<team font>', 'Inter'];        // in order of preference
 const C = { bg: hx('#…'), text: hx('#…'), … };
 const T = { title:{size:…,style:'Bold',ls:…,lh:…}, … };
 const SW = …, SH = …, MARGIN = …, CELL_W = …, CELL_GAP = …;
-// 아키타입 빌더 — 관측한 슬롯 좌표를 그대로 넣는다. 새 좌표를 만들지 않는다
+// archetype builders — put the observed slot coordinates in as they are. Never invent new ones
 function titleSlide({title, subtitle, bgImageHash}) { … }
 ```
 
-빌더는 `deck-base.js`의 `newSlide`·`addText`·`addRect`·`addImageRect`·`addLine`을 쓴다. 요소 만드는 코드를 다시 쓰지 않는다 — 거기에 `appendChild` 순서 같은 규칙이 박혀 있다.
+Builders use `newSlide`, `addText`, `addRect`, `addImageRect`, and `addLine` from `deck-base.js`. Do not write element-creation code again — rules like `appendChild` ordering are baked into those.
 
-**`template-assets/`** — 표지·마무리 배경처럼 도형으로 재현할 수 없는 이미지. 워드마크나 미션 문구가 구워져 있으면 그 이미지를 그대로 쓰고 도형으로 흉내내지 않는다.
+**`template-assets/`** — images that cannot be reproduced with shapes, such as the cover and closing backgrounds. Where a wordmark or a mission statement is baked into the image, use the image itself rather than imitating it with shapes.
 
-## 5. 검증
+## 5. Verify
 
-**스펙만 쓰고 끝내지 않는다. 한 장을 실제로 지어 본다.**
+**Do not stop at writing the spec. Actually build one slide.**
 
-1. 카탈로그에서 아키타입 하나를 골라 `template.js` 빌더로 슬라이드를 만든다
-2. 원본 샘플과 좌표·크기·색을 대조한다
-3. 어긋나면 스펙이 틀린 것이다. 슬라이드를 고치지 말고 스펙을 고친다
+1. Pick one archetype from the catalog and build a slide with the `template.js` builder
+2. Compare coordinates, sizes, and colours against the original sample
+3. A mismatch means the spec is wrong. Fix the spec, not the slide
 
-한 장이 맞으면 계열마다 한 장씩, 넷이면 넷을 더 지어 본다. 제목 위치 계열이 어긋나는 것이 가장 흔하다.
+Once one is right, build one per family — four families, four more slides. Title position is the family that goes wrong most often.
 
-마지막으로 세 가지를 보고한다.
+Report three things at the end.
 
-- 아키타입 몇 개를 카탈로그에 넣었고, 몇 개를 **못 재서 비웠는지**
-- 제목 위치 계열이 몇 가지, 콘텐츠 상단 y가 몇 가지인지
-- 팀 폰트가 이 환경에 있는지 — 없으면 `/fig:deck`이 대체 폰트로 돌고 자간이 달라진다
+- How many archetypes went into the catalog, and how many were **left empty for want of a measurement**
+- How many title-position families there are, and how many distinct content-top y values
+- Whether the team font exists in this environment — without it `/fig:deck` runs on a substitute and the letter-spacing changes
