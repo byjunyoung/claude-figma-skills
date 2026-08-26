@@ -10,7 +10,7 @@ Two Claude Code skill bundles — one for design files, one for product docs. Th
 | **pm** | Write and verify product requirement docs against a format | 1 |
 
 ```bash
-claude plugin marketplace add byjunyoung/claude-figma-skills
+claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
 claude plugin install pm@byjunyoung      # if you also write specs
 ```
@@ -211,7 +211,7 @@ Configuration lives in `pm-conventions.yaml`, layered the same way as `fig`.
 ## Install
 
 ```bash
-claude plugin marketplace add byjunyoung/claude-figma-skills
+claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
 claude plugin install pm@byjunyoung
 ```
@@ -320,8 +320,8 @@ Junyoung Kim · [LinkedIn](https://www.linkedin.com/in/byjunyoung/)
 
 Installing and using it is free. Use it personally or inside your organization, and modify it if you need to.
 
-Redistributing a fork, republishing it under another name, or reselling it commercially requires permission. That's why there's no standard open source license attached. Reach me through [Issues](https://github.com/byjunyoung/claude-figma-skills/issues) or LinkedIn.
+Redistributing a fork, republishing it under another name, or reselling it commercially requires permission. That's why there's no standard open source license attached. Reach me through [Issues](https://github.com/byjunyoung/claude-product-skills/issues) or LinkedIn.
 
 ## Feedback
 
-Bug reports and feature ideas go in [Issues](https://github.com/byjunyoung/claude-figma-skills/issues).
+Bug reports and feature ideas go in [Issues](https://github.com/byjunyoung/claude-product-skills/issues).

@@ -3,7 +3,7 @@
   "description": "기획 문서를 양식에 맞춰 쓰고 검증하는 스킬 묶음. 자료를 먼저 모아 권장답안을 내고, 쓰기 전에 모호어·빈 정의를 잡는다. 저장 대상은 설정이 정한다 — 마크다운 파일, git 저장소, Notion 어디든.",
   "version": "0.1.0",
   "author": { "name": "김준영", "url": "https://www.linkedin.com/in/byjunyoung/" },
-  "homepage": "https://github.com/byjunyoung/claude-figma-skills",
-  "repository": "https://github.com/byjunyoung/claude-figma-skills",
+  "homepage": "https://github.com/byjunyoung/claude-product-skills",
+  "repository": "https://github.com/byjunyoung/claude-product-skills",
   "keywords": ["prd", "product", "spec", "planning", "product-management"]
 }

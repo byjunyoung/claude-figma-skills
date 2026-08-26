@@ -3,7 +3,7 @@
 이미 그려진 Figma 파일을 정리·검증·동기화하는 스킬 묶음. 화면을 만드는 쪽이 아니라, 여러 사람이 함께 쓰는 파일을 관리하는 쪽입니다.
 
 ```bash
-claude plugin marketplace add byjunyoung/claude-figma-skills
+claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
 ```
 
@@ -25,4 +25,4 @@ claude plugin install fig@byjunyoung
 
 설정은 `figma-conventions.yaml` 하나가 정합니다. 내장 기본값 → `~/.claude/figma-conventions.yaml` → `./figma-conventions.yaml` 순으로 겹쳐 읽으니 **필요한 키만 적으면 됩니다.**
 
-처음 여는 파일에서는 `/fig:setup`을 먼저 돌려 관례를 관측하게 하세요. 전체 설명은 [저장소 README](https://github.com/byjunyoung/claude-figma-skills)에 있습니다.
+처음 여는 파일에서는 `/fig:setup`을 먼저 돌려 관례를 관측하게 하세요. 전체 설명은 [저장소 README](https://github.com/byjunyoung/claude-product-skills)에 있습니다.
