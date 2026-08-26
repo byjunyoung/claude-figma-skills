@@ -4,173 +4,174 @@ description: Audits a feature that has shipped to a dev or staging server agains
 allowed-tools: AskUserQuestion, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Notion__notion-query-data-sources, mcp__claude_ai_Slack__slack_read_thread, mcp__claude_ai_Slack__slack_read_channel, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__find, mcp__claude-in-chrome__read_page, mcp__claude-in-chrome__get_page_text, mcp__claude-in-chrome__read_console_messages, mcp__claude-in-chrome__read_network_requests
 ---
 
-# qa — 기준선 대조 QA (체크리스트 → 검증 → 결함 리포트)
+# qa — baseline-referenced QA (checklist → verification → defect report)
 
-기능이 서버에 올라왔을 때, **기획 기준과 대조해** 무엇이 어긋났는지 찾아 개발이 바로 고칠 수 있는 형태로 넘긴다.
+Once a feature is on a server, **compares it against the plan of record**, finds what diverged, and hands it over in a shape engineering can act on directly.
 
-**핵심 전제**: 기준선 없는 판정은 하지 않는다. "이상해 보인다"가 아니라 **"어느 문서의 어느 규칙에 어긋난다"**로 쓴다. 기준이 없는 항목은 결함이 아니라 `확인 필요`다.
+**The premise**: no verdict without a baseline. Not "this looks wrong" but **"this breaks rule X in document Y"**. An item with no baseline is not a defect — it is `needs confirmation`.
 
 ## When to invoke
 
-- 개발·스테이징 서버 반영 공지를 받고 동작을 봐야 할 때
-- 보고된 결함을 재현·확인해야 할 때
-- 배포 전 기획 대비 구현 누락을 훑어야 할 때
-- 검증 없이 **체크리스트만** 필요할 때(`baseline` 모드)
+- A dev or staging deploy has been announced and the behaviour needs looking at
+- A reported defect needs reproducing and confirming
+- A pre-release sweep for anything the plan called for and the build is missing
+- **A checklist only**, with no verification (`baseline` mode)
 
 ## When NOT to invoke
 
-- 시안 자체의 구조·네이밍 검수 → `/fig:lint`
-- 시안과 코드의 차이 반영 → `/fig:code`
-- 문서·메시지 리뷰 → 이 스킬이 아니다
-- 결함을 일감으로 등록 → 쓰는 일감 도구로. 이 스킬은 리포트까지만 낸다
+- Auditing the design's own structure and naming → `/fig:lint`
+- Carrying design-versus-code differences back into the file → `/fig:code`
+- Reviewing a document or a message → not this skill
+- Filing defects as tickets → whatever ticket tool you use. This skill stops at the report
 
 ## Inputs
 
-- `source` (필수): 요청 출처 — 스레드 링크, 페이지, 또는 구두 요청 내용
-- `target` (필수): 검증 대상 화면·기능 이름
-- `mode` (선택): `baseline`(체크리스트까지) / `full`(검증·리포트까지). 생략하면 묻는다
-- `env` (선택): 접속 주소, 계정 범위, 테스트 대상 데이터 범위(지점·조직 등). 이름만 주면 `qa.environments` 에서 주소를 찾는다
+- `source` (required): where the request came from — a thread link, a page, or the request as spoken
+- `target` (required): the screen or feature under verification
+- `mode` (optional): `baseline` (stop at the checklist) / `full` (verify and report). Omitted, it asks
+- `env` (optional): the address, the account scope, the data scope to test against (branch, org, and so on). Given a name alone, the address is looked up in `qa.environments`
 
-## 모드
+## Modes
 
-    baseline  1~3단계만. 체크리스트를 내고 종료 — 남이 돌릴 때, 검증 전 합의가 필요할 때
-    full      1~7단계 전부. 브라우저로 직접 검증하고 결함 리포트까지
+    baseline  Steps 1–3 only. Emits the checklist and stops — for when someone else will run it,
+              or when the scope needs agreeing before verification starts
+    full      Steps 1–7. Verifies through the browser and files the defect report
 
-`full`이라도 3단계 체크리스트는 **검증 착수 전에 먼저 보여준다**. 무엇을 볼지 합의하지 않은 채 누르기 시작하면 범위가 흐른다.
+Even in `full`, the step-3 checklist is **shown before verification begins**. Start clicking without agreeing on what will be looked at and the scope drifts.
 
 ---
 
-## 1. 대상 확정 (읽기, 컨펌 없이)
+## 1. Settle the target (reading, no confirmation needed)
 
-출처를 읽어 다음을 뽑는다. 추측하지 않는다.
+Read the source and pull out the following. Do not guess.
 
-- 무엇이 올라왔는지 / 어디까지가 이번 범위인지
-- **이미 보고된 결함** — 있으면 최우선 재현 대상이다
-- 요청자가 특별히 확인해 달라고 지목한 것
-- 제외 지시(보지 말라고 한 범위)
+- What shipped / where this round's scope ends
+- **Defects already reported** — if there are any, they reproduce first
+- Anything the requester specifically asked to have checked
+- Exclusions (scope they said not to look at)
 
-출처에 없어 모르는 것은 `TBD`로 남기고, 검증 결과에 영향을 주는 것만 질문한다.
+Whatever the source does not say, leave as `TBD`, and only ask about the parts that would change the verification result.
 
-## 2. 기준선 수집 (읽기)
+## 2. Collect the baseline (reading)
 
-판정 근거가 될 문서를 모은다. **내부 자산을 먼저** 찾는다. 어디를 볼지는 `qa.baseline` 이 정하고, `null` 인 항목은 건너뛴다.
+Gather the documents the verdicts will rest on. **Internal assets first.** Where to look is set by `qa.baseline`, and any entry that is `null` is skipped.
 
-| 출처 | 뽑을 것 |
+| Source | What to pull |
 |---|---|
-| PRD 기능·정책 행 | 세부 동작(Given·When·Then), 상태·케이스, 룰·예외 |
-| 시안 | 화면 구성, 상태 변형, 문구 |
-| 기존 일감 | 과거 결정·번복 이력, 미결정 항목 |
-| 요청 출처 | 이번 차수에 새로 요구된 것 |
+| Spec feature and policy entries | Detailed behaviour (Given/When/Then), states and cases, rules and exceptions |
+| The design | Screen composition, state variants, copy |
+| Existing tickets | Past decisions and reversals, undecided items |
+| The request itself | What is newly asked for in this round |
 
-- 기능·정책은 **도메인 단위로 전수**를 뽑는다. 몇 개만 보면 검증 항목이 샌다.
-- `보관`·`폐기` 상태 행도 함께 본다 — **폐기된 기능이 화면에 남아 있는 것**이 흔한 결함이다.
-- 상태가 `확정`이 아닌 행은 기준선으로 쓰되 리포트에 `기준 미확정`을 붙인다.
+- Pull features and policies **exhaustively, by domain**. Look at only a handful and verification items leak out.
+- Read `archived` and `deprecated` entries too — **a deprecated feature still present on screen** is a common defect.
+- An entry whose status is not `confirmed` may still serve as a baseline, but the report marks it `baseline unconfirmed`.
 
-## 3. 체크리스트 생성
+## 3. Build the checklist
 
-화면·기능 단위로 묶고, 각 항목은 **눌러서 참/거짓이 판별되는 문장**으로 쓴다.
+Group by screen and by feature, and write each item as **a sentence that clicking will prove true or false**.
 
-    ① [화면명]
-       □ [동작] — 기준: PRD 세부 동작
-       □ [상태] — 빈 상태 / 로딩 / 에러 / 권한
-       □ [룰] — 값 제약·상속·연동 규칙
-       ← 보고된 결함은 해당 위치에 표시해 재현 대상임을 드러낸다
+    ① [screen name]
+       □ [behaviour] — baseline: spec detailed behaviour
+       □ [state] — empty / loading / error / permission
+       □ [rule] — value constraints, inheritance, linkage rules
+       ← mark reported defects in place so it is visible that they are reproduction targets
 
-각 화면마다 아래 4종을 빠뜨리지 않는다.
+Do not let any screen miss these four kinds.
 
-- **정상 동작** — 세부 동작표 그대로
-- **상태·케이스** — 빈 상태·로딩·에러·권한·페이지네이션
-- **룰·예외** — 상속·고정·연동처럼 "값이 어디서 오는가" 규칙
-- **되돌아오기** — 저장·수정 후 목록·다른 화면에 제대로 반영되는가
+- **Happy path** — exactly as the behaviour table has it
+- **States and cases** — empty, loading, error, permission, pagination
+- **Rules and exceptions** — inheritance, pinning, linkage: the "where does this value come from" rules
+- **Round trip** — after saving or editing, does it land correctly in the list and on other screens
 
-계정·데이터가 없어 못 보는 항목은 여기서 미리 `미검증 예정`으로 분리한다.
+Items that cannot be seen for lack of an account or data are separated out here in advance as `will not verify`.
 
-**`baseline` 모드는 여기서 종료.**
+**`baseline` mode ends here.**
 
-## 4. 접속 준비
+## 4. Prepare access
 
-- 접속 주소·대상 데이터 범위를 확인한다. 보지 말라고 한 범위는 건드리지 않는다.
-- **로그인·인증 정보는 절대 대신 입력하지 않는다.** 화면까지 띄워 달라고 요청하고 이어받는다.
-- 검증 시작 전 현재 상태(총 건수, 대상 항목의 값)를 기록해 둔다 — 저장 전후 대조와 원복의 기준이 된다.
+- Confirm the address and the data scope. Do not touch scope they said to leave alone.
+- **Never enter login or authentication details on the user's behalf.** Ask for the screen to be brought up, then take over.
+- Before verification starts, record the current state (total counts, the values of the target items) — it is the reference for before-and-after comparison and for restoring.
 
-## 5. 검증 실행
+## 5. Run the verification
 
-체크리스트 순서대로 돌린다. 클릭·입력·대기·캡처는 한 번에 묶어 왕복을 줄인다.
+Work down the checklist in order. Batch clicks, input, waits, and captures together to cut round trips.
 
-### 데이터 취급 원칙
+### Data handling
 
-- **생성·삭제는 하지 않는다.** 모달 노출·필수값 가드·취소까지만 본다. `qa.allow_write` 가 참이어도 꼭 필요할 때만, 먼저 확인받고 한다.
-- 값을 바꿨으면 **저장 전에 원복**한다. 저장까지 해야 하는 검증은 원복 경로가 있는지 먼저 확인한다.
-- 원복하지 못한 변경은 그 자리에서 기록해 리포트에 남긴다.
+- **Do not create or delete.** Go as far as the modal appearing, the required-field guard, and cancel. Even where `qa.allow_write` is true, do it only when genuinely necessary, and only after confirming.
+- If a value was changed, **restore it before saving**. For verification that must go through a save, confirm there is a path back first.
+- Any change that could not be restored is recorded on the spot and carried into the report.
 
-### 결함을 놓치지 않는 판별법
+### Ways of catching what gets missed
 
-실전에서 반복해 걸린 것들이다. 체크리스트에 없어도 항상 돌린다.
+These have caught things repeatedly in practice. Run them whether or not they are on the checklist.
 
-| 검사 | 방법 | 잡히는 것 |
+| Check | How | What it catches |
 |---|---|---|
-| **진입 직후 첫 액션** | 새로고침 → 아무 조작 없이 바로 탭 전환·필터·검색 | 첫 클릭이 통째로 먹지 않는 부류. 두 번째부터 정상이라 수동 QA에서 잘 빠진다 |
-| **경로 교차 대조** | 같은 데이터를 다른 경로로 조회(필터 vs 검색 vs 상세) | 특정 조회 경로에서만 값·이미지가 비는 결함 |
-| **건수 대조** | 저장·토글 전후 총 건수 비교 | 목록에서 항목이 빠지거나 늘어나는 유실·중복 |
-| **왕복 반영** | 상세에서 바꾸고 목록으로 돌아와 확인 | 저장은 되는데 목록에 안 붙는 부류 |
-| **실패 근거** | 에러가 뜨면 네트워크 요청·콘솔을 함께 확보 | 어느 요청이 몇 번으로 실패했는지 — 개발 전달 근거 |
-| **목록 간 정합** | 같은 항목을 다루는 두 화면의 목록을 대조 | 한쪽에만 있는 항목, 관리 목록에 없는 값이 다른 곳에서 선택되는 문제 |
-| **입력 가드** | 고정이어야 할 값에 실제로 입력해 본다 | 수정 불가 규칙이 화면에서 안 지켜지는 것 |
+| **First action after entry** | Refresh → switch tab, filter, or search immediately, with no other interaction | The class of bug where the first click is swallowed whole. It behaves from the second onward, so manual QA keeps missing it |
+| **Cross-path comparison** | Look at the same data through a different route (filter vs search vs detail) | Values or images going blank on one retrieval path only |
+| **Count comparison** | Compare totals before and after a save or a toggle | Items lost or duplicated in the list |
+| **Round-trip reflection** | Change it in the detail view, come back to the list, check | The class where the save works but the list never picks it up |
+| **Failure evidence** | When an error appears, capture the network request and the console alongside | Which request failed with which code — the ground for handing it to engineering |
+| **Cross-list consistency** | Compare the lists of two screens that handle the same items | Items present on one side only; values selectable elsewhere that the managing list does not have |
+| **Input guards** | Actually type into a value that is supposed to be fixed | A no-edit rule that the screen does not enforce |
 
-### 재현·판정 규칙
+### Reproduction and verdicts
 
-- **1회 실패는 결함으로 확정하지 않는다.** 최소 2회, 조건을 바꿔 재현한다.
-- 재현되지 않으면 `간헐`로 적고 관측된 조건을 함께 쓴다. 지우지 않는다.
-- 데이터 탓일 수 있는 것(값 미등록 등)은 다른 경로에서 같은 항목을 확인해 **구현 문제와 데이터 문제를 가른다.**
-- 기준선에 없는 차이는 결함이 아니라 `확인 필요`다. 시안·문서와 다르면 어느 쪽이 최신인지 먼저 묻는다.
-- 오탐 주의: 상태 의존 검증은 **그 상태를 실제로 만든 뒤** 확인한다(예: 이탈 경고는 값을 바꾼 채로 나가야 검증된다).
+- **One failure is not a confirmed defect.** Reproduce at least twice, varying the conditions.
+- If it does not reproduce, write it up as `intermittent` with the conditions it was observed under. Do not delete it.
+- For anything that might be the data's fault (an unregistered value and the like), check the same item through another path to **separate an implementation problem from a data problem**.
+- A difference with no baseline behind it is not a defect — it is `needs confirmation`. When it disagrees with the design or the document, ask which of them is current first.
+- Watch for false positives: state-dependent checks are confirmed **only after actually producing that state** (an unsaved-changes warning, for instance, is verified by leaving with the value changed).
 
-## 6. 결함 리포트
+## 6. The defect report
 
-보고된 것과 새로 찾은 것을 **나눠서** 낸다. 요청자는 자기가 올린 건이 어떻게 됐는지부터 본다.
+Keep **what was reported and what was newly found apart**. The requester looks first at what became of the item they raised.
 
-    [보고된 건]  각 항목마다 재현 여부 + 관측 내용
-    [신규]       심각도 순
+    [reported]  reproduced or not, plus what was observed, for each
+    [new]       by severity
 
-심각도는 결과의 크기로 가른다. 라벨은 `qa.severity` 를 쓴다 — 조직마다 부르는 이름이 다르니 그곳 버그 트래커 표현을 그대로 따른다.
+Severity is cut by the size of the consequence. Labels come from `qa.severity` — every org calls these something different, so follow the wording in their bug tracker exactly.
 
-    1단계   데이터 유실·복구 불가·업무 중단
-    2단계   핵심 동작 불가·기준 위반
-    3단계   일부 정보 누락·목록 불일치
-    4단계   문구·아이콘·식별성
+    Level 1   data loss, unrecoverable state, work stopped
+    Level 2   core behaviour impossible, baseline violated
+    Level 3   some information missing, lists disagreeing
+    Level 4   copy, icons, legibility
 
-### 칸을 이슈 양식에 맞춘다
+### Match the fields to the issue template
 
-결함은 나중에 이슈로 올라간다. **처음 적을 때부터 이슈 양식의 칸과 1:1로 적어**, 옮길 때 본문이 그대로 채워지게 한다. 칸은 `qa.report_fields` 를 쓰고, 설정이 없으면 아래를 쓴다.
+Defects end up filed as issues. **Write them into the issue template's fields one-to-one from the start**, so moving them across fills the body as it is. The fields come from `qa.report_fields`; with no setting, use the ones below.
 
-회차 공통은 리포트 머리에 **한 번만** 적는다 — 결함마다 반복하지 않는다.
+Whatever is common to the whole round goes at the head of the report **once** — not repeated per defect.
 
-    프로젝트 / 버전·빌드
-    환경 — 서버(dev·staging·운영) · 계정 권한 · 데이터 범위
-    기준 문서 — 기능·정책 행 · 시안 · 스펙
+    project / version, build
+    environment — server (dev, staging, production) · account permissions · data scope
+    baseline documents — feature and policy entries · design · spec
 
-결함 한 건:
+One defect:
 
-    {번호} · {요약 — 명사형 한 줄}
-    · 심각도: `qa.severity` 중 하나
-    · 빈도: `qa.frequency` 중 하나
-    · 재현: 1) … 2) … 3) …
-    · 기대: … (기준: 어느 문서의 무엇)
-    · 실제: …
-    · 증거: 요청 결과 · 화면 · 건수 변화
+    {number} · {summary — one line, a noun phrase}
+    · Severity: one of `qa.severity`
+    · Frequency: one of `qa.frequency`
+    · Reproduce: 1) … 2) … 3) …
+    · Expected: … (baseline: which document, which part)
+    · Actual: …
+    · Evidence: request results · screens · count changes
 
-빈도를 빼지 않는다 — 간헐 결함을 "항상"으로 읽히게 두면 개발이 재현에 시간을 버린다. 판정 문장은 기획 표현으로 쓰고, 요청 결과·코드 같은 개발 정보는 **증거 줄에만** 둔다.
+Do not drop frequency — leaving an intermittent defect to read as "always" burns engineering time on reproduction. Write the verdict in plan language, and keep engineering detail such as request results and code **on the evidence line only**.
 
-## 7. 마무리에 반드시 적을 것
+## 7. What the closing must always carry
 
-- **정상 확인** 목록 — 이상 없는 것도 적어야 커버리지가 보인다
-- **미검증** 목록 + 사유(계정 없음·범위 제외·데이터 없음)
-- **남긴 변경** — 원복하지 못한 데이터와 그 경위
+- **Verified good** — listing what turned out fine is what makes coverage visible
+- **Not verified**, with the reason (no account, out of scope, no data)
+- **Changes left behind** — data that could not be restored, and how it happened
 
-이 셋이 빠지면 "다 봤다"로 읽힌다. 안 본 것을 안 봤다고 적는 것이 리포트의 절반이다.
+Without these three the report reads as "I looked at everything". Writing down what was not looked at is half of a report.
 
 ---
 
-## 산출물 전달
+## Delivering the report
 
-리포트를 어디로 보낼지는 **묻고 정한다**(응답으로만 / 일감에 기록 / 회신 초안). 외부 쓰기는 미리보기 → "go" 이후에만 한다.
+Where the report goes is **asked and settled** (in the response only / recorded on the ticket / drafted as a reply). External writes happen only after preview → "go".
