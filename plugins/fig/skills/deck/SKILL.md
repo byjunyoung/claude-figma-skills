@@ -4,245 +4,243 @@ description: Turns a document, a dataset, or a spoken brief into a Figma Slides 
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 
-# deck — 발표 덱 제작 (Figma Slides)
+# deck — building a presentation deck (Figma Slides)
 
-소스 하나를 발표 흐름으로 옮겨 **Figma Slides 파일**에 덱을 짓는다. 장수는 소스 분량과 발표 조건에 맞춰 정한다(고정 아님).
+Moves one source into a presentation flow and builds a deck in **a Figma Slides file**. The slide count follows the source's volume and the presentation conditions (it is not fixed).
 
-디자인 원천은 `deck.assets_dir`의 로컬 자산이다 — `template-spec.md`(값·아키타입 카탈로그)와 `template.js`(팔레트·상수·빌더). 매 실행 시 원격 템플릿을 다시 읽지 않고 이 둘을 Read해 쓴다.
+The design comes from the local assets in `deck.assets_dir` — `template-spec.md` (values and the archetype catalog) and `template.js` (palette, constants, builders). It does not re-read a remote template on every run; it Reads these two.
 
-**자산이 없으면 `/fig:deck-setup`을 먼저 돌린다.** 원천 템플릿이 개정되면 다시 돌려 재추출한다. 자산 없이 값을 지어내 짓지 않는다 — 지어낸 장은 예외 없이 타입 사다리를 벗어난다.
+**Without the assets, run `/fig:deck-setup` first.** Run it again to re-extract when the source template is revised. Never build by inventing values — an invented slide leaves the type scale without exception.
 
-## 트리거
+## Triggers
 
-- 자연어: "슬라이드로 만들어줘", "발표 자료", "덱 만들어줘", "이 문서 슬라이드로"
-- 명시적: `/fig:deck <소스>` (문서 링크·파일 경로·주제)
+- Natural language: "turn this into slides", "presentation material", "make a deck", "this doc as slides"
+- Explicit: `/fig:deck <source>` (a document link, a file path, a topic)
 
-## 실행 절차
+## Procedure
 
-흐름 — **맞추기**(의도·소스 / 1–2) → **설계**(아웃라인 합의 / 3) → **제작**(자산·빌드 / 4–5) → **검수**(구조·표기 / 6–7) → **출력**(8)
+The shape — **align** (intent and source / 1–2) → **design** (agree the outline / 3) → **build** (assets and build / 4–5) → **audit** (structure and wording / 6–7) → **output** (8)
 
-### 1. 의도 확인
+### 1. Confirm the intent
 
-한 번에 묻지 말고 갈리는 것부터. 대개 아래 셋이면 충분하다.
+Do not ask everything at once; start with what actually branches. These three are usually enough.
 
-- **소스** — 어떤 문서·데이터를 옮기나. 링크나 경로를 받는다
-- **자리** — 누구 앞에서, 얼마나. 발표 시간이 장수를 결정한다(10분이면 12장 안팎, 30분이면 25장 이상도 무리 없음)
-- **형태** — 단독 덱인가, 기존 덱의 한 섹션인가
+- **The source** — which document or dataset is being moved. Take a link or a path
+- **The occasion** — in front of whom, for how long. The presentation length decides the slide count (10 minutes is around 12 slides; 30 minutes carries 25 or more comfortably)
+- **The form** — a standalone deck, or a section of an existing one
 
-**소스 대비 밀도를 먼저 맞춘다.** 긴 보고서를 짧은 덱으로 압축하면 "빈약하다"는 지적이 돌아온다. 소스에 표·목록·발견이 여럿이면 그것들이 각각 한 장을 차지할 값이 있는지 먼저 따지고, 압축본을 만들 거라면 무엇을 뺄지 사용자에게 확인받는다.
+**Match the density to the source first.** Compress a long report into a short deck and "this feels thin" comes back. Where the source has several tables, lists, and findings, work out first whether each is worth a slide of its own; if a condensed version is what is wanted, confirm with the user what gets dropped.
 
-### 2. 소스 읽기
+### 2. Read the source
 
-- 소스 전문을 읽는다. 요약본이나 목차만 보고 아웃라인을 짜지 않는다 — 발표에서 힘을 내는 건 본문의 수치·인용·사진이다
-- 노션 문서가 크면 fetch 결과가 파일로 떨어진다. 이미지 URL이 본문을 덮으므로 치환해 걷어내고 읽는다
-- 본문에 쓸 만한 그림·사진이 있으면 목록으로 추린다. 노션 이미지의 S3 프리사인 URL은 인증 없이 `curl`로 받아진다(만료가 짧으니 fetch 직후 바로 받는다)
-- 소스에 없는 사실을 덱에서 새로 만들지 않는다. 근거가 필요하면 소스를 다시 뒤진다
+- Read the source in full. Never build an outline from a summary or a table of contents — what carries a presentation is the numbers, the quotations, and the photographs in the body
+- A large document's fetch result lands in a file. Image URLs swamp the body, so substitute them out before reading
+- Where the body has drawings or photographs worth using, pull them into a list. Presigned S3 URLs for document images download with `curl` without authentication (they expire quickly, so fetch them immediately)
+- Never invent a fact in the deck that the source does not have. Where evidence is needed, go back through the source
 
-### 3. 아웃라인 합의 (쓰기 전 관문)
+### 3. Agree the outline (the gate before writing)
 
-**슬라이드를 짓기 전에 구성을 표로 합의한다.** 다 만든 뒤 구조를 바꾸면 재배치·재추출 비용이 크다.
+**Agree the composition as a table before building any slides.** Changing the structure after everything is built costs a rearrangement and a re-extraction.
 
-표에 담을 것: 장 번호 / 제목 / 무엇을 담나 / 어떤 아키타입인가. 소스 구조를 그대로 따를지, 발표 흐름으로 재배열할지도 여기서 정한다.
+What the table holds: slide number / title / what it carries / which archetype. Whether to follow the source's structure or rearrange it into a presentation flow is settled here too.
 
-- 장수는 발표 시간에서 역산한다
-- 같은 성격의 장이 연달아 넷 이상이면 사이에 섹션 전환이나 형태가 다른 장을 넣는다
-- 이미지가 없는 항목은 빈 카드로 두지 말고 도식·표·수치로 바꿀지 여기서 정한다
-- **템플릿 충실도를 어디까지 맞출지도 여기서 정한다.** 아키타입은 장 단위 규칙이고 템플릿은 덱이 아니라 메뉴라, 많이 골라 쓸수록 제목 위치와 콘텐츠 상단이 흩어진다. 두 갈래를 놓고 고르게 한다 — ⓐ 좌표는 아키타입 원본을 쓰되 제목 계열은 하나로 제한 ⓑ 아키타입 전부 복귀. 어느 쪽이든 **새 좌표를 만들지 않는 것**이 원칙이다(함정 24·25)
+- Work the slide count back from the presentation length
+- Where four or more slides of the same character run consecutively, put a section transition or a differently shaped slide between them
+- For an item with no image, decide here whether it becomes a diagram, a table, or a figure rather than leaving an empty card
+- **How closely to follow the template is settled here too.** An archetype is a per-slide rule and the template is a menu rather than a deck, so the more of it you draw on, the more the title positions and content tops scatter. Offer two routes to choose from — ⓐ use the archetypes' own coordinates but hold the title family to one ⓑ go back to the archetypes entirely. Either way the principle is **never to invent a coordinate** (pitfalls 24 and 25)
 
-합의("go") 후에 파일을 만든다.
+The file gets created after the "go".
 
-### 4. 자산 준비
+### 4. Prepare the assets
 
-이미지는 Figma에 올려 imageHash를 얻어 빌더에 넘긴다.
+Images go up to Figma to get an imageHash, which is handed to the builder.
 
-1. 작업 폴더에 ASCII 파일명으로 모은다(`pickup-worktop.png` 식)
-2. macOS quarantine 제거: `xattr -d com.apple.quarantine <file>`
-3. **원본 비율을 재둔다** — `sips -g pixelWidth -g pixelHeight`. 이미지 박스를 이 비율에 맞춰야 `FIT`에서 여백이 안 생긴다(6번 함정)
-4. 스크래치 폴더는 세션 사이에 비워질 수 있다. 다시 필요하면 소스에서 재수집한다
-5. **파일 이름을 믿지 말고 전부 열어 본다.** `fig10_베이커리매대`가 실제로는 영업중단 안내문 사진이었다. 이름은 찍을 때의 의도지 사진 내용이 아니다. **후보를 슬라이드에 넣기 전에 눈으로 확인한다** — 27장을 한 장씩 열면 토큰만 드니 헤드리스 크롬으로 한 장짜리 대조 시트를 만들어 한 번에 본다.
-6. **소스에 이미 만들어둔 그림을 전수로 훑는다.** 보고서용으로 그려둔 차트가 덱에 안 들어간 채 남아 있는 일이 흔하다. 폴더를 통째로 나열해 쓸 것을 고르고, 여러 장을 비교할 때는 한 장짜리 대조 시트로 만들어 한 번에 본다 — 사진을 한 장씩 열면 토큰만 든다
-7. **보고서용 그림은 그대로 못 쓴다.** 캡션 문단, 슬라이드에서만 통하는 각주, 원문서 절 번호가 이미지 안에 구워져 있다. 슬라이드에 넣기 전에 그 부분을 잘라낸다. 자른 뒤 비율이 바뀌므로 박스 크기를 다시 계산한다
+1. Collect them into a working folder with ASCII filenames (`pickup-worktop.png` style)
+2. Strip the macOS quarantine: `xattr -d com.apple.quarantine <file>`
+3. **Measure the original aspect ratio** — `sips -g pixelWidth -g pixelHeight`. Matching the image box to that ratio is what keeps `FIT` from leaving margins (pitfall 6)
+4. A scratch folder can be emptied between sessions. Re-collect from the source when it is needed again
+5. **Do not trust filenames — open all of them.** A file called `fig10_bakery-display` turned out to be a photograph of a closed-for-business notice. A name is the intent at the moment of shooting, not the content of the photograph. **Confirm a candidate by eye before it goes on a slide** — opening 27 images one at a time costs nothing but tokens, so build a single contact sheet with headless Chrome and look at them at once.
+6. **Sweep the source exhaustively for drawings it already has.** A chart drawn for the report and never carried into the deck is a common find. List the whole folder and pick what to use; when comparing several, make a single contact sheet and look at them at once — opening photographs one by one only costs tokens
+7. **A report's drawings cannot be used as they are.** Caption paragraphs, footnotes that only work in a document, and the source's section numbers are baked into the image. Crop those out before it goes on a slide. Cropping changes the ratio, so recompute the box size
 
-### 5. 빌드
+### 5. Build
 
-**파일 생성 → 팀 템플릿 적용(사용자 손) → 아키타입으로 배치** 순서다.
+The order is **create the file → apply the team template (the user does this) → lay out with archetypes**.
 
-1. **스킬 로드** — `figma-use` + `figma-use-slides`를 `skillNames`에 함께 전달
-2. **로컬 자산 Read** — `deck.assets_dir`의 `template-spec.md`·`template.js`. 빌드 스크립트 상단에 이 순서로 붙인다.
+1. **Load the skills** — pass `figma-use` and `figma-use-slides` together in `skillNames`
+2. **Read the local assets** — `template-spec.md` and `template.js` from `deck.assets_dir`. They attach to the top of the build script in this order:
    `${CLAUDE_PLUGIN_ROOT}/_common/scripts/deck-base.js` **→** `template.js`.
-   범용 헬퍼가 먼저, 팀 상수·빌더가 나중이다(헬퍼는 선언이라 끌어올려지고 상수는 호출 시점에 읽힌다).
-   스펙의 **아키타입 카탈로그에서 먼저 고른다.** 내용 형태에 맞는 것이 없다고 즉흥 레이아웃을 만들지 말고,
-   가장 가까운 아키타입에 맞춰 내용을 줄이거나 장을 쪼갠다. 지어낸 레이아웃은 반드시 타입 사다리를 벗어난다
-3. **새 파일** — `whoami`로 planKey 확인 후 `create_new_file`(editorType `slides`)
-4. **팀 템플릿 적용은 MCP로 안 된다.** 파일을 만든 뒤 사용자에게 Templates 패널에서 팀 공유 템플릿을 적용해 달라고 요청하고 기다린다. 적용해야 팀 폰트·색·named 텍스트 스타일이 들어온다. 안 하면 대체 폰트와 'Pick a style'로 깨진다
-5. **적용 결과를 확인한다** — 템플릿을 적용하면 샘플 슬라이드가 통째로 딸려 들어올 수 있다. 이 중 한 장을 테마 기준(`REF_SLIDE`)으로 잡아 `clone`해 새 슬라이드를 만들고, **샘플은 빌드가 끝난 뒤 지운다**
-6. **이미지 업로드** — `upload_assets`로 해시를 받는다. 업로드는 페이지에 프레임을 남기므로 빌드 후 함께 정리한다
-7. **한 호출에 3~5장.** 슬라이드는 격리된 서브트리라 배치 빌드가 안전하다
-8. **순서 재배치** — 새 슬라이드는 행 끝에 붙는다. 최종 순서대로 `row.appendChild(slide)`를 반복하면 정렬된다(insertChild 인덱스 계산보다 안전)
-9. **텍스트 스타일 바인딩** — 빌드 후 각 TEXT를 `family|style|size`로 파일의 named 스타일에 묶는다. 사다리 밖 크기·SemiBold는 raw로 남는 게 정상
+   Generic helpers first, team constants and builders second (helpers are declarations and hoist; constants are read at call time).
+   **Pick from the spec's archetype catalog first.** Where nothing fits the shape of the content, do not improvise a layout — cut the content to the nearest archetype, or split the slide. An invented layout always leaves the type scale
+3. **A new file** — check the planKey with `whoami`, then `create_new_file` (editorType `slides`)
+4. **MCP cannot apply the team template.** Once the file exists, ask the user to apply the team's shared template from the Templates panel, and wait. Applying it is what brings in the team fonts, colours, and named text styles. Without it, everything breaks into substitute fonts and 'Pick a style'
+5. **Confirm what applying it did** — it can pull in the sample slides wholesale. Take one of them as the theme reference (`REF_SLIDE`) and `clone` it to make new slides, then **delete the samples once the build is done**
+6. **Upload the images** — get hashes with `upload_assets`. Uploading leaves frames on the page, so clear them along with everything else after the build
+7. **Three to five slides per call.** A slide is an isolated subtree, so batched building is safe
+8. **Reordering** — a new slide attaches at the end of the row. Repeating `row.appendChild(slide)` in final order sorts them (safer than computing insertChild indices)
+9. **Bind the text styles** — after the build, bind each TEXT to the file's named styles by `family|style|size`. Sizes outside the scale and SemiBold staying raw is normal
 
-### 6. 구조 검증
+### 6. Structural verification
 
-배치마다 read-only 스크립트로 검사한다. 통과하면 스크린샷을 아낀다.
+Check each batch with a read-only script. Passing saves screenshots.
 
-- **값의 가짓수** — 흐림값·강조색·글자 크기를 전수로 세어 종류를 본다. 보조 텍스트 흐림은 한 값, 강조색은 의미가 붙은 것만(함정 41·42)
-- **고아 줄** — 한 어절만 있는 줄, 폭 25% 미만인 줄을 센다. 완결된 짧은 문장은 제외(함정 39)
-- **순서** — 소스 목차와 덱 장 번호를 나란히 놓고 역순·누락을 본다. 상위 절을 건너뛰었다 되돌아오는 구간이 가장 흔한 실수다
-- **항목 수** — 소스가 다루는 항목 수와 슬라이드에 놓인 칸 수를 대조한다. 앞 장에 적어둔 수치("매장 7곳")와도 맞는지 본다. 레이아웃이 내용을 자르는 것이 이 검사로만 잡힌다
-- **골격** — 덱 전체를 한 번에 훑어 ⓐ 제목 위치가 몇 가지인지 ⓑ 콘텐츠 상단 y가 몇 가지인지 ⓒ 여백을 벗어난 장이 있는지 센다. 값의 **개수**가 아니라 **출처**를 본다 — 나온 값이 전부 `template-spec.md`에 있는 숫자인가. 하나라도 템플릿에 없는 값이면 그 자리에서 지어낸 것이다. 계열을 하나로 제한하기로 했다면 그 약속도 함께 검사한다
-- **경계 밖** — 슬라이드 좌표 기준 0~1920, 0~1080을 벗어난 노드. 여백 기준(좌 128 / 우 1792)도 함께 본다
-- **자동 꺾임** — 블록마다 `height / (fontSize × lineHeight)`가 `characters.split('\n').length`보다 큰지 본다. 크면 조판기가 낱말 한가운데를 자르고 있다는 뜻이다(함정 31·33·34)
-- **빈 카드** — 카드 하단과 내용 하단 사이가 100px 넘게 벌어진 장. 카드는 내용에 맞춰 줄이고 같은 행끼리 높이를 맞춘다
-- **정렬** — `textAlignHorizontal`이 LEFT가 아닌 텍스트. 도식 라벨과 인용 말고 CENTER가 남아 있으면 다른 계열에서 옮겨온 노드다
-- **텍스트 겹침** — 가로로 겹치면서 세로 간격이 2px 미만인 텍스트 쌍
-- **본문 명암비** — 템플릿의 흐린 색은 대개 **보조 텍스트용**이다. 배경색과의 실효 명암비를 실제로 계산해 WCAG AA 최소선(4.5:1)에 걸치는지 본다. 걸치기만 하면 부제·캡션·출처에만 쓰고 **읽는 본문은 불투명하게** 둔다. 덱 안에서 본문 색이 두 가지로 갈리지 않는지도 함께 본다
-- **행간** — 본문은 글자 크기의 **1.5배**(WCAG 1.4.12). 템플릿 행간이 그보다 좁으면 한두 줄짜리 캡션 기준이라는 뜻이라 문단에는 부족하다. 줄이 셋 이상인 블록에는 문단 간격도 8px 안팎 준다
-- **타입 사다리** — 스펙의 사다리 밖 `fontSize`가 있는 장. 하나라도 나오면 그 장은 내용이 많다는 뜻이다
-- **면 색** — 한 덱에 카드 면 색이 둘 이상이면 실패. 스펙의 카드 색 하나만 쓴다
-- **밀도** — 장당 노드 40개 초과. 표를 옮겼을 때 바로 걸린다
-- **스크린샷 체크포인트** — 첫 배치(비주얼 시스템)와 마지막 배치(전체 품질). 아래를 하나씩 짚는다
-  - [ ] 이미지가 박스 안에서 크게 보이나, 위아래 여백이 과하지 않나
-  - [ ] 카드 아래가 비어 보이지 않나(내용 대비 고정 높이가 크면 빈 상자가 된다)
-  - [ ] 이미지 안에 이미 있는 제목·설명이 슬라이드 제목과 중복되지 않나
-  - [ ] 표의 열이 서로 침범하지 않나
-  - [ ] 폰트가 의도한 것으로 적용됐나
+- **How many distinct values** — count opacity values, accent colours, and font sizes exhaustively and look at how many kinds there are. Secondary-text opacity is one value; accent colours only where meaning is attached (pitfalls 41 and 42)
+- **Orphan lines** — count lines holding a single word, and lines under 25% of the width. Exclude short complete sentences (pitfall 39)
+- **Order** — put the source's contents and the deck's slide numbers side by side and look for reversals and omissions. Skipping a parent section and coming back to it is the most common mistake
+- **Item counts** — compare the number of items the source covers against the number of slots on the slide. Check them against a figure written on an earlier slide ("7 stores") too. A layout truncating content is caught by this check alone
+- **The skeleton** — sweep the whole deck at once and count ⓐ how many title positions there are ⓑ how many content-top y values ⓒ whether any slide breaks the margins. Look at the **provenance** of the values, not their **count** — is every value that turned up a number that exists in `template-spec.md`? One value not in the template means it was invented on the spot. Where the families were held to one, check that promise too
+- **Out of bounds** — nodes outside 0–1920 and 0–1080 in slide coordinates. Check the margin bounds (left 128 / right 1792) alongside
+- **Automatic wrapping** — per block, check whether `height / (fontSize × lineHeight)` exceeds `characters.split('\n').length`. Larger means the typesetter is breaking in mid-word (pitfalls 31, 33, 34)
+- **Empty cards** — slides where the gap between the card's bottom and the content's bottom is over 100px. Shrink the card to the content and level the heights within a row
+- **Alignment** — text whose `textAlignHorizontal` is not LEFT. Any CENTER left outside diagram labels and pull quotes is a node carried over from another family
+- **Body contrast** — a template's dimmed colour is usually **for secondary text**. Actually compute the effective contrast against the background and see whether it merely scrapes the WCAG AA floor (4.5:1). If it only scrapes it, use it for subtitles, captions, and sources alone and **keep reading body copy opaque**. Check too that the body colour does not split into two across the deck
+- **Line height** — body copy is **1.5×** the font size (WCAG 1.4.12). A template line height tighter than that means it was set for one- or two-line captions and is not enough for a paragraph. Blocks of three lines or more get around 8px of paragraph spacing too
+- **The type scale** — slides carrying a `fontSize` outside the spec's scale. Even one means that slide has too much content
+- **Surface colour** — more than one card surface colour in a deck is a failure. Use the spec's single card colour
+- **Density** — over 40 nodes per slide. A transplanted table trips this immediately
+- **Screenshot checkpoints** — the first batch (the visual system) and the last (overall quality). Walk these one at a time
+  - [ ] Does the image read large inside its box, without excessive margin above and below
+  - [ ] Does the card look empty at the bottom (a fixed height larger than the content makes an empty box)
+  - [ ] Does a title already inside the image duplicate the slide title
+  - [ ] Do the table's columns encroach on each other
+  - [ ] Did the intended font actually apply
 
-### 7. 표기 검수 (덱 특유의 마지막 관문)
+### 7. Wording audit (the last gate, particular to decks)
 
-구조가 맞아도 문장이 어긋나면 다시 만든다. 슬라이드는 짧은 문장이 많아 아래가 특히 잘 쌓인다. **덱 전체 텍스트를 덤프해 한 번에 훑는다.**
+Correct structure with wrong sentences still means rebuilding. Slides carry many short sentences, so the following pile up especially fast. **Dump the whole deck's text and sweep it in one pass.**
 
-- **중간점으로 문장을 잇지 않는다.** `A했다 · B했다`는 두 문장으로. 합성어 tight dot(앱·키오스크, 강점·안전)과 대등한 짧은 나열은 남긴다
-- **대시 부연을 줄인다.** `규칙은 있다 — 20초, 120초` → 문장으로 끊거나 어순을 바꾼다. 표의 라벨 구분으로 쓰는 대시는 남겨도 된다
-- **덱 안 위치를 가리키는 말도 쓰지 않는다.** "앞 장에서 다루었다", "다음 장 참고"는 장을 한 번만 옮겨도 거짓이 된다. 재배치 뒤 `앞 장|다음 장|뒤 장`을 정규식으로 훑어 남은 게 없는지 본다. 꼭 가리켜야 하면 위치가 아니라 이름으로("로봇은 따로 다루었다")
-- **원문서 안에서만 통하는 식별자를 옮기지 않는다.** 절 번호, 단계 코드, 일감 번호는 이름과 수치로 바꾼다. 청중은 원문서를 펴놓고 듣지 않는다
-- **괄호 삽입절을 뺀다.** 정의·조건·날짜를 괄호로 끼우지 말고 문장으로 푼다
-- **고유명사 표기를 통일한다.** 같은 대상이 두 표기로 나오면(줄인 이름과 정식 이름) 한쪽으로 맞춘다
-- **번역투·피동을 고친다.** `~에 대한`, `~를 통해`, `관찰된 것`, `허용하고 있다` 류
-- **수치를 다시 센다.** 제목에 쓴 건수와 실제 행 수, 앞 장과 뒤 장의 같은 수치가 맞는지 대조한다
-- **과장 표현을 뺀다.** 근거 수치로 바꾸거나 지운다
-- **줄바꿈은 의미 덩어리 경계에서 한다.** 낱말 중간은 절대 안 되고, 주어부와 서술부 사이나 절 경계는 괜찮다. `베이커리 매대와 냉장 쇼케이스가 ⏎ 둘러보는 동선을 형성한다`는 정상이고, `매장에 들어와 음료를 받고 ⏎ 나가기까지를`은 한 덩어리를 가른 것이다.
-  **"한 줄에 한 문장"으로 정하지 말 것.** 그렇게 잡으면 열 폭에 맞추려고 문장을 잘라내게 되고, 소스의 서술이 통째로 사라진다.
-  **옆 열과 줄 수를 대충 맞춘다** — 한 열만 파편이 많으면 그 열이 어긋나 보인다.
-  자동 검사: 텍스트마다 `렌더 줄 수 > 수동 개행 수`면 자동 개행이 일어난 것이다. 그때만 손댄다.
-- **한글이 음절 단위로 꺾이는 곳에 수동 개행을 넣는다.** 좁은 열에서 조판기가 낱말 중간을 자른다(`가락IT벤처타/운점`, `결제 준/비`). 자동 검사로 다 잡힌다 — 텍스트마다 `렌더 줄 수 > 수동 개행 수`면 자동 개행이 일어난 것이다.
-  줄이 안 맞으면 개행만 넣지 말고 문장을 줄인다. 슬라이드 한 줄은 원래 짧아야 한다
+- **Do not join sentences with a middle dot.** `did A · did B` becomes two sentences. Keep the tight dot inside compounds and short lists of equals
+- **Cut parenthetical dashes.** `there are rules — 20 seconds, 120 seconds` → break it into sentences or change the word order. A dash separating a table's labels can stay
+- **Do not use words that point at a position in the deck.** "as covered on the previous slide", "see the next slide" become false the moment a slide moves once. After a rearrangement, sweep with a regex for previous/next/earlier slide and check nothing is left. Where a pointer is genuinely needed, point by name rather than by position ("the robots were covered separately")
+- **Do not carry over identifiers that only work inside the source document.** Section numbers, stage codes, and ticket numbers become names and figures. The audience is not listening with the source open
+- **Remove parenthetical insertions.** Definitions, conditions, and dates get written out as sentences rather than wedged into parentheses
+- **Unify proper nouns.** Where one thing appears under two names (a short form and a full form), settle on one
+- **Fix translationese and passive voice.** The "with respect to", "by way of", "was observed to be", "is being permitted" family
+- **Recount the figures.** Compare the count in a title against the actual row count, and the same figure on an earlier slide against a later one
+- **Cut overstatement.** Replace it with the evidence figure, or delete it
+- **Break lines at the boundaries of meaning.** Never mid-word; between subject and predicate, or at a clause boundary, is fine. `the bakery display and the chilled showcase ⏎ form the browsing path` is correct; `from entering the store and receiving a drink ⏎ to leaving` splits one unit.
+  **Do not settle on "one sentence per line."** Fix that and you start cutting sentences to fit the column width, and the source's writing disappears wholesale.
+  **Roughly level the line counts against the neighbouring column** — one column full of fragments makes that column look misaligned.
+  The automatic check: per text, `rendered line count > manual newline count` means automatic wrapping happened. Only touch it then.
+- **Insert manual line breaks wherever CJK text breaks mid-syllable-cluster.** In a narrow column the typesetter cuts mid-word, because CJK has no spaces to break at. The automatic check catches all of it — per text, `rendered line count > manual newline count` means automatic wrapping happened.
+  When the lines will not level, do not just add breaks — shorten the sentence. A line on a slide is supposed to be short
 
-문체 세부는 쓰는 곳의 글쓰기 기준을 따른다. 없으면 위 항목만으로도 대부분 걸러진다.
+Finer points of style follow whatever writing standard applies where it is being written. Without one, the items above already filter most of it.
 
-### 8. 출력
+### 8. Output
 
-- 산출물은 Figma 덱 URL. 장 구성 요약과 함께 전달한다
-- 발표자 노트는 요청이 있을 때만 채운다
-- 재실행하면 기존 슬라이드를 고친다. 지우고 새로 만들지 않는다(사용자가 "처음부터"라고 할 때만)
+- The deliverable is the Figma deck URL. Hand it over with a summary of the slide composition
+- Speaker notes get filled in only on request
+- A re-run edits the existing slides. It does not delete and rebuild (only when the user says "from scratch")
 
-## 아키타입
+## Archetypes
 
-빌더는 `deck.assets_dir`의 `template.js`에 있다. 새 레이아웃을 즉흥으로 만들지 말고 있는 것을 쓰고, 변형은 파라미터로 준다. 아래는 `/fig:deck-setup`이 만드는 표준 이름이다 — 템플릿에 그 형태가 없으면 그 빌더도 없다.
+The builders live in `template.js` in `deck.assets_dir`. Do not improvise a new layout; use what is there and pass variations as parameters. Below are the standard names `/fig:deck-setup` produces — where the template has no such form, that builder does not exist either.
 
-| 빌더 | 쓰임 |
+| Builder | Use |
 |---|---|
-| `titleSlide` | 표지 — 공식 배경 이미지 풀블리드 + 제목·부제 |
-| `sectionSlide` | 부 전환 — 큰 문장 하나 |
-| `cardGridSlide` | 라벨 + 강조문 카드 N개 |
-| `autoCardSlide` | 상태 뱃지·제목·근거 줄이 든 키 큰 카드(오토레이아웃) |
-| `imageDescSlide` | 실화면·사진 카드 N개 |
-| `metricsSlide` | 수치 성과 — 큰 숫자 + 지표명 + 설명 |
-| `timelineSlide` | 마일스톤·로드맵 |
-| `closingSlide` | 마무리 — 배경 180° + 푸터 |
-| `statusBadge` | 상태 칩 — 완료·예정·미정을 색으로 |
-| `phoneMock` | 앱 화면 폰 목업 — 베젤 + 화면 |
-| `nameSection` | 슬라이드 행(섹션) 이름 지정 |
-| `applyTextStyles` | 빌드 후 named 텍스트 스타일 바인딩 |
+| `titleSlide` | Cover — the official background image full-bleed, plus title and subtitle |
+| `sectionSlide` | Part transition — one large sentence |
+| `cardGridSlide` | N cards of a label plus a key statement |
+| `autoCardSlide` | A tall card with a status badge, a title, and evidence lines (auto-layout) |
+| `imageDescSlide` | N cards of real screens or photographs |
+| `metricsSlide` | Numeric results — a large figure, the metric name, a description |
+| `timelineSlide` | Milestones and roadmaps |
+| `closingSlide` | Closing — the background rotated 180° plus a footer |
+| `statusBadge` | A status chip — done, planned, undecided, by colour |
+| `phoneMock` | An app-screen phone mock-up — bezel plus screen |
+| `nameSection` | Naming a slide row (section) |
+| `applyTextStyles` | Binding named text styles after the build |
 
-**표지와 마무리 배경은 공식 자산을 그대로 쓴다.** `template-assets/`의 배경 이미지를 업로드해 `bgImageHash`로 넘긴다. 워드마크·문구·모티프가 이미지에 구워져 있으면 도형으로 재현하지 않는다 — 재현하면 반드시 어긋난다. 마무리 장이 같은 배경을 뒤집어 쓰는 템플릿이 흔하다.
+**The cover and closing backgrounds use the official assets as they are.** Upload the background images from `template-assets/` and pass them as `bgImageHash`. Where a wordmark, a phrase, or a motif is baked into the image, do not reproduce it with shapes — a reproduction always ends up wrong. Templates commonly have the closing slide reuse the same background flipped.
 
-**이미지 핏은 `FIT`이 기본이다.** UI 스크린샷은 헤더·탭·버튼이 잘리면 메시지가 사라진다. `FILL`은 사진·배경처럼 잘려도 되는 것에만 쓴다. 세로로 긴 앱 화면은 `phoneMock`으로, 가로 화면은 박스로.
+**Image fit defaults to `FIT`.** On a UI screenshot, a cropped header, tab, or button takes the message with it. `FILL` is for photographs and backgrounds, where cropping is fine. A tall app screen goes in `phoneMock`; a wide one goes in a box.
 
-**소스가 서술형 리포트면 위 목록만으로 부족하다.** 자주 쓰는 파생 둘은 직접 조립한다.
+**Where the source is a narrative report, the list above is not enough.** Two frequent derivatives get assembled by hand.
 
-- **발견 장** — 좌측에 사진·차트, 우측에 소제목과 근거 목록. 사진은 원본 비율대로 박스를 잡고, 우측은 오토레이아웃 세로 프레임으로 둔다
-- **표 장** — 열 x좌표를 배열로 잡고 행마다 1px 구분선. 상태·성격 값은 색으로 구분한다. 12행 안팎까지는 한 장에 들어간다
+- **A findings slide** — a photograph or chart on the left, a subheading and an evidence list on the right. Size the photograph's box to the original ratio, and make the right side a vertical auto-layout frame
+- **A table slide** — hold the column x coordinates in an array and put a 1px rule under each row. Distinguish status and character values by colour. Up to about 12 rows fits on one slide
 
-화면이 없는 항목은 빈 카드 대신 도식으로 만든다. 체인(A→B→C), 대비(시스템/고객 두 박스), 2×2 카드 정도면 대부분 커버된다.
+An item with no screen becomes a diagram rather than an empty card. A chain (A→B→C), a contrast (two boxes, system and customer), and a 2×2 of cards cover most of it.
 
-## 함정
+## Pitfalls
 
-1. **템플릿 적용이 샘플 슬라이드를 통째로 가져온다** — 빌드 후 정리. 정리 전에 테마 기준 슬라이드 하나는 남겨둔다
-2. **`upload_assets`가 페이지에 프레임을 남긴다** — 빌드 후 함께 삭제. 해시는 이미 파일에 저장되므로 프레임을 지워도 이미지는 살아 있다
-3. **`getSlideGrid()` 결과가 낡을 수 있다** — 방금 만든 슬라이드가 안 보이면 별도 read 호출로 다시 확인한다
-4. **`appendChild`보다 먼저 x/y를 쓰면 노드가 240px 밀린다** — preamble 헬퍼를 쓰면 순서가 강제된다
-5. **폰트 로드 없이 characters를 쓰면 던진다** — 스크립트 시작에 `loadFonts()` 한 번
-6. **이미지 박스 비율이 원본과 다르면 `FIT`에서 여백이 크게 남는다** — 원본 비율로 박스를 잡는다. 4:1처럼 납작한 이미지는 세로 중앙에 두고 남는 공간을 텍스트로 채운다
-7. **카드 고정 높이가 내용보다 크면 빈 상자로 보인다** — 줄을 더하거나 높이를 줄인다. 같은 성격의 장끼리는 하단선을 맞춘다
-8. **수치 열과 이름 열이 몇 px 겹친다** — 텍스트 박스 폭은 열 간격보다 작게 잡는다. 겹침 검사로 잡힌다
-9. **이미지 안에 제목이 이미 있으면 슬라이드 제목과 중복된다** — 슬라이드 제목을 결론형으로 바꾸거나 이미지를 다시 만든다
-10. **도식 박스 안 텍스트가 위로 치우친다** — 박스 높이에서 텍스트 높이를 빼 세로 중앙에 둔다
-11. **슬라이드 직속 노드에 `layoutSizing`을 쓰면 에러** — 오토레이아웃 프레임을 하나 두고 그 안에서 쓴다
-12. **`layoutSizingVertical='AUTO'`는 없다** — `'HUG'`. 프레임 자체의 `counterAxisSizingMode`가 `'FIXED'|'AUTO'`
-13. **이미지 해시는 파일 간 이동이 안 된다** — 다른 파일로 재빌드하면 이미지가 빈칸이 된다. 테마를 다시 입혀야 하면 같은 파일 안에서 clone으로 옮긴다
-14. **내가 자른 크롭이 요소를 관통한다** — 비율이 정확히 맞아도 표의 행 중간이나 카드 중간을 지나면 글자가 반쪽 난다. 비율 검사로는 안 잡힌다. 자를 때는 행 구분선·블록 경계에서 끊고, 목표 비율에 모자라는 폭은 가장자리 색으로 채운다
-15. **절대좌표로 둔 제목과 설명이 나중에 겹친다** — 글자 크기를 키우면 아래 텍스트가 따라오지 않는다. 제목과 설명 묶음은 처음부터 세로 오토레이아웃으로 짓는다
-16. **여러 장에 같은 이름을 붙인다** — `이미 작동하는 것`과 `이미 잘 되고 있는 것`처럼 비슷한 제목이 이웃하면 청중이 헷갈린다. 덱 전체 제목을 한 번에 훑어 중복을 없앤다
+1. **Applying the template drags the sample slides in wholesale** — clear them after the build. Keep one theme-reference slide back before clearing
+2. **`upload_assets` leaves frames on the page** — delete them after the build too. The hashes are already stored in the file, so the images survive the frames going
+3. **`getSlideGrid()` results can be stale** — if a slide you just made is missing, confirm again with a separate read call
+4. **Writing x/y before `appendChild` shifts the node by 240px** — the preamble helpers force the order
+5. **Writing characters without loading the font throws** — one `loadFonts()` at the top of the script
+6. **An image box whose ratio differs from the original leaves a large margin under `FIT`** — size the box to the original ratio. A flat image like 4:1 goes vertically centred with the leftover space filled by text
+7. **A card's fixed height larger than its content reads as an empty box** — add lines or reduce the height. Level the bottom edge across slides of the same character
+8. **A figure column and a name column overlap by a few px** — make the text box narrower than the column gap. The overlap check catches it
+9. **A title already inside the image duplicates the slide title** — make the slide title a conclusion instead, or remake the image
+10. **Text inside a diagram box sits high** — subtract the text height from the box height and centre it vertically
+11. **`layoutSizing` on a node directly under a slide errors** — put one auto-layout frame in and use it inside that
+12. **There is no `layoutSizingVertical='AUTO'`** — it is `'HUG'`. The frame's own `counterAxisSizingMode` is `'FIXED'|'AUTO'`
+13. **Image hashes do not move between files** — rebuild in another file and the images come out blank. Where the theme has to be reapplied, move things by clone within the same file
+14. **A crop you made cuts straight through an element** — even at exactly the right ratio, a cut through the middle of a table row or a card halves the letters. The ratio check does not catch it. Cut at row rules and block boundaries, and pad the width shortfall with the edge colour
+15. **A title and a description placed at absolute coordinates overlap later** — raise the font size and the text below does not follow. Build the title-and-description pair as a vertical auto-layout from the start
+16. **Several slides end up with the same name** — neighbouring titles like `what already works` and `what is already going well` confuse an audience. Sweep every title in the deck at once and remove the duplication
 
-17. **카탈로그에 없는 형태가 나오면 레이아웃을 지어내게 된다** — 그리고 지어낸 장은 예외 없이 글자를 줄여 사다리를 벗어난다. 표·도식·대비·인용처럼 자주 나오는 형태는 카탈로그에서 먼저 찾는다. 카탈로그가 비어 있으면 `/fig:deck-setup` 부터 돌린다
-18. **콘텐츠 밴드를 제목 바로 밑에 붙이면 하단이 뚫린다** — 템플릿은 열 수마다 콘텐츠 상단 y를 따로 갖는다. 제목과 콘텐츠 사이 여백은 의도된 것이니 스펙 값을 그대로 쓴다
-19. **표를 슬라이드에 그대로 옮기지 않는다** — 12행 표 한 장은 슬라이드가 아니라 문서다. 행이 많으면 열 그리드로 푼다. 다만 **행을 그대로 12칸에 펴면 이번엔 번잡해진다** — 12개가 동등한 무게로 깔려 눈이 앉을 데가 없고, 항목마다 붙은 색 꼬리표가 12번 반복돼 노이즈가 된다. **원본 표의 분류 열(묶음·상태·성격)을 계층으로 쓴다**: 그 열로 3~5개 그룹을 만들고, 색은 항목이 아니라 그룹 제목에만 준다. 항목 문장은 한 줄에 들어가게 줄인다 — 두 줄짜리가 열둘 깔리는 것이 번잡함의 절반이다. 버린 열(근거·번호)은 부제 한 줄로 대신하거나 보고서에 맡긴다
-20. **좌우 2단에서 본문 y를 고정값으로 주면 한쪽만 벌어진다** — 제목 줄 수가 열마다 다르기 때문이다. 본문 y를 열 전체에 통일하거나(정렬 우선) 제목 높이를 재서 더한다(간격 우선). 둘 중 하나를 덱 전체에 일관되게 적용한다
+17. **A shape absent from the catalog leads to an invented layout** — and an invented slide shrinks the text and leaves the scale, without exception. Common shapes — tables, diagrams, contrasts, pull quotes — get looked up in the catalog first. An empty catalog means running `/fig:deck-setup` first
+18. **Putting the content band right under the title punches through the bottom** — a template holds a separate content-top y per column count. The gap between title and content is intentional, so use the spec's value as it is
+19. **Do not transplant a table onto a slide as it is** — a 12-row table on one slide is a document, not a slide. With many rows, unfold it into a column grid. But **spreading the rows into 12 slots is its own kind of busy** — twelve items laid out at equal weight give the eye nowhere to land, and the colour tag on each repeats twelve times into noise. **Use the original table's classification column (grouping, status, character) as a hierarchy**: make 3–5 groups from that column, and give the colour to the group headings rather than to the items. Cut each item's sentence to fit one line — two-line items twelve deep is half of what makes it busy. Columns dropped (evidence, numbering) become a subtitle line, or go back to the report
+20. **Fixing the body y in a two-column layout leaves one side gaping** — because the title line count differs per column. Either unify the body y across all columns (alignment first) or measure the title height and add it (spacing first). Apply one of the two consistently across the deck
 
-21. **쓸 사진이 없으면 없는 대로 둔다** — 항목 넷 중 하나만 사진이 있으면 그 사진은 근거가 아니라 오해가 된다. 억지로 넣으려다 열마다 셀 구조가 달라지고 기준선이 무너진다. 자산이 모자랄 때 할 수 있는 건 셋뿐이다. 항목을 줄이거나, 자산을 더 구하거나, 자산 수에 맞는 아키타입으로 바꾸거나. **하이브리드 셀은 넷째 선택지가 아니다.**
-22. **텍스트만 있는 장이 이어지면 덱이 읽히지 않는다** — 아키타입을 지켜도 글자만 남으면 "그림을 넣어야 한다"는 지적이 온다. 장마다 "이건 무엇으로 보여지나"를 묻고, 답이 없으면 셋 중 하나를 만든다. ⓐ 소스에 있는 차트·사진 ⓑ 흐름·대비를 나타내는 native 도식(박스와 화살표면 충분하다) ⓒ 수치 강조. 반대로 인용이 본체인 장, 도입·마무리 장은 글자만으로 둔다 — 전부 채우면 그것대로 산만하다
-23. **흰 배경 차트를 검은 슬라이드에 맨몸으로 얹지 않는다** — 흰 덩어리가 떠 있는 것처럼 보인다. 여백을 준 흰 카드(r16)로 감싸면 의도한 것으로 읽힌다. 덱 안의 모든 차트에 같은 처리를 해야 통일된다. 어두운 배경으로 다시 그리는 게 정석이지만, 원본 데이터나 그리기 스크립트가 없으면 불가능하다는 것을 먼저 확인한다
+21. **Where there is no photograph to use, leave it without one** — with a photograph for one item out of four, that photograph stops being evidence and becomes a misreading. Forcing one in makes the cell structure differ per column and the baseline collapses. When assets are short there are only three things to do: cut the items, get more assets, or switch to an archetype that matches the asset count. **A hybrid cell is not a fourth option.**
+22. **A run of text-only slides makes a deck unreadable** — keep to the archetypes and still, with nothing but letters, "this needs pictures" comes back. Ask of each slide "what is this shown as", and where there is no answer, make one of three: ⓐ a chart or photograph from the source ⓑ a native diagram of the flow or the contrast (boxes and arrows are enough) ⓒ a figure pulled out large. Conversely, leave a slide whose body is a quotation, and the opening and closing slides, as letters alone — filling everything is its own kind of noisy
+23. **Do not drop a white-background chart bare onto a dark slide** — it reads as a white mass floating. Wrapping it in a padded white card (r16) makes it read as intentional. Every chart in the deck needs the same treatment for it to be uniform. Redrawing on a dark background is the proper answer, but first confirm that the source data or the drawing script really is unavailable
 
-24. **아키타입 충실도와 덱 통일성은 맞바꾸는 관계다 — 규칙이 아니라 사용자가 고를 문제다** — 템플릿 슬라이드 묶음은 덱이 아니라 **메뉴**다. 이어 붙이라고 만든 순서가 아니라 골라 쓰라고 만든 대안 목록이라, 많이 가져다 쓸수록 넘길 때 흔들린다. 제목 위치만 해도 상단형·좌제목 세로중앙형·캡션형·제목 없음이 다 들어 있고 넷 다 정당하다. 그래서 "일관성이 없다"와 "템플릿에서 벗어나지 마라"는 동시에 만족시킬 수 없다. **두 갈래를 수치와 함께 제시하고 고르게 한다.** ⓐ 좌표는 아키타입 원본, 계열은 하나로 제한 ⓑ 아키타입 전부 복귀. ⓑ를 고르면 콘텐츠 상단이 여러 값으로 흩어지는 것이 결과이지 실패가 아니다 — 대신 **모든 값이 템플릿에서 온 것인지**만 검사한다. 고른 뒤에는 같은 성격의 장끼리 내부까지 똑같이 맞춘다(발견 장 여섯이면 리드·헤더·본문·설명 y가 여섯 장 모두 동일)
+24. **Archetype fidelity and deck uniformity trade against each other — this is the user's call, not a rule** — a template's set of slides is a **menu**, not a deck. It is not an order meant to be strung together but a list of alternatives meant to be chosen from, so the more you draw on it, the more it shifts as you page through. Title position alone holds top, left-title-vertically-centred, caption, and no-title, and all four are legitimate. So "it lacks consistency" and "do not deviate from the template" cannot both be satisfied. **Present the two routes with numbers and let the user choose.** ⓐ archetype coordinates, families held to one ⓑ archetypes in full. Choosing ⓑ makes the content top scatter across several values — that is the outcome, not a failure; instead check only that **every value came from the template**. Once chosen, match slides of the same character right down to the internals (six findings slides means the lead, header, body, and description y are identical on all six)
 
-25. **아키타입의 슬롯보다 소스가 길면 새 값을 만들지 말고 다른 아키타입의 값을 빌린다** — 템플릿의 본문 슬롯은 대개 24R 두 줄(h64)이다. 보고서 문장을 옮기면 네댓 줄이 되어 다음 행을 침범한다. 이때 임의의 y를 잡지 말고 **같은 템플릿 안의 더 높은 행 값**으로 올린다 — 같은 열 구성을 쓰는 다른 아키타입의 y를 빌리는 것이다. 그래도 안 들어가면 그때 문장을 줄인다. 어디를 빌렸는지 보고에 적어 둔다
+25. **Where the source runs longer than the archetype's slot, borrow another archetype's value rather than making a new one** — a template's body slot is usually two lines of 24R (h64). Moving a report's sentences in makes it four or five lines and it invades the next row. Do not grab an arbitrary y; **raise it to a taller row value from within the same template** — borrowing the y of another archetype that uses the same column composition. If it still does not fit, then cut the sentence. Note in the report which one was borrowed from
 
-26. **제목 위치를 바꾸면 그림 크기가 따라 바뀐다** — 제목 128에 부제 200을 달고 본문을 그 아래로 내리면 세로 330px을 내주는 셈이라 풀블리드 차트가 30% 안팎 줄어든다. 반대로 캡션형(제목 없이 하단 캡션)으로 되돌리면 같은 폭이 두 배 가까이 커진다. **계열을 바꾸기 전에 축소·확대율을 계산해 알리고, 바꾼 뒤 렌더해서 글자가 읽히는지 확인한다.** 흰 배경 차트는 흰 카드에 담고 이미지는 `FIT`으로 둔다 — 흰 레터박스는 흰 카드 위에서 보이지 않으므로 카드 크기와 이미지 비율을 따로 맞출 필요가 없다
+26. **Changing the title position changes the picture size with it** — a title at 128 with a subtitle at 200 and the body pushed below gives away 330px of height, shrinking a full-bleed chart by around 30%. Reverting to the caption family (no title, caption at the bottom) nearly doubles the same width. **Compute and report the reduction or enlargement before changing family, and render afterwards to confirm the text is still readable.** White-background charts go in white cards with the image left at `FIT` — a white letterbox is invisible on a white card, so the card size and the image ratio do not have to be matched separately
 
-27. **좌표로 노드를 짝지으면서 같은 루프에서 옮기면 짝이 섞인다** — `y`로 라벨과 박스를 매칭하는 코드는 앞 반복이 옮겨 놓은 노드를 다음 반복이 다시 주워 담는다. 부제까지 도식 안으로 끌려 들어간다. **짝은 ID로 명시하거나, 변형 전에 전부 확정해 배열로 굳힌 뒤 옮긴다.** 옮긴 다음 각 짝의 텍스트 앞부분을 찍어 대조한다
+27. **Pairing nodes by coordinate while moving them in the same loop scrambles the pairs** — code that matches labels to boxes by `y` picks up, on the next iteration, the node the previous one just moved. Even the subtitle gets dragged into the diagram. **State the pairs by ID, or settle them all before any transformation and freeze them into an array, then move.** After moving, print the leading text of each pair and compare
 
-28. **캡션 노드를 제목으로 재활용하면 정렬이 따라온다** — 하단 캡션은 `textAlignHorizontal='CENTER'`다. 위치와 크기만 바꾸면 가운데 정렬된 제목이 된다. 계열을 바꿀 때는 같은 계열의 기존 노드를 `clone`해 쓰는 편이 안전하다. 마지막에 덱 전체 텍스트의 정렬을 훑어 CENTER가 도식 라벨·인용에만 남아 있는지 확인한다
+28. **Reusing a caption node as a title brings its alignment along** — a bottom caption is `textAlignHorizontal='CENTER'`. Change only its position and size and you have a centred title. When changing family, cloning an existing node of the target family is safer. At the end, sweep the alignment of every text in the deck and confirm CENTER survives only on diagram labels and quotations
 
-29. **아키타입에 부제 슬롯이 없을 수 있다** — 제목 아래 한 줄을 습관처럼 달기 전에 템플릿을 전수로 훑어 그 자리에 텍스트가 있는 장이 하나라도 있는지 센다. 없으면 부제는 순수한 추가이고, 나중에 "템플릿대로 하자"가 나오면 26장에서 한꺼번에 걷어내야 한다. 걷어낼 때는 **버릴 것과 옮길 것을 먼저 가른다** — 제목과 겹치거나 본문에 이미 있는 것은 지우고, 수치·범위처럼 사실이 담긴 것만 하단 설명 슬롯이나 좌제목 블록의 설명 줄로 옮긴다
+29. **An archetype may have no subtitle slot** — before adding a line under the title out of habit, sweep the template exhaustively and count whether even one slide has text in that position. If none does, the subtitle is a pure addition, and when "let us follow the template" comes up later, it has to come off 26 slides at once. When removing them, **first separate what to discard from what to relocate** — delete what duplicates the title or already exists in the body, and relocate only what carries a fact, such as a figure or a range, into the bottom description slot or the left-title block's description line
 
-30. **정사각 이미지 박스는 정사각 소스를 전제한다** — 템플릿의 정사각 박스에 4:1 그림을 `FIT`으로 넣으면 얇은 띠가 박스 한가운데 떠 있게 된다. 비율이 제각각인 보고서 그림을 쓸 때 장마다 그림 위 끝이 달라지는 것이 이 때문이다. 박스를 소스 비율로 잡아 위를 붙이면 해결되지만 그건 템플릿 이탈이다. **어느 쪽이든 결과를 렌더해 보고 고른다**
+30. **A square image box presupposes a square source** — a 4:1 drawing put into a template's square box with `FIT` leaves a thin band floating in the middle of the box. Using a report's drawings, whose ratios all differ, this is why the top edge of the picture sits differently on every slide. Sizing the box to the source's ratio and topping it fixes it, but that is a deviation from the template. **Render the result either way and choose**
 
-31. **한글 자동 줄바꿈은 낱말 한가운데를 자른다** — 조판기가 음절 단위로 꺾어 "시간/대에", "파/일럿"이 나온다. 폭이 600px쯤 돼도 생긴다. **`렌더 줄 수 > 수동 개행 수`인 블록만 골라** 어절 경계로 다시 끊는다(줄 수는 `height / (fontSize × lineHeight)`). 임시 TEXT 노드를 `WIDTH_AND_HEIGHT`로 두고 어절 폭을 재서 그리디로 채우면 된다. 끝나면 **`paragraphSpacing`을 0으로** — `\n`은 문단 구분이라 줄마다 간격이 붙어 블록이 부풀고 하단을 넘는다
+31. **CJK automatic wrapping cuts mid-word** — the typesetter breaks by character, producing splits inside a single word. It happens even at widths around 600px. **Pick out only the blocks where `rendered line count > manual newline count`** and rebreak at word boundaries (line count is `height / (fontSize × lineHeight)`). Setting a temporary TEXT node to `WIDTH_AND_HEIGHT`, measuring word widths, and filling greedily does it. When finished, **set `paragraphSpacing` to 0** — `\n` is a paragraph separator, so spacing attaches to every line, inflating the block past the bottom edge
 
-32. **글이 많은 장은 분량이 아니라 위계를 고친다** — "text heavy"라는 지적에 문장부터 지우면 안 된다. 소스 서술을 살리기로 했다면 더더욱. 템플릿이 주는 수단은 넷이다. ⓐ **카드 면** — 항목 3개짜리 나열에 쓴다 ⓑ **가는 구분선** — 2×2에서 칸 경계가 안 보일 때 소제목 밑줄로, 여러 행 목록에서는 행 사이에 ⓒ **상태 칩** — 상태가 흐린 글자로만 구분될 때 색으로 ⓓ **크기 위계** — 한 장의 모든 텍스트가 같은 크기면 그것만으로 무거워진다. 주(30R 불투명)와 종(24R 흐리게)을 가른다. 먼저 **시각 요소가 0개인 장**을 세어 대상을 정하고, 이미 사진·도식이 있는 장은 줄 수가 많아도 건드리지 않는다
+32. **A text-heavy slide gets fixed by hierarchy, not by volume** — do not start deleting sentences in response to "text heavy", least of all where the source's writing was to be preserved. The template gives four instruments. ⓐ **card surfaces** — for a three-item list ⓑ **a hairline rule** — as an underline under a subheading where a 2×2's cell boundaries are invisible, and between rows in a multi-row list ⓒ **status chips** — colour where status is currently distinguished only by dimmed text ⓓ **size hierarchy** — every text on a slide at one size is heavy on its own. Split primary (30R opaque) from secondary (24R dimmed). First **count the slides with zero visual elements** to pick the targets, and leave slides that already have a photograph or a diagram alone however many lines they carry
 
-33. **텍스트 폭을 어절 합산으로 재면 조금씩 넘친다** — 낱말 폭을 따로 재서 더하면 실제 조판보다 좁게 나와, 그리디로 채운 줄이 결국 자동 꺾여 마지막 음절만 다음 줄로 떨어진다("퇴장하였 / 다"). **쓰고 나서 검증하고 재시도한다** — `characters`를 넣은 뒤 `height / lineHeight`가 의도한 줄 수보다 크면 한계 폭을 14px씩 줄여 다시 채운다. 대여섯 번이면 수렴한다
+33. **Measuring text width by summing word widths overruns slightly** — measuring words separately and adding comes out narrower than real typesetting, so a greedily filled line ends up auto-wrapping and dropping its last character onto the next line. **Write it, verify, and retry** — after setting `characters`, if `height / lineHeight` exceeds the intended line count, reduce the limit width by 14px and refill. Five or six passes converge
 
-34. **자동 꺾임 검사는 실제 `\n` 개수로만 한다** — 문장 분할이나 마침표 분할 같은 중간 계산값을 기준으로 쓰면, 세그먼트가 렌더 줄보다 많아져 정작 꺾인 블록이 "이상 없음"으로 통과한다. 기준은 언제나 `렌더 줄 수 > characters.split('\n').length`
+34. **The auto-wrap check runs on the actual `\n` count only** — using an intermediate value such as a sentence split or a period split makes the segment count exceed the rendered lines, so the genuinely wrapped block passes as "fine". The criterion is always `rendered line count > characters.split('\n').length`
 
-35. **한글 문장 끝을 정규식으로 찾지 마라** — `다`로 끝나는 어절에는 "자체보다"가, `가`에는 "요청자가"·"Claude가"가 걸린다. 종결어미와 조사를 구분할 방법이 없다. 문장이 몇 개 안 되면 **직접 나열해 지정한다.** 문장 경계 개행을 잃으면 문장들이 한 줄에 붙어 어디서 끊기는지 안 보인다 — 폭을 바꿀 때 기존 개행을 통째로 버리지 말 것
+35. **Do not find CJK sentence ends with a regex** — there is no reliable way to tell a sentence-final ending from a particle or an ordinary word ending with the same character, so the pattern catches mid-sentence words too. Where there are only a handful of sentences, **list them explicitly instead.** Losing the sentence-boundary newlines runs the sentences together on one line and hides where they break — do not throw the existing newlines away wholesale when changing the width
 
-36. **아키타입 칸 수가 항목 수를 자르게 두지 마라** — 4열 레이아웃을 고르면 다섯째 항목부터 조용히 사라진다. 소스가 7개를 다루는데 슬라이드가 4개만 보여주면, 앞 장에서 "7곳"이라고 말한 수치와도 어긋난다. **장을 쪼개는 것이 먼저다**(4+3처럼 소스 순서 그대로), 항목을 줄이는 건 사용자가 정할 일이다. 뺄 수밖에 없다면 무엇을 왜 뺐는지 말한다. 검사법: 소스에서 센 항목 수와 슬라이드에 놓인 칸 수를 대조한다 — 제목·앞 장에 적힌 수치도 함께 본다
+36. **Do not let an archetype's slot count truncate the item count** — pick a 4-column layout and the fifth item onward disappears quietly. When the source covers 7 and the slide shows 4, it also contradicts the "7 sites" figure stated on an earlier slide. **Splitting the slide comes first** (4+3, in the source's order); cutting items is the user's decision. Where something must come out, say what came out and why. The check: compare the item count from the source against the slot count on the slide — and against figures written in the title and on earlier slides
 
-37. **자산이 없어서인지 레이아웃 때문인지 먼저 가른다** — "사진이 없어서 넷만 넣었다"고 넘겨짚기 전에 자산 폴더를 센다. 이번엔 `store1~7`이 전부 있었는데도 4열을 고른 탓에 셋이 빠졌다. 자산 수 → 아키타입 순서지, 아키타입 → 항목 수가 아니다(함정 21의 반대 방향)
+37. **Work out first whether it is the assets or the layout** — before assuming "there were only four photographs", count the asset folder. On one occasion `store1~7` were all present and three were dropped purely because a 4-column layout had been chosen. It goes asset count → archetype, not archetype → item count (the reverse direction of pitfall 21)
 
-38. **소스가 문서면 목차와 1:1로 대조한다** — 장을 하나씩 보면 다 맞는데 순서가 뒤엉켜 있을 수 있다. 특히 상위 절을 건너뛰었다가 되돌아오는 경우(3-7·3-8 다음에 3-6, 4장 논의 뒤에 다시 3장)는 읽는 사람이 길을 잃는다. **소스 목차를 뽑아 덱 장 번호를 옆에 적어 표로 만든 뒤 역순·누락을 찾는다.** 소스에 있는데 덱에 없는 절은 "뺀 것"인지 "빠뜨린 것"인지 구분해 말한다 — 다른 장이 이미 담고 있어서 뺀 것이라면 그렇다고 적는다
+38. **Where the source is a document, compare one-to-one against its contents** — slide by slide everything can look right while the order is tangled. Skipping a parent section and coming back to it (3-6 after 3-7 and 3-8; back to chapter 3 after chapter 4's discussion) loses the reader. **Pull the source's table of contents, write the deck's slide numbers beside it as a table, and look for reversals and omissions.** For a section in the source and not in the deck, distinguish "left out" from "missed" — where another slide already covers it, say so
 
-39. **그리디 줄바꿈은 끝 어절을 고아로 남긴다** — 한 줄을 꽉 채워 나가면 마지막 줄에 한 어절만 떨어진다("…전달된다", "…머문다"). 고치는 법은 **줄 수를 유지하는 최소 폭을 이진 탐색**하는 것이다. 그 폭으로 다시 채우면 줄 길이가 고르게 나뉜다. 검출은 두 가지로 — 한 어절만 있는 줄, 그리고 폭 25% 미만인 줄. 다만 **완결된 짧은 문장은 고아가 아니다**("정문과 뒷문이 있다"), 그래서 병합 전에 앞 줄이 마침표로 끝나는지 보고 앞뒤 중 어느 쪽과 합칠지 정한다
+39. **Greedy wrapping leaves the last word orphaned** — filling each line to the brim drops a single word onto the last line. The fix is **a binary search for the narrowest width that preserves the line count.** Refilling at that width divides the line lengths evenly. Detect it two ways — a line holding one word, and a line under 25% of the width. But **a short complete sentence is not an orphan**, so before merging, check whether the previous line ends in a full stop and decide which side to merge with
 
-40. **덱 전체를 한 장으로 찍어 로컬에서 자른다** — 30장을 개별로 스크린샷하면 호출이 30번이다. `SLIDE_GRID` 노드를 `maxDimension` 13000~20000으로 한 번 찍고 좌표로 잘라 붙이면 호출 한 번으로 끝난다. **그리드는 20장마다 줄이 바뀐다** — 슬라이드 i의 좌표는 `x = 240 + (i%20)*2160`, `y = 240 + floor(i/20)*1320`. 짐작하지 말고 `absoluteBoundingBox`로 실측해 공식을 확인한다
+40. **Shoot the whole deck as one image and crop locally** — screenshotting 30 slides individually is 30 calls. Shooting the `SLIDE_GRID` node once at `maxDimension` 13000–20000 and cropping by coordinate finishes it in one call. **The grid wraps every 20 slides** — slide i sits at `x = 240 + (i%20)*2160`, `y = 240 + floor(i/20)*1320`. Do not guess; measure with `absoluteBoundingBox` and confirm the formula
 
-41. **흐림값과 강조색은 세션을 거치며 조용히 늘어난다** — 손볼 때마다 0.5·0.6·0.7이 섞이고 Green·Teal·Blue·Yellow가 는다. 눈으로는 안 잡히니 **전수로 세어 값의 가짓수를 본다.** 보조 텍스트는 한 값(0.7)만, 강조색은 의미가 붙은 것만 남긴다
+41. **Opacity values and accent colours multiply quietly across sessions** — each round of edits mixes 0.5, 0.6, and 0.7, and Green, Teal, Blue, and Yellow accumulate. The eye does not catch it, so **count them exhaustively and look at how many kinds there are.** Secondary text keeps one value (0.7); accent colours keep only those with meaning attached
 
-42. **같은 색이 덱 안에서 두 뜻을 가지면 안 된다** — 상태 칩에서 Yellow가 "검토 요청"인데 다른 장 도식 라벨에서 Yellow가 "장애"면 독자가 연결을 시도한다. **분류에는 색을 쓰지 않는다** — 행·열로 이미 갈라져 있다. 색은 상태처럼 값이 정해진 축에만 쓰고, 스펙에 적힌 매핑을 벗어나지 않는다
+42. **One colour must not carry two meanings in a deck** — where Yellow means "review requested" on a status chip and "fault" on a diagram label elsewhere, the reader tries to connect them. **Do not use colour for classification** — rows and columns already separate those. Colour belongs to axes with settled values, like status, and never leaves the mapping written in the spec
 
-43. **내용에 맞춰 줄인 카드는 밴드 세로 중앙에 둔다** — 아키타입의 카드 높이는 라벨 상단·강조문 하단으로 꽉 채우는 것을 전제한다. 문단을 넣어 카드를 줄이면 상단에 붙은 채 아래가 크게 빈다. 밴드 중앙에 놓으면 위아래 여백이 갈린다. 같은 행의 카드는 가장 긴 것에 맞춰 등높이로 두되, 그 차이가 100px을 넘는지 검사에 넣는다
+43. **A card shrunk to its content goes in the vertical centre of the band** — an archetype's card height presupposes filling from the label's top to the key statement's bottom. Put a paragraph in and shrink the card and it stays pinned to the top with a large gap below. Centring it in the band splits the margin above and below. Keep cards in a row at equal height, matched to the tallest, but put that difference exceeding 100px into the checks
 
-## 관련
+## Related
 
-- 템플릿 자산이 없거나 낡았으면 `/fig:deck-setup`
-- 디자인 값·아키타입 카탈로그는 `deck.assets_dir`의 `template-spec.md`, 빌더는 `template.js`, 범용 헬퍼는 `${CLAUDE_PLUGIN_ROOT}/_common/scripts/deck-base.js`
-- 정기 덱처럼 데이터 수집이 따로 필요하면 그 수집을 앞단에서 끝내고 이 스킬에 소스로 넘긴다
+- No template assets, or stale ones → `/fig:deck-setup`
+- Design values and the archetype catalog are in `template-spec.md` in `deck.assets_dir`, the builders in `template.js`, the generic helpers in `${CLAUDE_PLUGIN_ROOT}/_common/scripts/deck-base.js`
+- Where a recurring deck needs its own data collection, finish that collection upstream and hand it to this skill as the source
 
-44. **슬라이드를 지운 뒤 `getSlideGrid()`가 죽은 노드를 계속 돌려준다** — 같은 스크립트 안에서 다시 부르면 삭제된 노드가 배열에 남아 `s.name` 한 줄에 던진다. 다음 호출에서도 낡은 채로 온다. **지우기 전에 슬라이드 배열을 떠두고 그 배열로 뒷일을 처리한다.** 이후 읽기는 그리드 대신 남은 노드 하나에서 부모를 타고 `SLIDE_ROW`까지 올라가 `children`을 읽는다. 슬라이드 이름이 번호면 삭제 후 뒤 번호를 다시 매기는 것도 잊지 않는다
+44. **After deleting slides, `getSlideGrid()` keeps returning dead nodes** — calling it again inside the same script leaves the deleted nodes in the array, and it throws on a single `s.name`. The next call comes back stale too. **Take a copy of the slide array before deleting and handle the aftermath from that copy.** Later reads walk up from one surviving node through its parents to the `SLIDE_ROW` and read `children` rather than using the grid. Where slides are named by number, do not forget to renumber the ones behind a deletion
 
-45. **소스의 절 하나에 슬라이드 하나를 기계적으로 주지 않는다** — 절 단위 1:1은 순서를 맞추기엔 편하지만 분량 차이를 지운다. 하위 항목 넷짜리 절과 문장 넷짜리 절이 같은 한 장을 받으면 밀도가 거꾸로 간다. 거기에 아키타입을 항목 수로 고르면(숫자가 넷이니 2×2 수치형) 가장 얇은 절이 덱에서 가장 큰 활자를 갖는다. **덱에서 제일 큰 활자를 쓰는 장을 세어 보고, 그 자리에 있을 내용인지 묻는다.** 그리고 장을 빼기 전에 같은 맥락이 덱 안에서 몇 번 더 나오는지 센다 — 이미 두 번 나온다면 빼도 구멍이 안 난다. 소스에서까지 뺄지는 별개다. 소스의 절은 연구 질문·집계표·후속 과제에 걸려 있을 수 있으니 걸린 데를 전수로 찾고 판단한다
+45. **Do not mechanically give one slide to one section of the source** — one-to-one by section is convenient for keeping the order but erases the differences in volume. A section with four sub-items and a section with four sentences getting the same single slide inverts the density. Choose the archetype by item count on top of that (four figures, so a 2×2 metrics slide) and the thinnest section ends up with the largest type in the deck. **Count the slides using the deck's largest type and ask whether that is what belongs there.** And before cutting a slide, count how many more times the same material appears in the deck — appearing twice already means cutting leaves no hole. Whether to cut it from the source too is a separate question: a section there may be tied to a research question, a summary table, or a follow-up item, so find every tie exhaustively before deciding
 
-46. **슬라이드 본문의 어체를 먼저 정한다** — 소스가 논문체·보고서체면 문장을 그대로 옮기게 되고, 발표 화면에서는 그게 장황하게 읽힌다. 본문은 명사형 종결(-함·-음)이 기본이다. **다만 층을 갈라서 적용한다** — 제목과 리드는 현재형 단정문으로 남긴다("막대가 실제와 어긋난다"를 "어긋남"으로 바꾸면 제목이 힘을 잃는다). 직접 인용은 원문 그대로, 이미 명사형인 목록·라벨·표 셀은 건드리지 않는다. 어체를 바꿀 때는 **종결만 갈아치우고 손수 넣은 개행은 그대로 둔다** — 명사형은 길이가 같거나 짧아지므로 줄 수와 높이가 변하지 않아 재개행·재검증이 필요 없다. 쓰고 나서 줄 수와 높이가 그대로인지로 검사한다
+46. **Settle the register of the body copy first** — where the source is academic or report prose, the sentences get carried over as they are, and on a presentation screen that reads as long-winded. Body copy defaults to the compressed register the language offers (in Korean, nominal endings). **But apply it in layers** — titles and leads stay as present-tense assertions (turning "the bar disagrees with reality" into "disagreement" costs the title its force). Direct quotations stay verbatim, and lists, labels, and table cells already in that register are left alone. When changing register, **swap the endings only and leave hand-placed newlines alone** — the compressed form is the same length or shorter, so the line count and height do not change and no rebreaking or re-verification is needed. Check afterwards that the line count and height are unchanged
 
-47. **슬라이드 자식의 x/y는 슬라이드 기준이 아니라 부모 기준이다** — `absoluteBoundingBox`로 읽은 값에 슬라이드의 절대 좌표를 더해 쓰면 노드가 슬라이드 폭만큼 밀려난다. 읽기는 `b.x - slide.absoluteBoundingBox.x`로, 쓰기는 그 상대값을 **그대로** `node.x`에 넣는다. 그리고 **`clone()`이 원본과 같은 부모에 들어간다고 믿지 마라** — 슬라이드 안 노드를 복제했는데 옆 슬라이드에 붙는 일이 있다. 복제 후 `slide.appendChild(clone)`로 소속을 못 박고, 그 다음에 좌표를 준다(함정 4와 같은 순서). 배치 뒤에는 `parent.id`와 슬라이드의 자식 수를 함께 검사한다
+47. **A slide child's x/y is relative to its parent, not to the slide** — adding the slide's absolute coordinate to a value read from `absoluteBoundingBox` pushes the node over by the slide's width. Read as `b.x - slide.absoluteBoundingBox.x`, and write that relative value into `node.x` **as it is**. And **do not trust `clone()` to land in the same parent as the original** — a node cloned inside a slide has been known to attach to the slide next door. After cloning, pin membership with `slide.appendChild(clone)`, and only then set the coordinates (the same order as pitfall 4). After placement, check `parent.id` and the slide's child count together

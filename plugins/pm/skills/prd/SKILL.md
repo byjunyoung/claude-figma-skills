@@ -4,195 +4,195 @@ description: Writes a product requirements document against a format, or fills o
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 ---
 
-# prd — 양식 기반 요구사항 문서 작성·보강
+# prd — writing and extending a format-based requirements document
 
-PRD를 만들거나 손볼 때, 먼저 관련 자료를 모아 분석하고 그 결과로 **권장답안**을 제시한다. 사용자는 "go" 한 마디로 채택하거나 다른 답을 적어 보완한다. 모든 질문에는 가장 적절하다고 판단한 선택지를 (추천) 표기와 함께 붙인다.
+When a PRD is being written or worked on, the material is gathered and analysed first, and the result becomes a **recommended answer**. The user adopts it with a single "go", or writes a different answer instead. Every question carries the option judged most fitting, marked (recommended).
 
-PRD는 계속 자라는 문서다. 본문은 얇게 두고 상세는 항목 목록·일감·디자인 파일로 분담한다.
+A PRD keeps growing. Keep the body thin and push the detail out into the entry list, the tickets, and the design file.
 
-**전제**: 외부 쓰기는 항상 미리보기 → "go" 후에만. 읽기·검색·자료 수집은 컨펌 없이 먼저 한다.
+**The premise**: external writes happen only after preview → "go". Reading, searching, and gathering come first, without confirmation.
 
 ## When to invoke
 
-- 새 제품·기능의 요구사항 문서를 처음 쓸 때
-- 기존 PRD에 항목을 더하거나 현행에 맞게 고칠 때
-- 설계 자료·회의 기록만 있고 문서 형태가 아직 없을 때
+- Writing the requirements for a new product or feature for the first time
+- Adding entries to an existing PRD, or bringing it in line with what shipped
+- Design material and meeting notes exist but nothing is in document form yet
 
 ## When NOT to invoke
 
-- 디자인 파일 정리·검증 → `/fig:prep` · `/fig:lint`
-- 올라온 화면을 기준과 대조 → `/fig:qa`
-- 일감 등록·동기화 → 쓰는 일감 도구로
+- Tidying or auditing a design file → `/fig:prep` · `/fig:lint`
+- Comparing a shipped screen against the baseline → `/fig:qa`
+- Filing or syncing tickets → whatever ticket tool you use
 
-## 설정
+## Configuration
 
-규칙과 값은 이 문서가 아니라 `pm-conventions.yaml`이 정한다.
+The rules and values are set by `pm-conventions.yaml`, not by this document.
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml
 ```
 
-내장 기본값 → `~/.claude/pm-conventions.yaml` → `./pm-conventions.yaml` 순으로 겹쳐 읽는다. 뒤가 앞을 덮으므로 **필요한 키만 적으면 된다.** 내장 기본값만으로 돌았으면 결과에 그렇게 밝힌다.
+The layers merge bundled defaults → `~/.claude/pm-conventions.yaml` → `./pm-conventions.yaml`. Later layers cover earlier ones, so **only the keys you need have to be written.** If it ran on bundled defaults alone, say so in the result.
 
-**`prd.target`이 발행 방식을 가른다.** 골격은 어느 쪽이든 같고 4단계만 갈린다.
+**`prd.target` decides how it gets published.** The skeleton is the same either way; only step 4 differs.
 
-    markdown   로컬 파일. 기본값 — 다른 도구가 필요 없다
-    git        마크다운으로 쓰고 브랜치·PR 까지
-    notion     Notion 페이지. prd.notion 절을 채워야 동작한다
+    markdown   local files. The default — no other tool required
+    git        written as markdown, then a branch and a PR
+    notion     a Notion page. Requires the prd.notion section filled in
 
-`null`인 설정은 "그 수집·연동을 건너뛴다"는 뜻이다. 값이 없다고 멈추지 말고, 건너뛴 것을 결과에 적는다.
+A `null` setting means "skip that collection or integration". Do not stop for want of a value — record what was skipped in the result.
 
-## 전체 흐름
+## The shape of it
 
 ```
-1. 준비        모드 분기(신규/보강) + 자료 수집 + 양식 확인
-2. 초안·인터뷰  자료 흡수 → 권장답안 제시, "go" 로 채택
-3. 검증        용어 · 양식 · 모호어 · 완결성 (쓰기 0)
-4. 미리보기·발행 미리보기 → "go" → 쓰기 (단계별)
+1. Prepare            mode (new / extend) + gather material + confirm the format
+2. Draft & interview  absorb the material → propose recommended answers, adopted with "go"
+3. Verify             terminology · format · vague wording · completeness (zero writes)
+4. Preview & publish  preview → "go" → write (in stages)
 ```
 
-**단계 실패 시 즉시 중단.** 3단계가 문제를 잡으면 2단계로 돌아간다. "go" 없이 발행하지 않는다.
+**Stop immediately on a failed step.** If step 3 catches something, go back to step 2. Nothing publishes without a "go".
 
 ---
 
-## 1. 준비
+## 1. Prepare
 
-### 1.1 모드 분기
+### 1.1 Which mode
 
-신규인지 보강인지 먼저 가른다. 요청 문구로 자명하면 묻지 않는다.
+Settle new versus extend first. Do not ask when the request makes it obvious.
 
-- **신규** — 양식 골격을 세우고 자료를 흡수한다
-- **보강** — 대상 문서를 먼저 읽어 "무엇이 이미 있고 무엇을 바꾸는지" 정리한 뒤 진행한다
+- **New** — stand up the format skeleton and absorb the material
+- **Extend** — read the target document first, lay out "what is already there and what is changing", then proceed
 
-보강 모드에서 **인접 항목을 임의로 개선하지 않는다.** 요청 범위만 건드리고, 눈에 걸린 다른 문제는 고치지 말고 알려만 준다.
+In extend mode, **do not improve adjacent entries on your own.** Touch only what was asked for; other problems that catch the eye get reported, not fixed.
 
-### 1.2 자료 수집
+### 1.2 Gather the material
 
-**가장 먼저 묻는다.** 권장답안 품질은 입력 자료 양에 비례한다. `sources`에서 켜진 곳만 후보로 낸다.
+**Ask this first.** The quality of a recommended answer is proportional to how much input there is. Offer only the places switched on in `sources`.
 
-> "어떤 자료로 시작하시나요? 가능한 만큼 알려주세요 — 많을수록 권장답안이 정확해집니다."
-> · 설계 자료·코드 저장소 · 기존 문서(정책·리서치·회의록·이전 PRD) · 디자인 파일 · 대화 기록 · 자료 없음
+> "What should we start from? As much as you have — the more there is, the more accurate the recommendations."
+> · design material, code repos · existing documents (policy, research, meeting notes, an earlier PRD) · design files · chat history · nothing
 
-받은 자료는 **컨펌 없이 바로** 읽는다. 출처가 여럿이면 나눠서 동시에 읽는다.
+Read whatever comes back **immediately, without confirmation**. For several sources, split them and read in parallel.
 
-### 1.3 기존 자산 우선
+### 1.3 Existing assets first
 
-새로 만들기 전에 이미 있는 것을 찾는다. 비슷한 기획서·리서치·이전 PRD를 먼저 검색하고, 페르소나·도메인이 이미 정의돼 있으면 그대로 쓴다. 한두 번 못 찾았다고 "없음"으로 단정하지 말고 키워드를 바꿔 다시 찾는다.
+Look for what already exists before making anything new. Search for similar plans, research, and earlier PRDs first, and where personas or domains are already defined, use them as they are. One or two failed searches do not mean "nothing there" — change the keywords and look again.
 
-**도메인 분할**은 `prd.domains.range` 개수로, 겹치지 않게 가른다. `align_with_design`이 참이면 디자인 파일 페이지 구조와 1:1로 맞춘다.
-
----
-
-## 2. 초안·인터뷰
-
-모은 자료를 흡수해 각 항목의 권장답안을 채운 초안을 만든다. 못 채운 칸은 지어내지 말고 `prd.tbd_label`로 둔다. 내 추론은 `prd.assumption_label`을 붙여 찾은 사실과 섞지 않는다.
-
-**모호함은 남기지 말고 해소해서 정의한다.** TBD는 *남이 정해야 하거나 자료로도 안 풀리는 것*에만 쓴다. 맥락·확정 자료·선례로 **결정 가능한 것은 반드시 구체적으로 특정**한다 — '적절히·상황에 맞게·필요시·등'으로 미루지 않는다.
-
-특히 이 넷은 비면 기능이 성립하지 않으니 값으로 채운다.
-
-    판정 · 집계 · 발송의 단위
-    필터 · 검색 · 정렬의 대상 항목
-    '대표 / 우선' 선정의 기준
-    상태 전환 · 복구의 정의
-
-'검토중' 상태는 *구체 제안을 올려 검토받는다*는 뜻이지 *비워 둔다*가 아니다. 정말 못 정할 것만 TBD로 두되 (누가·무엇을·언제)를 붙인다.
-
-### 2.1 신규 — 채울 항목
-
-1. **제품 개요** — `structure.overview` 순서대로. 배경은 사실과 추측을 갈라 쓴다
-2. **사용자 그룹** — 그룹명은 **역할명**으로 짓는다(팀 이름이 아니라). 문서 사이에서 같은 페르소나명을 재사용해 통일한다. 각 그룹 본문은 `structure.user_group_rows` 표로
-3. **도메인 + 기능·정책 항목** — 도메인을 확정한 뒤 각 항목을 아래 부록 양식대로
-
-### 2.2 보강 — 작업 단위
-
-- **항목 추가** — 부록 B 양식. 상태는 `properties.status`의 첫 값으로 시작
-- **항목 보강·현행화** — 변경 전후를 정리해 사용자가 무엇이 바뀌는지 알 수 있게
-- **사용자 그룹 추가** — `user_group_rows` 골격으로
-- **속성 옵션 추가** — 목록에 없는 값이 필요하면 설정을 먼저 고친다. 문서마다 제각각 늘리지 않는다
-
-### 2.3 인터뷰 원칙
-
-부족한 항목은 **묶어서 한 번에** 묻는다. 산발적으로 묻지 않는다. 각 질문에 자료 기반 권장안을 (추천)으로 붙여 짧은 답으로 끝나게 한다. 쓰는 도중 새 모호함이 나오면 임의로 정하지 말고 다시 묻거나 TBD로 표시한다.
+**Domain splitting** goes by the count in `prd.domains.range`, cut so the domains do not overlap. Where `align_with_design` is true, match the design file's page structure one to one.
 
 ---
 
-## 3. 검증 (쓰기 0)
+## 2. Draft and interview
 
-읽기 전용으로 자가 점검한다. 하나라도 걸리면 2단계로 돌아간다.
+Absorb what was gathered and produce a draft with a recommended answer in every slot. What could not be filled is not invented — it gets `prd.tbd_label`. Your own inference carries `prd.assumption_label` so it never mixes with what was found.
 
-1. **용어** — `prd.forbidden_terms`가 본문에 섞였는지 찾는다. 있으면 기획 관점 표현으로 바꾼다. "무엇(요구)"까지만 쓰고 "어떻게(구현)"는 개발에 위임하거나 TBD로 둔다
-2. **양식** — 어기기 쉬운 곳만 다시 본다
-   - 기능 요구사항은 **표**(동작│조건│입력│결과)로. 불릿 문장이 아니다
-   - 상태·케이스는 **표**로, 행은 `structure.cases` 고정. 해당 없으면 `—`, 목록 밖은 `기타`
-   - 출처·근거는 **참고 자료** 절에 모은다. 룰·예외 문장에 "출처:"로 녹이지 않는다
-3. **근거** — 출처 없는 사실·인용·통계가 없는지. 없으면 TBD 또는 "근거 필요"로 명시
-4. **완결성** — `structure.sections` 골격이 다 있는지, 사용자 그룹·도메인·기능 항목이 비지 않았는지. 빈 칸은 TBD로 명시됐는지
-5. **모호어 스캔** — '적절히·상황에 맞게·필요시·등등·사유 없는 TBD'가 있거나, 필터·검색·정렬 **대상**이 비었거나, 판정·발송·집계 **단위**가 정의 안 됐으면 반려. **자료로 정할 수 있는데 TBD로 둔 칸이 하나라도 있으면 통과가 아니다**
-6. **언어·표기** — `meta.language`·`prd.emoji` 설정대로인지. `auto` 면 대화 언어를 따른다
+**Do not leave ambiguity — resolve it into a definition.** TBD is for *what someone else has to decide, or what the material cannot settle*. **Anything decidable** from context, confirmed material, or precedent **must be specified concretely** — never deferred with 'appropriately', 'as the situation requires', 'if needed', 'and so on'.
 
----
+These four in particular do not work as blanks, so fill them with values.
 
-## 4. 미리보기·발행
+    the unit of judgement, aggregation, and dispatch
+    the target fields of filtering, search, and sorting
+    the criteria for picking a 'representative' or a 'priority'
+    the definition of state transitions and recovery
 
-외부 쓰기 전 **항상** 전체 내용을 보여주고 "go"를 받는다. 미리보기에는 **대상**과 **추가·수정·삭제 항목**을 적고 `이대로 진행할까요? (go / 수정사항)`으로 닫는다.
+A status of 'under review' means *a concrete proposal has been put up for review*, not *this is left blank*. Only what genuinely cannot be decided stays TBD, and it carries (who, what, when).
 
-go는 보여준 그 내용에 대한 승인이다. 실행 단계에서 미리보기에 없던 것을 "더 낫게" 끼워넣지 않는다. 내용이 바뀌면 다시 미리보기 → go.
+### 2.1 New — what to fill in
 
-**한 번에 많이 쓰지 않는다.** 뼈대 → 사용자 그룹 → 도메인별 기능 항목 순으로 쪼개서 미리보기 → go → 다음.
+1. **Product overview** — in `structure.overview` order. Background separates fact from supposition
+2. **User groups** — name groups by **role** (not by team name). Reuse the same persona names across documents so they stay consistent. Each group's body goes in the `structure.user_group_rows` table
+3. **Domains + feature and policy entries** — settle the domains, then each entry in the appendix format below
 
-### target 별 발행
+### 2.2 Extend — units of work
 
-**markdown** — `prd.markdown.dir`에 쓴다. `split`이 `product`면 제품당 한 파일, `domain`이면 도메인당 한 파일. `front_matter`가 참이면 제목·상태·갱신일을 머리말로 붙인다. 표는 파이프 표로, 항목 속성은 머리말이나 표 열로 담는다.
+- **Adding an entry** — appendix B's format. Status starts at the first value in `properties.status`
+- **Extending or updating an entry** — lay out before and after so the user can see what changes
+- **Adding a user group** — with the `user_group_rows` skeleton
+- **Adding a property option** — where a value is needed that is not on the list, change the config first. Do not let each document grow its own
 
-**git** — 마크다운과 같이 쓴 뒤 `branch_prefix + 제품명` 브랜치를 만들고, `open_pr`이 참이면 PR까지 연다. 커밋·PR도 외부 쓰기라 미리보기 → go 를 받는다.
+### 2.3 Interview principles
 
-**notion** — `prd.notion.template`이 있으면 복제해서 시작한다. 인라인 DB(`inline_db`)에 행을 넣고, `task_db`가 있으면 연결한다. **쓰기 직전 템플릿과 DB를 다시 읽어** 현재 헤딩 형식·속성·선택지를 확인하고 그에 맞춘다 — 옵션값을 이 문서나 설정에 박아두고 믿지 않는다. 쓴 뒤에는 다시 읽어 검증한다. 주의할 점은 부록 C에.
-
-발행 후 남은 TBD와 손으로 해야 할 일을 **한 번만** 정리해 알린다. 매 턴 반복하지 않는다.
+Ask about the gaps **together, in one pass**. Do not scatter the questions. Attach a material-backed recommendation to each, marked (recommended), so a short answer finishes it. If new ambiguity turns up mid-write, do not settle it yourself — ask again, or mark it TBD.
 
 ---
 
-## 부록 A — 사용자 그룹 본문
+## 3. Verify (zero writes)
 
-`structure.user_group_rows` 기본값 기준. 설정이 다르면 그쪽을 따른다.
+Self-check, read-only. Anything caught sends it back to step 2.
 
-| 항목 | 내용 |
+1. **Terminology** — look for `prd.forbidden_terms` in the body. Where they appear, replace with product-side wording. Write as far as "what" (the requirement) and leave "how" (the implementation) to engineering or to a TBD
+2. **Format** — re-read only the places that are easy to break
+   - Functional requirements go in a **table** (behaviour │ condition │ input │ result). Not bullet sentences
+   - States and cases go in a **table**, with the rows fixed to `structure.cases`. Not applicable is `—`; anything off the list is `other`
+   - Sources and evidence collect in the **references** section. Never dissolved into a rule or exception sentence as "source:"
+3. **Evidence** — no facts, quotations, or statistics without a source. Without one, mark it TBD or "evidence needed"
+4. **Completeness** — the `structure.sections` skeleton is all present, and the user groups, domains, and feature entries are not empty. Every blank is explicitly a TBD
+5. **Vague-wording scan** — reject on 'appropriately', 'as the situation requires', 'if needed', 'etc.', a TBD with no reason; on an empty **target** for filtering, search, or sorting; on an undefined **unit** for judgement, dispatch, or aggregation. **One slot left TBD that the material could have settled is not a pass**
+6. **Language and notation** — as `meta.language` and `prd.emoji` have it. On `auto`, follow the conversation's language
+
+---
+
+## 4. Preview and publish
+
+**Always** show the full content and take a "go" before an external write. The preview names the **target** and the **added, changed, and deleted items**, and closes with `shall I proceed? (go / changes)`.
+
+A "go" approves what was shown. Nothing that was not in the preview gets slipped in at execution time because it seemed better. If the content changes, preview again → go.
+
+**Do not write a lot at once.** Split it: skeleton → user groups → feature entries per domain, each preview → go → next.
+
+### Publishing by target
+
+**markdown** — written into `prd.markdown.dir`. With `split` at `product`, one file per product; at `domain`, one file per domain. With `front_matter` true, title, status, and updated date go in the front matter. Tables are pipe tables, and entry properties go in the front matter or as table columns.
+
+**git** — written the same as markdown, then a `branch_prefix + product name` branch, and with `open_pr` true, a PR as well. Commits and PRs are external writes too, so they take a preview → go.
+
+**notion** — where `prd.notion.template` exists, start by duplicating it. Rows go into the inline DB (`inline_db`), linked to `task_db` if there is one. **Re-read the template and the DB immediately before writing** to confirm the current heading formats, properties, and options, and match them — never trust option values pinned in this document or in the config. Read back after writing to verify. The things to watch are in appendix C.
+
+Once published, list the remaining TBDs and the manual follow-ups **once**. Do not repeat it every turn.
+
+---
+
+## Appendix A — the user-group body
+
+Based on the `structure.user_group_rows` default. Where the config differs, follow the config.
+
+| Row | Content |
 |---|---|
-| 계정·접근 범위 | 로그인 단위·권한. 출력 전용 제품이면 그 성격 명시 |
-| 사용 환경 | 기기·장소·맥락 |
-| 주 사용 도메인 | 이 그룹이 주로 쓰는 기능 영역 |
-| 대표 시나리오 | 핵심 사용 흐름 1~2 |
-| 페인포인트 | 근거 있을 때만, 없으면 TBD |
-| 기대·개선 요구 | 근거 있을 때만, 없으면 TBD |
-| 근거 | 출처 링크 |
-| TBD | 미확정 항목(+사유) |
+| Account and access scope | The login unit and permissions. For an output-only product, say so |
+| Environment | Device, place, context |
+| Primary domains | The functional areas this group mostly uses |
+| Representative scenarios | One or two core flows |
+| Pain points | Only with evidence; otherwise TBD |
+| Expectations and asks | Only with evidence; otherwise TBD |
+| Evidence | Source links |
+| TBD | Unsettled items (with reasons) |
 
-제품 고유 칸은 골격에 더하지 말고 행 내용으로 흡수한다. 골격이 문서마다 달라지면 비교가 안 된다.
+Product-specific rows are absorbed into the row content rather than added to the skeleton. A skeleton that differs per document cannot be compared.
 
-## 부록 B — 기능·정책 항목 양식
+## Appendix B — the feature and policy entry format
 
-**속성** — `prd.properties`의 유형·상태·우선순위, 그리고 대상 사용자·디자인 링크.
+**Properties** — type, status, and priority from `prd.properties`, plus target users and the design link.
 
-**기능 항목 본문** (`structure.feature_sections`):
+**A feature entry's body** (`structure.feature_sections`):
 
 ```
-배경            왜 + 언제·맥락
-핵심 요구사항     이 기능이 통으로 무엇을 하는지 한 줄
-세부 동작        | 동작 | 조건 | 입력 | 결과 |
-상태·케이스      | 케이스 | 화면·동작 |   ← 행은 structure.cases 고정
-룰·예외         규칙·예외 (출처를 여기 녹이지 않는다)
-참고 자료        출처·근거 링크
+Background        why + when and in what context
+Core requirement  one line on what this feature does as a whole
+Detailed behaviour  | behaviour | condition | input | result |
+States and cases    | case | screen, behaviour |   ← rows fixed to structure.cases
+Rules and exceptions  rules and exceptions (sources are not dissolved in here)
+References        source and evidence links
 ```
 
-'누구·언제'는 따로 두지 않는다 — 누구는 대상 사용자 속성으로, 언제는 배경에 흡수한다.
+'Who' and 'when' do not get their own rows — who goes in the target-users property, when is absorbed into the background.
 
-**정책 항목 본문** (`structure.policy_sections`): 배경 / 규칙 / 참고 자료.
+**A policy entry's body** (`structure.policy_sections`): background / rules / references.
 
-## 부록 C — target: notion 일 때 주의
+## Appendix C — things to watch when target is notion
 
-- 표 셀을 고칠 때 줄 추가가 뒤 셀을 덮을 수 있다. 줄 수를 유지하고 행 단위로 고친 뒤 다시 읽어 검증한다
-- 한글을 손으로 입력하면 인코딩이 깨지기 쉽다. 기존 텍스트를 복사해 치환하는 쪽이 안전하다
-- 관계 속성은 페이지 URL 배열로 **전체 치환**한다. 일부만 더할 수 없다
-- 코드블록은 언어를 명시한다. 비워두면 다른 언어로 인식된다
-- 편집 직후 다시 읽으면 옛 스냅샷이 올 수 있다. 반영 여부는 내용으로 확인한다
+- Editing a table cell can push a line break into the cell behind it. Keep the line count, edit row by row, and read back to verify
+- Non-ASCII text typed by hand corrupts easily. Copying existing text and substituting into it is safer
+- Relation properties are **replaced wholesale** with an array of page URLs. There is no adding just one
+- Code blocks need their language stated. Left empty, they get read as another language
+- Reading back right after an edit can return an old snapshot. Confirm by content, not by the call succeeding

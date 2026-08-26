@@ -4,138 +4,138 @@ description: Applies a Figma design to real code in a frontend repo — porting 
 allowed-tools: AskUserQuestion, Bash, Read, Write, Edit, Glob, Grep, Skill, mcp__plugin_figma_figma__get_design_context, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_variable_defs, mcp__plugin_figma_figma__download_assets, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__read_console_messages
 ---
 
-# fig:code — Figma 시안 → 프론트 레포 코드 반영
+# fig:code — Figma design → frontend repo code
 
-시안에 그려진 것을 **돌아가는 앱의 코드**로 옮긴다. 대상은 빌드 체계를 갖춘 프론트엔드 레포이고, 산출물은 그 레포의 브랜치와 PR이다.
+Moves what is drawn in the design into **the code of a running app**. The target is a frontend repo with a build system, and the deliverable is a branch and a PR in that repo.
 
-**핵심 전제 — 시안과 레포는 각각 다른 것의 정본이다.**
+**The premise — the design and the repo are each canonical for different things.**
 
-| 시안이 정본인 것 | 레포가 정본인 것 |
+| Canonical in the design | Canonical in the repo |
 |---|---|
-| 수치·색·간격·문구·배치·상태 변형 | 파일 구조·명명 규칙·상태 관리 방식·토큰 참조 경로 |
+| Numbers, colours, spacing, copy, placement, state variants | File structure, naming conventions, state management, token reference paths |
 
-이 선을 넘으면 사고가 난다. 시안대로 맞추겠다고 레포 관례를 갈아엎거나, 코드가 편하다고 시안 수치를 임의로 반올림하는 것 둘 다 같은 실패다. **판단이 서지 않으면 반영하지 말고 물어본다.**
+Cross that line and something breaks. Tearing up the repo's conventions to match the design, and rounding the design's numbers off because the code prefers it, are the same failure. **When the call is unclear, do not apply it — ask.**
 
 ## When to invoke
 
-- "시안 바뀐 거 코드에 반영", "피그마대로 고쳐줘", "이 화면 구현해줘"
-- 시안에만 있고 코드에 없는 화면·상태 변형을 만들 때
-- "/fig:code" 명시 호출
+- "apply the design change to the code", "make it match Figma", "implement this screen"
+- Building a screen or a state variant that exists in the design and not in the code
+- An explicit "/fig:code"
 
 ## When NOT to invoke
 
-- 무빌드 단일 HTML 동작 프로토타입 → `/fig:proto`
-- 프레임 목록·구조만 파악 → `/fig:read`
-- 시안 자체의 구조·흐름·네이밍 검증 → `/fig:lint`
-- AS-IS/TO-BE 변경점을 시안에 표기하고 기획 문서에 정리 → `/fig:diff`
-- 코드가 아니라 Figma 정본에 반영 → `/fig:sync`
-- 코드를 Figma로 올리는 역방향 → `figma:figma-generate-design`
+- A build-less single-HTML behavioural prototype → `/fig:proto`
+- Just listing frames or reading structure → `/fig:read`
+- Auditing the design's own structure, flow, and naming → `/fig:lint`
+- Marking AS-IS/TO-BE changes on the design and writing them up → `/fig:diff`
+- Applying into the canonical Figma page rather than into code → `/fig:sync`
+- The reverse direction, code up into Figma → `figma:figma-generate-design`
 
 ## Inputs
 
-- `figma_url` (필수): figma.com/design/:fileKey/...?node-id=... — 대상 프레임. 없으면 요청.
-- `repo` (필수): 대상 레포 경로. 기본은 현재 작업 디렉토리이되, 다른 곳이면 명시 요청.
-- 모드 (1단계에서 확정): **변경분 반영** 또는 **신규 구현**. 한 번에 둘이 섞이면 갈라서 순서대로.
+- `figma_url` (required): figma.com/design/:fileKey/...?node-id=... — the target frame. Ask if it is missing.
+- `repo` (required): the target repo path. Defaults to the current working directory; ask explicitly if it is elsewhere.
+- Mode (settled in step 1): **apply changes** or **implement new**. If both are in play at once, split them and go in order.
 
 ---
 
 ## Procedure
 
-### 0. 선행 스킬 호출
+### 0. Load the prerequisite skill
 
-`get_design_context`를 부르기 전에 `figma:figma-design-to-code`를 먼저 호출한다(그 스킬의 필수 선행 조건). 건너뛰면 시안 읽기가 어긋난다.
+Call `figma:figma-design-to-code` before calling `get_design_context` (that skill's own hard prerequisite). Skip it and the design read comes out wrong.
 
-### 1. 인터뷰 — 무엇이 되면 끝인지 (CLAUDE.md 1)
+### 1. Interview — what counts as done
 
-착수 전에 아래를 채운다. 못 채운 항목은 추측하지 말고 질문으로 채운다.
+Fill these in before starting. Whatever cannot be filled in is asked, not guessed.
 
-- **대상 범위** — 어느 프레임·화면, 상태 변형은 어디까지(기본만인지 잠금·오류·빈 상태까지인지)
-- **모드** — 변경분 반영인지 신규 구현인지
-- **완료 조건** — 검증 가능한 형태로. 예: "A 화면의 간격·토큰이 시안과 일치, B 상태에서 조작 잠금 동작, typecheck 통과"
-- **기획 문서 선반영** — 화면 구조나 조작 규칙이 바뀌는 건(신규 화면·상태 추가, 잠금·분기 규칙 변경)이면 기획 문서에 그 결정이 이미 반영돼 있는지 확인한다. 안 돼 있으면 코드가 문서보다 앞서가는 것이므로, 반영은 하되 **그 사실을 6단계 보고에 남긴다.** 수치·색·문구 같은 표현 변경은 해당 없다.
+- **Scope** — which frames and screens, and how far the state variants go (default only, or lock, error, and empty too)
+- **Mode** — applying changes, or implementing new
+- **Definition of done** — in verifiable form. For example: "screen A's spacing and tokens match the design, screen B locks interaction in that state, typecheck passes"
+- **Plan doc already updated** — if this changes screen structure or interaction rules (a new screen, a new state, a change to a locking or branching rule), check that the decision is already reflected in the plan doc. If it is not, the code is running ahead of the document — apply it anyway, but **say so in the step-6 report.** Presentational changes like numbers, colours, and copy do not count.
 
-여러 화면이면 시작 전에 순서를 공유한다.
+For several screens, share the order before starting.
 
-### 2. 레포 관례 파악 (쓰기 전 필수 — 건너뛰지 않는다)
+### 2. Learn the repo's conventions (mandatory before writing — never skipped)
 
-**코드를 한 줄도 고치기 전에** 대상 레포가 어떻게 쓰여 있는지부터 읽는다.
+**Before touching a single line of code**, read how the target repo is written.
 
-1. 레포 루트의 `CLAUDE.md`·`AGENTS.md`·`README` — 아키텍처와 하지 말아야 할 것
-2. **같은 계열 컴포넌트 1~2개를 통째로 열어본다** — 클래스 명명, 상태를 어디서 받는지(전역 스토어인지 로컬인지), 조건부 비활성 처리를 어떤 헬퍼로 하는지
-3. 스타일 토큰의 정의 위치 — CSS 변수, theme 파일, 디자인 토큰 패키지 중 무엇인지
-4. 검증 명령 — `package.json` scripts에서 typecheck·lint·build·dev 이름 확인
+1. `CLAUDE.md`, `AGENTS.md`, `README` at the repo root — the architecture and the things not to do
+2. **Open one or two sibling components in full** — class naming, where state comes from (a global store or local), which helper handles conditional disabling
+3. Where style tokens are defined — CSS variables, a theme file, or a design token package
+4. The verification commands — the typecheck, lint, build, and dev script names in `package.json`
 
-여기서 확인한 방식을 그대로 따른다. 더 나은 방식이 떠올라도 이번 변경에서 바꾸지 않는다(CLAUDE.md 4 — 요청 범위 안에서만).
+Follow exactly what turns up here. Even where a better approach suggests itself, do not change it in this pass — only what was asked for.
 
-### 3. 시안 정합 읽기 (읽기 전용, 컨펌 불필요)
+### 3. Read the design accurately (read-only, no confirmation needed)
 
-- `get_design_context`로 구조·수치·토큰을, `get_screenshot`으로 시각을 함께 받는다. 둘 중 하나만으로는 어긋난다.
-- 토큰 이름이 필요하면 `get_variable_defs`. 시안이 변수에 묶여 있으면 **코드도 대응 토큰에 묶는다. hex·px 하드코딩 금지.**
-- **라벨·문구는 시안 원문 그대로.** 더 나은 표현이 떠올라도 바꾸지 않는다 — 문구는 기획 문서와 함께 결정된 것이다.
-- 이미지·아이콘·일러스트는 코드로 다시 그리지 말고 `download_assets`로 원본을 받아 쓴다. 코드로 흉내 내면 시안에 없는 동작을 발명하게 된다.
-- **변경분 모드면 여기서 대조표를 먼저 만든다** — 시안 값과 현재 코드 값을 나란히 놓아, 실제로 바뀐 자리만 추린다.
+- Take structure, numbers, and tokens from `get_design_context` and the visual from `get_screenshot`, together. Either one alone goes wrong.
+- Where token names are needed, `get_variable_defs`. If the design is bound to variables, **bind the code to the corresponding tokens. No hardcoded hex or px.**
+- **Labels and copy verbatim from the design.** Even where better wording suggests itself, do not change it — copy was decided alongside the plan doc.
+- Do not redraw images, icons, or illustrations in code; pull the originals with `download_assets`. Imitating them in code ends up inventing behaviour the design never had.
+- **In change mode, build the comparison table here first** — design values beside current code values, so only the places that actually moved are picked out.
 
-| 항목 | 시안 | 현재 코드 | 조치 |
+| Item | Design | Current code | Action |
 |---|---|---|---|
-| 카드 안쪽 여백 | 16 | 12 | 수정 |
-| 제목 크기 | 14 | 14 | 유지 |
+| Card inner padding | 16 | 12 | change |
+| Title size | 14 | 14 | keep |
 
-이 표가 곧 작업 목록이자 5단계 검증의 기준이 된다.
+This table is both the work list and the baseline for step 5's verification.
 
-### 4. 반영 — 최소 수정
+### 4. Apply — minimal edits
 
-**변경분 모드**
-- 대조표에서 "수정"으로 표시된 자리만 고친다. 인접 요소·포맷·주석은 그대로 둔다.
-- 한 값이 여러 곳에 퍼져 있으면 정의처 한 곳을 고쳐 전파되게 한다. 호출처를 일일이 고치는 건 관례를 벗어나는 신호다.
+**Change mode**
+- Touch only the rows marked "change" in the comparison table. Neighbouring elements, formatting, and comments stay as they are.
+- Where one value is spread across several places, fix the single definition and let it propagate. Fixing every call site is a sign of stepping outside the conventions.
 
-**신규 구현 모드**
-- 인접한 같은 계열 컴포넌트를 골격으로 삼아 시작한다. 빈 파일에서 새 패턴을 만들지 않는다.
-- 상태·잠금·오류 처리는 레포에 이미 있는 헬퍼를 통해서 한다. 같은 판정을 새로 구현하면 두 벌이 되어 갈라진다.
-- 상태 변형은 별도 컴포넌트로 복제하지 말고 조건부 표현으로 둔다.
+**New-implementation mode**
+- Start from an adjacent sibling component as the skeleton. Never build a new pattern in an empty file.
+- Handle state, locking, and errors through helpers the repo already has. Reimplementing the same decision makes two copies that then diverge.
+- Keep state variants as conditional expressions rather than cloning them into separate components.
 
-두 모드 공통으로, 시안에 없는 동작(호버 효과, 애니메이션, 자동 저장 등)을 임의로 넣지 않는다.
+In both modes, do not add behaviour the design does not have — hover effects, animation, autosave.
 
-### 5. 검증 — 셋 다 필수
+### 5. Verify — all three are mandatory
 
-하나라도 건너뛰면 반영이 끝난 것이 아니다.
+Skip any one of them and the work is not applied.
 
-**급하다는 이유로 줄이지 않는다.** 시간이 없을 때 줄일 것은 반영 범위(항목을 나눠 뒤로 미루기)이지 검증이 아니다. 특히 스크린샷 대조를 "육안으로 갈음"하는 건 축소다 — 시안 이미지와 실제 화면을 같은 배율로 나란히 놓는 것까지가 이 단계다. 검증을 건너뛰고 낸 반영은 어긋난 채로 남고, 되돌리는 비용이 검증 비용보다 항상 크다.
+**Do not cut this short for being in a hurry.** What gets cut under time pressure is the scope (split items off and push them back), never the verification. Substituting "a quick look" for the screenshot comparison in particular is a cut — this step is not finished until the design image and the real screen are side by side at the same zoom. Work shipped without verification stays wrong, and undoing it always costs more than the verification would have.
 
-1. **기계 검증** — 2단계에서 확인한 typecheck·lint·build를 돌린다. 경고는 새로 생긴 것만 본다(기존 경고와 구분).
-2. **브라우저 실제 동작** — dev 서버를 띄우고 대상 화면을 직접 조작한다. 콘솔 오류 0을 확인한다. 상태 변형이 범위면 그 상태를 실제로 만들어 본다.
-3. **시안 대조 (수치 + 스크린샷 둘 다)**
-   - 3단계 대조표의 각 행을 실제 결과와 맞춰 "조치" 열을 채운다.
-   - 시안 스크린샷과 브라우저 스크린샷을 같은 배율로 놓고 눈으로 비교한다. 수치만으로는 누락(빠진 요소·잘못된 순서)을 못 잡고, 스크린샷만으로는 미세한 값 차이를 못 잡는다.
+1. **Machine checks** — run the typecheck, lint, and build found in step 2. Only look at newly introduced warnings (kept apart from pre-existing ones).
+2. **Real behaviour in a browser** — bring up the dev server and operate the screen. Confirm zero console errors. If state variants are in scope, actually produce those states.
+3. **Comparison against the design (numbers and screenshot, both)**
+   - Fill in the "action" column of the step-3 table against the actual result, row by row.
+   - Put the design screenshot and the browser screenshot side by side at the same zoom and compare by eye. Numbers alone cannot catch omissions (a missing element, a wrong order); screenshots alone cannot catch small value differences.
 
-어긋난 게 남으면 고치고 다시 검증한다. **고치지 못한 것은 조용히 넘기지 말고 보고에 남긴다.**
+Fix what is still off and verify again. **Whatever could not be fixed goes in the report rather than passing quietly.**
 
-### 6. 미리보기 → go → 브랜치·PR (CLAUDE.md 5 — 외부 쓰기)
+### 6. Preview → go → branch and PR (external writes)
 
-원격에 올리기 전 **반드시** 사용자 확인을 받는다.
+Get the user's confirmation **without exception** before anything goes to the remote.
 
-미리보기에 담을 것:
-- 대상 레포·브랜치명
-- 파일별 변경 요약(추가·수정·삭제)
-- 대조표 최종본(무엇을 맞췄는지)
-- 검증 결과(기계 검증·브라우저·스크린샷 대조)
-- 반영하지 못한 것과 사유
+What the preview carries:
+- Target repo and branch name
+- A per-file summary of the changes (added, changed, deleted)
+- The final comparison table (what was matched to what)
+- The verification results (machine checks, browser, screenshot comparison)
+- What could not be applied, and why
 
-"이대로 진행할까요? (go / 수정사항)"으로 닫는다. go를 받은 뒤에만 브랜치를 따서 커밋·push하고 PR을 연다. **미리보기에 없던 것을 실행 단계에서 끼워넣지 않는다.**
+Close with "shall I proceed? (go / changes)". Only after a "go" is the branch cut, committed, pushed, and the PR opened. **Nothing that was not in the preview gets slipped in at execution time.**
 
-PR 본문에는 시안 링크, 반영 범위, 검증 방법, 남은 것을 적는다.
+The PR body carries the design link, the scope applied, how it was verified, and what is left.
 
 ---
 
 ## Constraints
 
-- **시안 수치를 임의로 조정하지 않는다.** 코드에서 표현하기 까다로워도 그대로 넣거나, 안 되면 이유를 들어 물어본다. 반올림·근사는 시안이 정본이라는 전제를 깬다.
-- **레포 관례를 리팩터링하지 않는다.** 더 나은 구조가 보여도 이번 변경에서는 알려만 준다.
-- **시안과 코드가 모순되면 멈춘다.** 어느 쪽이 최신인지는 사람이 안다. 한쪽을 임의로 정본 삼아 반영하면 조용히 갈라진다.
-- **문구·라벨은 원문 유지.** 오타로 보여도 고치지 말고 알린다 — 기획 문서와 맞춰진 값일 수 있다.
-- 시안 자체가 어긋나 보이면(누락 상태, 겹친 요소) 반영을 멈추고 `/fig:lint`로 넘긴다.
+- **Never adjust the design's numbers on your own.** Where they are awkward to express in code, put them in as they are, or say why and ask. Rounding and approximating break the premise that the design is canonical.
+- **Never refactor the repo's conventions.** Even where a better structure is visible, in this pass just point it out.
+- **Stop when the design and the code contradict each other.** Which one is current is something a person knows. Picking one as canonical on your own makes them diverge quietly.
+- **Copy and labels stay verbatim.** Even what looks like a typo is reported rather than fixed — it may be a value agreed with the plan doc.
+- If the design itself looks wrong (a missing state, overlapping elements), stop applying and hand it to `/fig:lint`.
 
 ## Notes
 
-- 대조표는 버리지 않는다. PR 본문에 넣으면 리뷰어가 "무엇을 왜 바꿨는지"를 코드 diff 없이 안다.
-- 프로젝트 고유 제약(파일 plan·폰트 한계·토큰 라이브러리 성격 등)은 이 문서에 적지 말고 메모리에서 확인한다.
-- 한 화면이 크면 카드·영역 단위로 쪼개 3~5단계를 반복한다. 한 번에 많이 고치면 어디서 어긋났는지 좁히기 어렵다.
+- Do not throw the comparison table away. In the PR body it tells a reviewer what changed and why without reading the diff.
+- Project-specific constraints (a file's plan, font limits, the nature of a token library) do not belong in this document — check them in memory.
+- For a large screen, split it into cards or regions and repeat steps 3–5. Change too much at once and it gets hard to narrow down where it went wrong.
