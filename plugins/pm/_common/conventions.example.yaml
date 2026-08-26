@@ -96,3 +96,91 @@ sources:
   repo:   true                   # code and design documents
   docs:   true                   # document tools such as Notion
   chat:   true                   # chat history
+
+# --- Tasks (/pm:task-draft, /pm:task-publish, /pm:task-sync) --------------------
+# A task can live in one place or two. Teams that plan in one tool and build in
+# another keep both; a single-tracker team sets `mirror.type: none` and the sync
+# skill has nothing to reconcile, which is the correct answer rather than an error.
+task:
+  record:                        # where the planning-side task lives
+    type: notion                 # notion | github | markdown | none
+    ref:  null                   # a collection:// url, an owner/repo, or a directory
+  mirror:                        # the engineering-side copy, if there is one
+    type: none                   # github | notion | none
+    ref:  null
+
+  # The single source of truth for matching the two sides. Name the property on the
+  # record that holds the mirror's url. A back-link written in the mirror's body is
+  # NOT used — it can point at a source that was already discarded, which is how
+  # duplicates and resurrected tickets happen.
+  link_property: null
+
+  # --- The context table written into a task record ------------------------------
+  # Rename these to whatever your team actually asks. Order is the order written.
+  context_rows: [Request source, Initial request, Background (AS-IS),
+                 Goal (TO-BE), Scope In, Scope Out, Undecided]
+
+  # A context table is scanned, not read. These keep the cells from turning into prose.
+  cell:
+    max_chars:    30             # roughly one line per item
+    owner_marker: "—"            # how an owner is appended, e.g. "confirm — engineering"
+    bullet:       "·"
+
+  labels:
+    assumption: "(assumed)"      # marks your inference, so it never reads as a found fact
+    tbd:        "TBD"            # marks what nobody has decided yet
+
+  # --- Record properties. Use the words your tracker uses ------------------------
+  properties:
+    status_initial: null         # the status a new record starts in
+    priority: [low, medium, high, critical]
+    projects: []                 # select options; empty means ask each time
+    default_assignee: null       # id of whoever owns a task by default
+
+  # Record status -> mirror status. Only the ones that differ need writing.
+  status_map: {}
+
+  # --- How a task sits under something bigger in the mirror ----------------------
+  # null parent_kind means a flat list, which is the common case.
+  hierarchy:
+    parent_kind:   null          # Epic, Project, Milestone — whatever your tracker calls it
+    parent_title:  null          # e.g. "[EPIC] [{group}] {name}"
+    milestone_on:  none          # parent | task | none — which level carries a milestone
+    milestone_format: null       # e.g. "{project} YYYY-MM"
+    milestone_projects: []       # projects that use milestones; empty means none do
+
+  # --- Which side wins, per field ------------------------------------------------
+  # Sync never guesses. A field not listed here is reported as a difference and left alone.
+  field_owner:
+    title:    record
+    status:   mirror
+    assignee: record
+
+  # --- Mapping between the two sides ---------------------------------------------
+  # Left is what the record says, right is what the mirror calls it. A record value
+  # with no entry here is NOT mirrored — the skill stops and says so rather than
+  # inventing a label, because a wrong label is harder to find than a missing ticket.
+  label_map:
+    project:  {}                 # record project -> mirror label
+    priority: {}                 # record priority -> mirror label
+  assignee_map: {}               # record user id -> mirror username
+
+  # --- The ticket written in the mirror ------------------------------------------
+  # The detail stays in the record. The ticket carries a summary and links, so there
+  # is one place to edit and no second copy to drift.
+  ticket:
+    title: "[Task] [{group}] {name}"
+    default_labels: []           # labels every task gets, e.g. a type label
+    sections: [Project and version, Summary, Links, Definition of done, Schedule]
+    link_rows:                   # what appears under Links. null drops that row
+      spec:   "Spec"
+      design: "Design"
+      record: "Change summary"
+
+  # --- Whatever your tracker needs and no other does -----------------------------
+  # Board ids, custom field ids, issue-type ids. Written once, read back verbatim.
+  # Nothing here is interpreted, so a tracker this plugin has never seen still works.
+  mirror_extras: {}
+
+  notion:
+    body_template: null          # page id whose body is copied into a new record

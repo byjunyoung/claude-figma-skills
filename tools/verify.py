@@ -23,8 +23,14 @@ TEAM_FILE = {"fig": "figma-conventions.yaml"}
 
 # Files that live as copies across plugins. Let them diverge and one gets fixed while the other ships —
 # during the fig rework the audit code had already split into three copies. Keep the copies, but check they match.
-# Config paths below which the keys are named by the user, not by the schema.
-FREE_KEY_MAPS = ("files.", "qa.environments.")
+# Config paths below which the keys are named by the user, not by the schema:
+# a fileKey, an environment name, a project the team happens to have, a tracker's
+# own field ids. The schema declares the map; its members cannot be checked.
+FREE_KEY_MAPS = (
+    "files.", "qa.environments.",
+    "task.mirror_extras.", "task.label_map.", "task.assignee_map.",
+    "task.status_map.", "task.field_owner.",
+)
 
 SHARED = ["_common/scripts/lib/resolve-config.py"]
 

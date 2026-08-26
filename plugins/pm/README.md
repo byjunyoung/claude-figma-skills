@@ -1,10 +1,13 @@
 # pm
 
-A bundle for writing product specs against a format, and verifying them before they are written out.
+A bundle for product specs and the tasks that come out of them. Write the spec, draft the task, file it, and keep both sides reconciled.
 
 | Command | What it does |
 |---|---|
 | `/pm:prd` | Writes a new requirements document, or extends one |
+| `/pm:task-draft` | Turns a request source into a task's context table |
+| `/pm:task-publish` | Files one task as a ticket in the engineering tracker |
+| `/pm:task-sync` | Reconciles the planning list against that tracker |
 
 ## Where it writes
 

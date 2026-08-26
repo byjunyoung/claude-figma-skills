@@ -1,9 +1,20 @@
 {
   "name": "pm",
-  "description": "A bundle for writing product specs against a format and verifying them. It gathers material first and proposes recommended answers, then catches vague wording and empty definitions before anything is written. Where it is stored is decided by config — markdown files, a git repo, or Notion.",
-  "version": "0.2.0",
-  "author": { "name": "Junyoung Kim", "url": "https://www.linkedin.com/in/byjunyoung/" },
+  "description": "A bundle for product docs and the tasks that come out of them. Write a spec against a format and verify it before it ships; turn a request thread into a task's context table; file that task in your engineering tracker and keep the two sides reconciled. Where things are stored is decided by config.",
+  "version": "0.3.0",
+  "author": {
+    "name": "Junyoung Kim",
+    "url": "https://www.linkedin.com/in/byjunyoung/"
+  },
   "homepage": "https://github.com/byjunyoung/claude-product-skills",
   "repository": "https://github.com/byjunyoung/claude-product-skills",
-  "keywords": ["prd", "product", "spec", "planning", "product-management"]
+  "keywords": [
+    "prd",
+    "product",
+    "spec",
+    "planning",
+    "product-management",
+    "task-management",
+    "issue-tracker"
+  ]
 }

@@ -9,7 +9,7 @@ Two Claude Code skill bundles — one for design files, one for product docs. Th
 | Plugin | What it does | Skills |
 |---|---|---|
 | **fig** | Organize, audit, and sync Figma files that already exist | 13 |
-| **pm** | Write and verify product requirement docs against a format | 1 |
+| **pm** | Write and verify product specs, then draft, file and reconcile the tasks | 4 |
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
@@ -192,7 +192,16 @@ The component audit works without any written convention. It derives the usage d
 
 ## pm — product docs
 
-A separate plugin for writing requirement docs against a format and verifying them before they ship. One skill so far: `/pm:prd`.
+A separate plugin covering the document and the work that comes out of it.
+
+| | |
+|---|---|
+| `/pm:prd` | Write a requirements doc against a format, verify it before it ships |
+| `/pm:task-draft` | Turn a request thread into a task's context table |
+| `/pm:task-publish` | File that task as a ticket in the engineering tracker |
+| `/pm:task-sync` | Reconcile the planning list against that tracker |
+
+**The task side assumes nothing about your tracker.** A team that plans and builds in one place sets `task.mirror.type: none`, and `/pm:task-sync` says there is nothing to reconcile — which is the right answer, not an error. A team that plans in one tool and builds in another names both, and matching runs on one property holding the ticket's url. A back-link in the ticket body is never trusted for matching: it can point at a source that was already discarded, and that is how duplicates and resurrected tickets happen.
 
 **It doesn't care where the doc lives.** The structure is the same everywhere; `prd.target` only changes how it's published.
 
