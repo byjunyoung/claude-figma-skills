@@ -12,7 +12,7 @@
  * template.js 가 정의해야 하는 것
  *   C     { bg, text, textMuted, cardSurface, ... }   0~1 범위 색
  *   T     { title, h1, h2, body1, ... }               {size, style, ls, lh}
- *   FAMS  ['Pretendard', 'Inter']                     선호 순 폰트 후보
+ *   FAMS  ['<팀 폰트>', 'Inter']                       선호 순 폰트 후보
  *
  * use_figma 규칙이 박혀 있다 — appendChild 를 x/y 보다 먼저, characters 전에
  * 폰트 로드, 색은 0~1, fills 는 새 배열로 재대입.
