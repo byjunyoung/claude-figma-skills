@@ -9,7 +9,7 @@ claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
 ```
 
-[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The eleven skills](#the-eleven-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles)
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles)
 
 ---
 
@@ -103,9 +103,12 @@ Neither touches the file. Run one when you inherit a file someone else has been 
 /fig:proto    Before engineering starts, rebuild the design as a single HTML page that really accepts input and saves
 /fig:code     Apply the design to a frontend repo
 /fig:qa       Audit a shipped screen against the spec and report defects
+/fig:deck     Turn a document into a deck (run deck-setup first)
 ```
 
 `proto` isn't a click-through demo. Enter a value, save it, and it shows up in the list. Clicking through surfaces ordering problems that a static design hides.
+
+`deck` moves one source document into a presentation flow and builds a Figma Slides deck. It uses the team template's coordinates, colors and type as-is — when a content shape isn't in the catalog it never invents a layout, it fits the nearest archetype by trimming content or splitting the slide. `/fig:deck-setup` measures those values into local assets, which stay out of the published plugin since template backgrounds carry company wordmarks.
 
 `qa` audits what actually shipped against the spec. The rule is that a finding reads "this breaks rule X in document Y", never "this looks off" — anything without a baseline is filed as needs-checking rather than a defect.
 
@@ -141,7 +144,7 @@ flowchart TD
 
 ---
 
-## The eleven skills
+## The thirteen skills
 
 | Command | What it does |
 |---|---|
@@ -156,6 +159,8 @@ flowchart TD
 | `/fig:proto` | Working single-file HTML prototype |
 | `/fig:code` | Apply the design to a frontend repo |
 | `/fig:qa` | Audit a shipped screen against the spec and report defects |
+| `/fig:deck-setup` | Measure a team slide template into local deck assets |
+| `/fig:deck` | Turn a source document into a Figma Slides deck |
 
 ### What `/fig:lint` looks at
 
