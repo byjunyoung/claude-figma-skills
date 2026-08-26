@@ -1,6 +1,6 @@
 ---
 name: deck-setup
-description: 팀 발표 템플릿을 훑어 덱 제작에 쓸 로컬 자산(template-spec.md · template.js · 참조 이미지)을 만든다. 캔버스·타이포·컬러·아키타입 카탈로그를 실측해 뽑고, 관측이 애매하면 추정하지 않고 비워 둔다. 새 환경·새 템플릿에서 /fig:deck 을 처음 쓰기 전에 한 번 돌린다. Triggers - "/fig:deck-setup", "덱 템플릿 뽑아줘", "발표 템플릿 추출", "덱 자산 만들어줘", "템플릿 다시 추출".
+description: Measures a team slide template into local deck assets — template-spec.md, template.js, and reference images. Canvas, type scale, colors, and the archetype catalog are read from actual nodes; anything the sample is too thin to settle is left empty rather than guessed. Run once before using /fig:deck in a new environment, or again after the template is revised. Triggers - "/fig:deck-setup", "extract the slide template", "set up the deck assets", "덱 템플릿 뽑아줘", "발표 템플릿 추출", "템플릿 다시 추출".
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 

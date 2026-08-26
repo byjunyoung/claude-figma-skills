@@ -1,6 +1,6 @@
 ---
 name: code
-description: Figma 시안을 프론트엔드 레포의 실제 코드에 반영한다 — 시안이 바뀐 자리를 기존 코드에 최소 수정으로 옮기거나, 시안에만 있고 코드에 없는 화면·상태 변형을 새로 구현한다. 레포의 기존 명명·토큰·상태 관리 관례를 먼저 읽어 덮어쓰지 않고, 수치 대조와 스크린샷 대조를 모두 거친 뒤 브랜치·PR로 낸다. Triggers - "/fig:code", "시안 코드에 반영해줘", "피그마 바뀐 거 앱에 적용", "이 화면 프론트에 구현해줘", "시안대로 코드 고쳐줘", "디자인 변경분 코드에".
+description: Applies a Figma design to real code in a frontend repo — porting changed parts into existing code with minimal edits, or implementing screens and state variants that exist only in the design. Reads the repo's own naming, tokens, and state-management conventions first so it never overwrites them, checks both by numbers and by screenshot comparison, then opens a branch and a PR. Triggers - "/fig:code", "apply this design to the code", "implement this screen in the frontend", "시안 코드에 반영해줘", "피그마 바뀐 거 앱에 적용", "시안대로 코드 고쳐줘".
 allowed-tools: AskUserQuestion, Bash, Read, Write, Edit, Glob, Grep, Skill, mcp__plugin_figma_figma__get_design_context, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_variable_defs, mcp__plugin_figma_figma__download_assets, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__read_console_messages
 ---
 

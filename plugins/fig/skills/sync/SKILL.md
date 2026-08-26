@@ -1,6 +1,6 @@
 ---
 name: sync
-description: 작업 페이지·업데이트 페이지에서 끝난 변경이 운영(정본) 페이지에 실제로 반영됐는지 전수 감사하고, 미반영분을 정본에 반영한 뒤 작업분을 아카이브로 이관한다. 팀 Figma 관리 가이드의 "릴리즈 후 운영 반영" 장을 집행하는 스킬 — 감사(쓰기 0) → 반영 → 이관 순으로 각 단계마다 미리보기·go 게이트. 프레임 이름이 양쪽 같아 이름 대조로는 안 잡히므로 텍스트 diff·높이·컴포넌트 마스터 3신호로 판정한다. Triggers - "/fig:sync", "정본 반영 안 된 것 찾아줘", "운영 페이지 최신화", "미반영 전수 검사", "릴리즈 정본 반영해줘", "정본에 흡수해줘", "교체 안 된 화면 찾아줘".
+description: Audits whether changes finished on working and update pages actually made it into the canonical page, applies whatever did not, then archives the working copies. This is the skill that executes the apply-after-release step — audit with zero writes, then apply, then archive, each behind its own preview and go gate. Frame names are identical on both sides so comparing names settles nothing; the call is made on three signals together — text diff, frame height, and component master. Triggers - "/fig:sync", "find what never made it into canonical", "bring the canonical page current", "정본 반영 안 된 것 찾아줘", "운영 페이지 최신화", "교체 안 된 화면 찾아줘".
 allowed-tools: AskUserQuestion, Bash, Read, Write, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 

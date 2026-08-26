@@ -1,6 +1,6 @@
 ---
 name: setup
-description: 낯선 Figma 파일을 훑어 그 파일의 관례를 역추출하고 figma-conventions.yaml 초안을 만든다. 페이지 역할·네이밍 패턴·상태 접미사·간격 토큰·섹션 스타일·화살표 스타일을 실제 노드에서 관측해 최빈값으로 뽑고, 표본이 얇거나 갈리는 항목은 추정하지 않고 null 로 남긴 뒤 인터뷰로 채운다. 마지막에 /fig:lint 를 돌려 오탐률로 초안을 검증한다. 다른 회사·다른 파일에서 figma-* 스킬을 처음 켤 때 가장 먼저 실행한다. Triggers - "/fig:setup", "이 파일 관례 뽑아줘", "설정 초안 만들어줘", "figma 스킬 처음 설정", "conventions 만들어줘", "이 파일에 맞게 세팅해줘".
+description: Reads an unfamiliar Figma file and works backwards to its conventions, drafting a figma-conventions.yaml. Page roles, naming patterns, state suffixes, spacing tokens, section style, and arrow style are observed from actual nodes and taken as the dominant value; anything with too few samples or a split vote is left null rather than guessed, then filled in by interview. It finishes by running /fig:lint and judging the draft by its false-positive rate. Run this first when opening these skills on a new company or a new file. Triggers - "/fig:setup", "work out this file's conventions", "draft the config", "이 파일 관례 뽑아줘", "설정 초안 만들어줘", "이 파일에 맞게 세팅해줘".
 allowed-tools: AskUserQuestion, Bash, Read, Write, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot
 ---
 

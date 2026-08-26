@@ -1,6 +1,6 @@
 ---
 name: read
-description: Figma 파일 URL을 받아 페이지 목록을 보여주고, 사용자가 선택한 페이지의 모든 최상위 프레임을 자동 수집한다. 각 프레임의 메타데이터와 스크린샷을 병렬로 읽어 마크다운 트리로 정리. Figma 데스크톱에서 프레임을 일일이 선택할 필요 없이 파일 URL만으로 전체 구조 파악 가능. Triggers - "/fig:read", "피그마 파일 읽어줘", "프레임 전부 뽑아줘", "피그마 전체 구조 보여줘", "이 파일 화면 목록 보여줘".
+description: Takes a Figma file URL, lists its pages, and collects every top-level frame on the page you pick. Metadata and screenshots are read in parallel and laid out as a markdown tree. Gives you the whole structure from a URL alone, without selecting frames one by one in the desktop app. Triggers - "/fig:read", "read this Figma file", "list every frame", "피그마 파일 읽어줘", "프레임 전부 뽑아줘", "전체 구조 보여줘".
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot
 ---
 

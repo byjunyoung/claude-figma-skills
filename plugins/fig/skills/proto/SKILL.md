@@ -1,6 +1,6 @@
 ---
 name: proto
-description: Figma 디자인을 코드로 재현해, 실제 입력·유효성·상태·동적 분기가 동작하는 단일 HTML 프로토타입을 만든다. 스크린샷 클릭 데모가 아니라 진짜 눌러보며 UX를 검증하고 개발 스펙 감을 잡는 용도. 인터뷰로 범위를 맞추고 → 피그마를 정합하게 읽어(구조+정확한 라벨+시각 토큰) → 바닐라 단일 HTML로 빌드 → 브라우저로 실제 동작을 검증하는 파이프라인. Triggers - "/fig:proto", "동작 프로토타입 만들어", "프로토타이핑 해줘", "피그마에 그린 대로 동작하게", "실제로 눌러보고 입력되게", "유효성·상태 되는 프로토타입".
+description: Rebuilds a Figma design as code so that input, validation, state, and branching actually work in a single HTML file. Not a click-through screenshot demo — something you press to check the UX and get a feel for the implementation spec. The pipeline: settle scope by interview, read Figma faithfully (structure, exact labels, visual tokens), build as vanilla single-file HTML, then verify real behavior in a browser. Triggers - "/fig:proto", "make a working prototype", "make this design actually clickable", "동작 프로토타입 만들어", "프로토타이핑 해줘", "실제로 눌러보고 입력되게".
 allowed-tools: AskUserQuestion, Bash, Read, Write, Edit, mcp__plugin_figma_figma__get_design_context, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__use_figma, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__read_console_messages
 ---
 

@@ -1,89 +1,98 @@
 # =============================================================================
-# pm-conventions.yaml — pm 스킬 공통 설정
+# pm-conventions.yaml — shared config for the pm skills
 #
-# 이 파일이 규칙의 단일 출처다. 스킬 본문에는 규칙 값을 적지 않는다.
+# This file is the single source of truth for the rules. Skill bodies carry
+# judgement, never values.
 #
-# 겹쳐 읽는다 (아래가 위를 덮는다). 필요한 키만 적으면 된다
-#   1. 이 파일                         내장 기본값 (바닥)
-#   2. ~/.claude/pm-conventions.yaml  사용자 공통
-#   3. ./pm-conventions.yaml          프로젝트별 (가장 셈)
+# The layers are merged, each overriding the one above. Write only the keys
+# you need — anything you leave out falls back to the layer above.
+#   1. this file                       bundled defaults (base)
+#   2. ~/.claude/pm-conventions.yaml   your shared config
+#   3. ./pm-conventions.yaml           per project (wins)
 #
-# 값을 모르면 지우지 말고 null 로 둔다 — null 은 "이 검사를 건너뛴다"는 뜻이다.
+# When you don't know a value, write null rather than deleting the key — null
+# means "skip that", while deleting brings the default back.
 # =============================================================================
 
 meta:
-  profile: default          # 결과 보고에 찍히는 이름. 어느 설정으로 돌았는지 남긴다
+  profile: default          # name stamped on reports, so you know which config ran
+  language: auto            # document and report language — auto | en | ko | any BCP-47 tag.
+                            # auto follows the language you are talking in
 
 # --- PRD -----------------------------------------------------------------------
 prd:
-  # 문서를 어디에 쓰나. 골격(structure)은 어느 쪽이든 같고, 발행 방식만 갈린다
-  #   markdown  로컬 파일로 쓴다. 기본값 — 어떤 도구도 필요 없다
-  #   git       마크다운으로 쓰고 브랜치·PR 까지 만든다
-  #   notion    Notion 페이지로 쓴다. notion 절을 채워야 동작한다
+  # Where the document lives. The structure below is identical either way;
+  # only publishing differs.
+  #   markdown  local files. the default — needs no other tooling
+  #   git       writes markdown, then a branch and a PR
+  #   notion    Notion pages. requires the notion section to be filled in
   target: markdown
 
-  # --- 본문 골격. 저장 대상과 무관하게 이 구조로 낸다 -------------------------------
+  # --- Structure. The same wherever the doc is published -------------------------
   structure:
-    sections: [제품 개요, 기능·정책 요구사항, 관련 일감, Design, 변경 이력]
-    overview: [한 줄 정의, 배경, 핵심 가치, 목표·범위, 사용자 그룹]
+    sections: [Overview, Requirements, Linked tasks, Design, Change log]
+    overview: [One-line definition, Background, Core value, Goals and scope, User groups]
 
-    # 사용자 그룹 한 명당 적을 칸. 근거 없는 칸은 채우지 말고 TBD 로 둔다
-    user_group_rows: [계정·접근 범위, 사용 환경, 주 사용 도메인, 대표 시나리오,
-                      페인포인트, 기대·개선 요구, 근거, TBD]
+    # Rows written for each user group. Leave a row as TBD rather than filling
+    # it in without evidence.
+    user_group_rows: [Account and access, Environment, Primary domains, Key scenario,
+                      Pain points, Expectations, Evidence, TBD]
 
-    # 기능 항목 본문의 절. 세부 동작은 표(동작·조건·입력·결과)로 쓴다
-    feature_sections: [배경, 핵심 요구사항, 세부 동작, 상태·케이스, 룰·예외, 참고 자료]
-    policy_sections:  [배경, 규칙, 참고 자료]
+    # Sections inside a feature entry. Behaviour goes in a table (action, given, when, then).
+    feature_sections: [Background, Core requirement, Behaviour, States and cases, Rules and exceptions, References]
+    policy_sections:  [Background, Rules, References]
 
-    # 상태·케이스 표의 고정 행. 해당 없으면 '—', 목록 밖은 '기타'
-    cases: [정상, 빈 상태, 로딩, 에러, 권한 없음]
+    # Fixed rows of the states table. Use '—' when a row does not apply,
+    # 'Other' for anything outside the list.
+    cases: [Normal, Empty, Loading, Error, No permission]
 
-  # --- 항목 속성. 그 팀이 실제로 쓰는 값을 그대로 적는다 ---------------------------
+  # --- Entry properties. Use the words your team actually uses --------------------
   properties:
-    type:     [기능, 정책]
-    status:   [작성중, 운영중, 업데이트 필요, 준비중, 보관]
+    type:     [Feature, Policy]
+    status:   [Draft, Live, Needs update, Planned, Archived]
     priority: [Core, Important, Nice-to-have]
 
-  # --- 문장 규칙 ------------------------------------------------------------------
-  # 기획 문서를 개발 문서로 만들지 않기 위한 목록. 본문에 있으면 검증에서 반려한다.
-  # "무엇(요구)"까지만 쓰고 "어떻게(구현)"는 개발에 위임한다는 원칙의 집행 장치다
-  forbidden_terms: [API, 엔드포인트, 웹소켓, 폴링, 페이로드, 토큰, JWT, OAuth,
-                    스키마, 마이그레이션, 캐시]
-  # 근거로도 못 정하는 것에만 붙인다. 자료로 정할 수 있는데 이걸 붙이면 반려된다
+  # --- Writing rules -------------------------------------------------------------
+  # The list that keeps a product doc from turning into an engineering doc.
+  # Anything here appearing in the body is rejected at verification. The rule
+  # behind it: write *what* is required, and leave *how* to engineering.
+  forbidden_terms: [API, endpoint, websocket, polling, payload, token, JWT, OAuth,
+                    schema, migration, cache]
+  # Only for what genuinely cannot be settled. Attaching this to something the
+  # material could have decided fails verification.
   tbd_label:        "TBD"
-  assumption_label: "(제품 가정)"
-  language:         ko           # 본문 언어
-  emoji:            false        # 본문에 이모지를 쓰나
+  assumption_label: "(assumed)"
+  emoji:            false        # whether emoji are allowed in the body
 
-  # --- 도메인 분할 ----------------------------------------------------------------
+  # --- Splitting into domains ----------------------------------------------------
   domains:
-    range: [5, 7]                # 권장 개수. 겹치지 않게 가른다
-    align_with_design: true      # 디자인 파일 페이지 구조와 1:1 로 맞출지
+    range: [5, 7]                # how many to aim for. they must not overlap
+    align_with_design: true      # whether to match the design file's page structure one to one
 
-  # --- target: markdown | git -----------------------------------------------------
+  # --- target: markdown | git ----------------------------------------------------
   markdown:
-    dir: "./docs/prd"            # 문서를 둘 곳
-    front_matter: true           # 제목·상태·갱신일을 머리말로 붙일지
-    split: product               # product = 제품당 한 파일 / domain = 도메인당 한 파일
+    dir: "./docs/prd"            # where documents go
+    front_matter: true           # whether to prepend title, status and updated date
+    split: product               # product = one file per product / domain = one per domain
   git:
-    branch_prefix: "prd/"        # target 이 git 일 때 만들 브랜치 접두사
+    branch_prefix: "prd/"        # branch prefix when target is git
     open_pr: true
 
-  # --- target: notion --------------------------------------------------------------
-  # null 이면 그 수집·연동을 건너뛴다. 인라인 DB 스키마는 문서마다 바꾸지 않는다
+  # --- target: notion ------------------------------------------------------------
+  # null skips that lookup or link. Inline database schemas are not changed per document.
   notion:
-    template:      null          # 복제해 시작할 표준 양식 페이지 id
+    template:      null          # page id of the standard format to duplicate
     inline_db:
-      users:       null          # 사용자 그룹
-      features:    null          # 기능·정책
-    task_db:       null          # 관련 일감
+      users:       null          # user groups
+      features:    null          # features and policies
+    task_db:       null          # linked tasks
     heading_style: '{color="gray_bg"}'
-    reference_docs: []           # 말투·양식의 본으로 삼을 기존 문서 id 목록
+    reference_docs: []           # existing docs to follow for tone and format
 
-# --- 자료 수집 -------------------------------------------------------------------
-# 초안 품질은 입력 자료 양에 비례한다. 쓰지 않는 곳은 false 로 꺼 둔다
+# --- Sources -------------------------------------------------------------------
+# Draft quality scales with how much material goes in. Turn off what you don't use.
 sources:
-  design: true                   # 디자인 파일
-  repo:   true                   # 코드·설계 문서 저장소
-  docs:   true                   # 문서 도구(Notion 등)
-  chat:   true                   # 슬랙 등 대화 기록
+  design: true                   # design files
+  repo:   true                   # code and design documents
+  docs:   true                   # document tools such as Notion
+  chat:   true                   # chat history

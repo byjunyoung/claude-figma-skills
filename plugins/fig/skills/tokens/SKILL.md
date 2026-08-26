@@ -1,6 +1,6 @@
 ---
 name: tokens
-description: Figma 프레임·페이지의 색상이 연결된 디자인시스템 토큰(variable)에 바인딩돼 있는지 검수하고, 미바인딩 하드코딩 색을 적절한 토큰으로 매핑·바인딩한다. 기존 바인딩 사용례에서 토큰→실제 hex를 역추출해 근거 있는 매핑을 만들고, 등급별로 나눠 안전한 것만 자동 제안한다. 검사만 하는 Lint 모드와 실제 바인딩 모드를 분리. 대상 라이브러리와 토큰군은 figma-conventions.yaml 의 design_system 절이 정하고, auto 면 파일에 연결된 라이브러리를 감지한다. Triggers - "/fig:tokens", "토큰 바인딩 검수", "변수 안 묶인 색 찾아줘", "하드코딩 색상 검사", "토큰으로 일괄 바꿔줘", "디자인시스템 연동 점검".
+description: Audits whether the colors on a Figma frame or page are bound to design system tokens, and maps and binds hardcoded colors to the right token. Derives token-to-hex from bindings already in the file so every mapping has evidence, grades the results, and auto-proposes only the safe ones. Lint mode (check only) and bind mode are separate. Which library and which token groups come from the design_system section of figma-conventions.yaml; on auto it detects the library the file is connected to. Triggers - "/fig:tokens", "check the token bindings", "find unbound colors", "토큰 바인딩 검수", "하드코딩 색상 검사", "디자인시스템 연동 점검".
 allowed-tools: AskUserQuestion, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__search_design_system, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata
 ---
 

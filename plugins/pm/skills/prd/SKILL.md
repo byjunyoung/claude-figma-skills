@@ -1,6 +1,6 @@
 ---
 name: prd
-description: 제품 요구사항 문서(PRD)를 양식에 맞춰 새로 쓰거나 기존 문서를 보강한다. 코드 저장소·문서·디자인·대화 기록을 먼저 모아 분석하고 그 결과로 권장답안을 제시해, 사용자가 "go" 한 마디로 채택할 수 있게 인터뷰 부담을 줄인다. 쓰기 전 모호어·빈 정의·개발 용어를 읽기 전용으로 검증한다. 저장 대상(마크다운 파일·git 저장소·Notion)은 설정이 정한다. Triggers - "/pm:prd", "PRD 작성", "PRD 만들어줘", "PRD 초안 잡아줘", "요구사항 문서 써줘", "기능 항목 추가", "PRD 보강", "PRD 현행화", "사용자 그룹 추가".
+description: Writes a product requirements document against a format, or fills out an existing one. Gathers and analyzes code repos, docs, designs, and chat history first, then proposes recommended answers so the interview can be settled with a single "go". Before writing anything it verifies read-only for vague wording, empty definitions, and engineering terms that do not belong in a product doc. Where the doc lives — markdown files, a git repo, or Notion — is decided by config. Triggers - "/pm:prd", "write the PRD", "draft the requirements", "PRD 작성", "PRD 만들어줘", "기능 항목 추가", "PRD 보강", "사용자 그룹 추가".
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 ---
 
@@ -129,7 +129,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-co
 3. **근거** — 출처 없는 사실·인용·통계가 없는지. 없으면 TBD 또는 "근거 필요"로 명시
 4. **완결성** — `structure.sections` 골격이 다 있는지, 사용자 그룹·도메인·기능 항목이 비지 않았는지. 빈 칸은 TBD로 명시됐는지
 5. **모호어 스캔** — '적절히·상황에 맞게·필요시·등등·사유 없는 TBD'가 있거나, 필터·검색·정렬 **대상**이 비었거나, 판정·발송·집계 **단위**가 정의 안 됐으면 반려. **자료로 정할 수 있는데 TBD로 둔 칸이 하나라도 있으면 통과가 아니다**
-6. **언어·표기** — `prd.language`·`prd.emoji` 설정대로인지
+6. **언어·표기** — `meta.language`·`prd.emoji` 설정대로인지. `auto` 면 대화 언어를 따른다
 
 ---
 
