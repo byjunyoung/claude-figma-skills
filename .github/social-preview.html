@@ -1,0 +1,66 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1280px; height:640px; background:#0F1115; overflow:hidden;
+         font-family:-apple-system,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { position:relative; width:100%; height:100%; padding:92px 88px; }
+  svg.bg { position:absolute; inset:0; width:1280px; height:640px; }
+  h1 { position:relative; font-size:98px; font-weight:700; letter-spacing:-3px;
+       color:#F2F4F7; line-height:1; }
+  h1 .dot { color:#4A5463; font-weight:400; margin:0 12px; }
+  p.sub { position:relative; margin-top:24px; font-size:30px; font-weight:400;
+          letter-spacing:-.3px; color:#98A1AD; line-height:1.4; max-width:560px; }
+  .foot { position:absolute; left:88px; bottom:84px; display:flex; align-items:center; gap:16px; }
+  .pill { font-size:20px; font-weight:500; color:#C3CAD4;
+          border:1px solid #2C313A; border-radius:999px; padding:10px 20px; white-space:nowrap; }
+  .repo { position:absolute; right:88px; bottom:92px; font-size:21px;
+          letter-spacing:.2px; color:#69727E; font-weight:500; }
+</style>
+<div class="wrap">
+  <svg class="bg">
+    <!-- 도구가 실제로 그리는 것: 점선 섹션 · 화면 프레임 · 흐름 화살표 · [state] 묶음 -->
+    <rect x="700" y="132" width="500" height="308" rx="64"
+          fill="#8B5CF6" fill-opacity="0.04"
+          stroke="#8B5CF6" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="18 18"/>
+    <g fill="#171A20" stroke="#272C35" stroke-width="1.5">
+      <rect x="748" y="186" width="105" height="150" rx="10"/>
+      <rect x="896" y="186" width="105" height="150" rx="10"/>
+      <rect x="1044" y="186" width="105" height="150" rx="10"/>
+    </g>
+    <g fill="#242932">
+      <rect x="762" y="200" width="56" height="8" rx="4"/>
+      <rect x="762" y="219" width="78" height="6" rx="3"/>
+      <rect x="762" y="234" width="64" height="6" rx="3"/>
+      <rect x="910" y="200" width="56" height="8" rx="4"/>
+      <rect x="910" y="219" width="78" height="6" rx="3"/>
+      <rect x="910" y="234" width="46" height="6" rx="3"/>
+      <rect x="1058" y="200" width="56" height="8" rx="4"/>
+      <rect x="1058" y="219" width="62" height="6" rx="3"/>
+    </g>
+    <!-- 전환 화살표: 화살촉이 도착 변에 수직 진입, 여백 12px -->
+    <g stroke="#5C6675" stroke-width="3" fill="none" stroke-linecap="round">
+      <path d="M853 261 H 884"/>
+      <path d="M1001 261 H 1032"/>
+    </g>
+    <g fill="#5C6675">
+      <path d="M896 261 L 884 255.5 L 884 266.5 Z"/>
+      <path d="M1044 261 L 1032 255.5 L 1032 266.5 Z"/>
+    </g>
+    <!-- [state] 상태 묶음: 화살촉 없는 점선, 같은 열 수직 -->
+    <path d="M800 336 V 378" stroke="#4A5463" stroke-width="3"
+          stroke-dasharray="11 8" stroke-linecap="round"/>
+    <!-- placeholder: 점선 테두리가 곧 '아직 안 그린 화면' 표시 -->
+    <rect x="748" y="378" width="105" height="34" rx="9"
+          fill="none" stroke="#333944" stroke-width="1.5" stroke-dasharray="9 7"/>
+  </svg>
+
+  <h1>fig<span class="dot">·</span>pm</h1>
+  <p class="sub">Claude Code plugins that keep a shared Figma file in order — and the spec beside it honest.</p>
+
+  <div class="foot">
+    <span class="pill">14 skills</span>
+    <span class="pill">read-only audit gate</span>
+    <span class="pill">no write without a preview</span>
+  </div>
+  <div class="repo">byjunyoung/claude-product-skills</div>
+</div>
