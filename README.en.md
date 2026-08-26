@@ -189,11 +189,11 @@ To update: `claude plugin marketplace update byjunyoung`.
 Conventions live in one file, `figma-conventions.yaml`, not in the skill docs. Screen naming, the state list, spacing values, section style, arrow style, sections excluded from audit, and tolerances are all there.
 
 ```
-./figma-conventions.yaml              per project (wins if present)
-      ↓ otherwise
+plugin defaults                       base layer
+      ↓ overridden by
 ~/.claude/figma-conventions.yaml      your shared config
-      ↓ otherwise
-plugin defaults                       → report notes "running on defaults"
+      ↓ overridden by
+./figma-conventions.yaml              per project (wins)
 ```
 
 The full schema lives in [`conventions.example.yaml`](_common/conventions.example.yaml) — 14 sections, 112 keys, each commented with what it governs, so you can copy it and edit in place. It looks like this:
@@ -220,7 +220,8 @@ arrows:
 ```
 
 - **First run** — `/fig:setup` in the target file observes its conventions and drafts one
-- **What `null` means** — the value wasn't inferred, so that check is skipped
+- **Partial configs are fine** — the three layers are merged, so keys you omit fall back to defaults and only what you write is overridden
+- **What `null` means** — the value wasn't inferred, so that check is skipped. To disable a check, write `null` rather than deleting the key — deleting it brings the default back
 - **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
 
 Once you have a draft, run `/fig:lint` once and judge it by the false-positive rate. If nearly everything is flagged, the config is wrong, not the file.
