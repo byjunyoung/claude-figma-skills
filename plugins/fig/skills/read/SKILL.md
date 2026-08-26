@@ -4,39 +4,39 @@ description: Takes a Figma file URL, lists its pages, and collects every top-lev
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot
 ---
 
-# fig:read — Figma 파일 전체 프레임 자동 수집
+# fig:read — collecting every frame in a Figma file
 
-Figma 파일 URL 하나만 받아서 페이지 → 프레임 구조를 자동 탐색하고, 사용자가 고른 페이지의 모든 최상위 프레임을 메타데이터+스크린샷으로 수집한다. 데스크톱 앱에서 프레임을 선택하지 않아도 동작한다.
+Takes a single Figma file URL, walks the page → frame structure automatically, and collects every top-level frame on the pages you pick as metadata plus screenshots. It works without selecting anything in the desktop app.
 
 ## When to invoke
 
-- 사용자가 Figma **파일** URL(노드 지정 없음)을 주며 "전부 읽어줘", "구조 보여줘", "프레임 다 뽑아줘"
-- PRD·정본 작업 전 화면 인벤토리 파악 단계
-- "/fig:read" 명시적 호출
+- The user hands over a Figma **file** URL (no node specified) and says "read all of it", "show me the structure", "pull every frame"
+- Taking a screen inventory before spec or canonical-page work
+- An explicit "/fig:read"
 
 ## When NOT to invoke
 
-- 프레임 네이밍·섹션 정리 → `/fig:prep`
-- 규칙 위반 검증 → `/fig:lint`
-- 작업분이 정본에 반영됐는지 감사 → `/fig:sync`
-- 코드 구현용 디자인 컨텍스트 → `figma:figma-design-to-code` skill · 프론트 레포 반영 → `/fig:code`
+- Frame naming and section tidying → `/fig:prep`
+- Auditing rule violations → `/fig:lint`
+- Auditing whether working changes landed in the canonical page → `/fig:sync`
+- Design context for a code implementation → the `figma:figma-design-to-code` skill · carrying it into the front-end repo → `/fig:code`
 
 ## Inputs
 
-- `figma_url` (필수): figma.com/design/:fileKey/... 형태의 URL
-  - node-id 파라미터가 있어도 무시하고 전체 파일로 다룬다 (사용자가 페이지 선택)
+- `figma_url` (required): a URL of the form figma.com/design/:fileKey/...
+  - A node-id parameter is ignored and the whole file is used (the user picks the page)
 
 ## Procedure
 
-### 1. URL 파싱
+### 1. Parse the URL
 
-Figma URL에서 fileKey 추출:
-- 패턴: `figma.com/design/([A-Za-z0-9]+)/...`
-- fileKey가 추출되지 않으면 사용자에게 정확한 URL 재요청
+Extract the fileKey from the Figma URL:
+- Pattern: `figma.com/design/([A-Za-z0-9]+)/...`
+- If no fileKey comes out, ask the user for the exact URL again
 
-### 1.5 토큰 사전 검증
+### 1.5 Check the token first
 
-REST API 경로를 쓰기 전에 가벼운 ping 으로 토큰 상태를 확인한다. 환경변수 이름은 설정 `tools.figma_token_env` 가 정한다(기본 `FIGMA_TOKEN`).
+Before going down the REST API path, confirm the token's state with a light ping. The environment variable's name is set by `tools.figma_token_env` (default `FIGMA_TOKEN`).
 
 ```bash
 source ~/.zshrc 2>/dev/null
@@ -44,7 +44,7 @@ VAR=$(python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py \
       | python3 -c 'import json,sys; print(json.load(sys.stdin)["tools"]["figma_token_env"])')
 TOKEN="${!VAR}"
 if [ -z "$TOKEN" ]; then
-  echo "STATE=NO_TOKEN ($VAR 미설정)"
+  echo "STATE=NO_TOKEN ($VAR not set)"
 else
   CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
     -H "X-Figma-Token: $TOKEN" "https://api.figma.com/v1/me")
@@ -52,22 +52,22 @@ else
 fi
 ```
 
-상태별 분기:
+Branching by state:
 
-| STATE | 의미 | 처리 |
+| STATE | Meaning | What to do |
 |---|---|---|
-| `NO_TOKEN` | 토큰 환경변수 미설정 | "토큰 미설정" 안내 + Notes의 PAT 발급 가이드 링크 + plugin:figma fallback |
-| `HTTP_200` | 정상 | Step 2의 REST 경로 진행 |
-| `HTTP_401` | 토큰 만료/무효 | **"FIGMA_TOKEN이 만료되었거나 유효하지 않습니다. 재발급이 필요합니다."** + 발급 가이드 + fallback |
-| `HTTP_403` | 권한 부족 | "토큰 권한이 부족합니다. file_content:read scope로 재발급하세요" + fallback |
-| `HTTP_429` | rate limit | "잠시 후 다시 시도하세요" + fallback |
-| 그 외 | 알 수 없는 오류 | HTTP 코드 그대로 노출 + fallback |
+| `NO_TOKEN` | The environment variable is not set | Say "no token set", link the PAT guide in Notes, fall back to plugin:figma |
+| `HTTP_200` | Fine | Proceed with the REST path in step 2 |
+| `HTTP_401` | Token expired or invalid | **"FIGMA_TOKEN has expired or is invalid. It needs reissuing."** + the guide + fallback |
+| `HTTP_403` | Insufficient permission | "The token lacks permission. Reissue it with the file_content:read scope" + fallback |
+| `HTTP_429` | Rate limited | "Try again shortly" + fallback |
+| anything else | Unknown error | Surface the HTTP code as it is + fallback |
 
-**중요**: 401 은 "토큰 없음"·"만료"·"무효" 가 같이 나오는 상태 코드다. 위에서 환경변수 존재 여부를 먼저 보기 때문에, 401 이 나왔다는 건 값은 있는데 거부됐다는 뜻 — 만료·무효로 안내한다.
+**Important**: 401 is the one status code that covers "no token", "expired", and "invalid" alike. Because the environment variable's existence is checked above first, a 401 here means the value is present and was rejected — so the guidance is expired or invalid.
 
-### 2. 페이지 목록 조회
+### 2. List the pages
 
-**우선순위 1: Figma REST API (1.5에서 HTTP_200 통과 시)**
+**First choice: the Figma REST API (if 1.5 came back HTTP_200)**
 
 ```bash
 curl -sS -w "\nHTTP_CODE=%{http_code}" \
@@ -75,123 +75,123 @@ curl -sS -w "\nHTTP_CODE=%{http_code}" \
   "https://api.figma.com/v1/files/{fileKey}?depth=1"
 ```
 
-- depth=1로 페이지 노드만 받음 (전체 트리 다운로드 회피)
-- 응답 본문에서 `.document.children[]` → `{nodeId}|{pageName}` 추출
-- HTTP_CODE도 같이 받아 파일별 권한 이슈 가드:
-  - `200` → 진행
-  - `403` → "이 파일에 접근 권한이 없습니다 (다른 팀/비공개 파일일 수 있음)" + fallback
-  - `404` → "파일을 찾을 수 없습니다. URL을 확인하세요"
-  - 그 외 → 에러 노출 + fallback
-- 토큰을 응답이나 로그에 출력 금지 — 헤더에만 사용
+- depth=1 returns page nodes only (avoiding a download of the whole tree)
+- From the response body, `.document.children[]` → extract `{nodeId}|{pageName}`
+- Take HTTP_CODE alongside it to guard against per-file permission problems:
+  - `200` → proceed
+  - `403` → "no access to this file (it may belong to another team, or be private)" + fallback
+  - `404` → "file not found. Check the URL"
+  - anything else → surface the error + fallback
+- Never print the token in a response or a log — it belongs in the header only
 
-**우선순위 2: plugin:figma MCP fallback (토큰 없음/오류 시)**
+**Second choice: the plugin:figma MCP fallback (no token, or an error)**
 
-`mcp__plugin_figma_figma__get_metadata`를 fileKey만 전달해 호출.
-- 한계: 데스크톱 앱의 현재 열린 파일/뷰포트에 의존해 일부 페이지만 반환할 수 있음
-- 사용자 URL의 node-id가 페이지(canvas 타입)면 그 페이지도 직접 진입 후보로 포함
+Call `mcp__plugin_figma_figma__get_metadata` with the fileKey alone.
+- The limit: it depends on the desktop app's open file and viewport, so it may return only some of the pages
+- If the node-id in the user's URL is a page (canvas type), include that page as a direct entry candidate too
 
-**페이지 0개**: 토큰 미설정 + plugin도 빈 응답이면, 출력 마지막의 "PAT 발급 가이드" 안내하고 종료.
+**Zero pages**: with no token set and an empty plugin response too, point at the "PAT setup guide" at the end of the output and stop.
 
-페이지가 1개뿐이면 선택 단계 생략하고 바로 3-2로 진행.
+With only one page, skip the selection step and go straight to 3-2.
 
-### 3. 페이지 선택 (페이지 ≥ 2개일 때)
+### 3. Pick the pages (when there are ≥ 2)
 
-`AskUserQuestion`으로 페이지 목록 제시:
+Present the page list through `AskUserQuestion`:
 - `multiSelect: true`
-- 각 페이지 이름을 option label로 (최대 4개까지만 표시 가능 — 페이지가 5개 이상이면 처음 3개 + "전체" + "직접 선택" 식으로 구성)
-- 페이지가 너무 많으면(8개 초과) 마크다운으로 번호 매겨 출력 후 사용자가 직접 번호 입력하게 안내
+- One page name per option label (at most 4 can be shown — with 5 or more pages, offer the first 3 plus "all" plus "pick manually")
+- With far too many (over 8), print a numbered markdown list and have the user type the numbers
 
-### 3-2. 프레임 트리 조회
+### 3-2. Read the frame tree
 
-선택된 페이지마다 `get_metadata` 호출:
-- `fileKey` + 페이지 `nodeId`
-- depth 2 정도로 충분 (페이지 직속 자식 = 최상위 프레임)
+Call `get_metadata` for each selected page:
+- `fileKey` + the page `nodeId`
+- depth 2 is enough (the page's direct children are the top-level frames)
 
-각 페이지의 최상위 프레임 ID 목록 수집.
+Collect the top-level frame ids for each page.
 
-### 4. 프레임 수 가드
+### 4. Frame-count guard
 
-전체 프레임 수가 설정 `tools.frame_count_guard` 를 넘으면 진행 전 경고한다:
-- 마크다운으로 "{N}개 프레임 발견. 스크린샷까지 받으면 시간/컨텍스트 부담이 큼. 계속할까요?" 출력
-- `AskUserQuestion`으로 "전부 진행 / 메타데이터만(스크린샷 생략) / 페이지 다시 선택" 분기
+If the total frame count exceeds `tools.frame_count_guard`, warn before proceeding:
+- Print, as markdown, "{N} frames found. Pulling screenshots too will cost significant time and context. Continue?"
+- Branch through `AskUserQuestion`: "all of it / metadata only (skip screenshots) / pick pages again"
 
-### 5. 프레임별 수집 (병렬)
+### 5. Collect per frame (in parallel)
 
-각 프레임에 대해 다음 두 호출을 한 메시지 안에 병렬로:
+For each frame, both calls go out in parallel inside one message:
 - `mcp__plugin_figma_figma__get_metadata` (fileKey + nodeId)
 - `mcp__plugin_figma_figma__get_screenshot` (fileKey + nodeId)
 
-한 번에 너무 많이 띄우면 무거우므로 **5개씩 배치**로 나눠 호출.
+Too many at once is heavy, so send them **in batches of 5**.
 
-스크린샷 호출이 실패해도 메타데이터는 살리고, 실패 사실은 출력에서 명시(`스크린샷: 실패`).
+If a screenshot call fails, keep the metadata and state the failure in the output (`screenshot: failed`).
 
-### 6. 마크다운 트리 출력
+### 6. Emit the markdown tree
 
-다음 형식으로 대화창에 출력:
+Print to the conversation in this form:
 
 ```
-# {파일명}
+# {file name}
 
-## {페이지명 1}
+## {page name 1}
 
-### {프레임명} (`{nodeId}`)
-- 링크: https://figma.com/design/{fileKey}/?node-id={nodeId(:→-)}
-- 크기: {width}×{height}
-- 자식 수: {childCount}
-- 스크린샷: {경로 또는 "실패"}
+### {frame name} (`{nodeId}`)
+- Link: https://figma.com/design/{fileKey}/?node-id={nodeId with : → -}
+- Size: {width}×{height}
+- Children: {childCount}
+- Screenshot: {path, or "failed"}
 
-### {프레임명 2} ...
+### {frame name 2} ...
 
-## {페이지명 2} ...
+## {page name 2} ...
 ```
 
-스크린샷은 `get_screenshot`이 반환한 이미지를 그대로 표시(어시스턴트 응답에 포함).
+Show the image `get_screenshot` returned as it is (inline in the assistant's response).
 
-### 7. 다음 액션 안내
+### 7. Point at what comes next
 
-출력 마지막에 한 줄로:
-> 다음 단계 후보: `/fig:prep`(구조 정리) · `/fig:lint`(검증) · `/fig:sync`(정본 반영 감사)
+One line at the end of the output:
+> Candidates for the next step: `/fig:prep` (tidy the structure) · `/fig:lint` (audit) · `/fig:sync` (audit against the canonical page)
 
-## Output Contract
+## Output contract
 
-- 모든 출력은 마크다운, 대화창에만 (파일/Notion 생성 없음)
-- 노드 링크는 클릭 가능한 figma.com URL 형식 — nodeId의 `:`를 `-`로 변환
-- 실패한 항목은 누락이 아니라 명시적으로 "실패" 표기
+- Everything is markdown, in the conversation only (no files, no external pages created)
+- Node links are clickable figma.com URLs — the nodeId's `:` becomes `-`
+- Failures are marked "failed" explicitly, never silently dropped
 
 ## Constraints
 
-- 파일/Notion/Slack 등 외부 쓰기 금지 — 순수 읽기 스킬
-- 페이지 선택 외에는 인터뷰 최소화 (사용자 부담 최소화)
-- 한 번 수집한 결과는 컨텍스트에 남으므로 후속 스킬이 이어받기 좋게 구조화
+- No external writes of any kind — this is a pure read skill
+- Beyond page selection, keep the interviewing minimal (as little burden on the user as possible)
+- What is collected stays in context, so structure it for the next skill to pick up
 
 ## Notes
 
-- plugin:figma MCP의 `get_metadata`/`get_screenshot`은 fileKey+nodeId만 있으면 호출 가능 — 데스크톱 앱 선택 상태 무관
-- 단, plugin MCP `get_metadata(fileKey only)`는 데스크톱 앱 컨텍스트에 묶여 일부 페이지만 노출됨 → 전체 페이지 enumerate는 Figma REST API가 필수
-- 컴포넌트/인스턴스/벡터까지 펴는 건 의도적으로 안 함. 최상위 프레임에서 멈춤
-- 디자인이 자주 바뀌면 결과 캐싱 의미 없음 — 매번 다시 호출
+- The plugin:figma MCP's `get_metadata` and `get_screenshot` need only fileKey + nodeId — the desktop app's selection state is irrelevant
+- But plugin MCP `get_metadata(fileKey only)` is bound to the desktop app's context and exposes only some pages → enumerating every page requires the Figma REST API
+- Expanding down into components, instances, and vectors is deliberately not done. It stops at top-level frames
+- When a design changes often there is no point caching the result — call again each time
 
-### Figma Personal Access Token (PAT) 설정
+### Setting up a Figma Personal Access Token (PAT)
 
-REST API 경로를 쓰려면 PAT가 필요. 1회 설정:
+The REST path needs a PAT. A one-time setup:
 
-1. Figma 웹 → 우상단 프로필 → Settings → **Security** 탭 → **Personal access tokens** → **Generate new token**
-2. Scope 최소화: `File content` → **Read-only**만 체크 (다른 권한 불필요)
-3. 토큰 복사 (한 번만 표시됨, `figd_` 로 시작)
-4. `~/.zshrc` 끝에 추가 (이름은 설정 `tools.figma_token_env` 와 맞춘다):
+1. Figma web → profile, top right → Settings → **Security** tab → **Personal access tokens** → **Generate new token**
+2. Minimise the scope: check `File content` → **Read-only** and nothing else
+3. Copy the token (shown once, starts with `figd_`)
+4. Add it to the end of `~/.zshrc` (matching the name in `tools.figma_token_env`):
 
    ```bash
-   export FIGMA_TOKEN="figd_여기에_붙여넣기"
+   export FIGMA_TOKEN="figd_paste_it_here"
    ```
 
-5. 새 터미널 열기 또는 `source ~/.zshrc` 실행
+5. Open a new terminal, or run `source ~/.zshrc`
 
-토큰 보안:
-- 절대 응답·로그·커밋에 노출 금지
-- jq로 파싱할 때도 헤더로만 전달, 응답 본문에만 의존
-- 만료 의심되면 Figma Security 탭에서 토큰 revoke 후 재발급
+Token safety:
+- Never expose it in a response, a log, or a commit
+- Even when parsing with jq, pass it in the header only and rely on the response body alone
+- If expiry is suspected, revoke the token in Figma's Security tab and reissue
 
-토큰 만료 감지 한계:
-- Figma PAT 는 토큰 자체에 만료일이 인코딩되지 않아 사전 조회가 안 된다
-- API 호출의 HTTP 응답 코드로만 사후 감지 가능
-- `401` 응답은 "토큰 없음·만료·무효"가 모두 같이 나오는 상태이므로, 스킬은 환경변수 존재 여부를 먼저 체크해 케이스를 분리함
+The limits of expiry detection:
+- A Figma PAT does not encode its expiry date, so there is no way to check ahead of time
+- It can only be detected after the fact, from an API call's HTTP status
+- A `401` covers "no token", "expired", and "invalid" all at once, so the skill checks the environment variable's existence first to separate the cases
