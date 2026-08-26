@@ -1,7 +1,7 @@
 {
   "name": "pm",
   "description": "A bundle for writing product specs against a format and verifying them. It gathers material first and proposes recommended answers, then catches vague wording and empty definitions before anything is written. Where it is stored is decided by config — markdown files, a git repo, or Notion.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "Junyoung Kim", "url": "https://www.linkedin.com/in/byjunyoung/" },
   "homepage": "https://github.com/byjunyoung/claude-product-skills",
   "repository": "https://github.com/byjunyoung/claude-product-skills",
