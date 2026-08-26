@@ -40,6 +40,28 @@ IDENTITY_STRINGS = ["8306FF", "XDS", "BarisON", "바리스", "라운지", "36131
 fails, warns, counts = [], [], []
 
 
+# **특정 파일에서 잰 공간 수치**만 본다. 판별 기준은 하나 — 이 값이 남의 파일에
+# 기본값으로 실리면 그 파일 전건이 위반으로 나오는가.
+# 스타일·허용오차·통계 문턱값은 누군가 정해야 하는 기본값이라 팀 값과 겹치는 게
+# 정상이고, 거기까지 넓히면 경고가 42건 나온다. 늘 켜져 있는 경고는 안 읽힌다.
+MEASURED_KEYS = {
+    "layout.column_grid", "layout.section_padding", "layout.frame_gap",
+    "layout.section_gap_same_row", "layout.domain_row_gap",
+    "layout.section_resize_margin",
+}
+
+
+def leaf_kv(o, prefix=""):
+    """잎 노드만 (경로, 값) 으로."""
+    if isinstance(o, dict) and o:
+        for k, v in o.items():
+            p = f"{prefix}.{k}" if prefix else k
+            if isinstance(v, dict) and v:
+                yield from leaf_kv(v, p)
+            else:
+                yield p, v
+
+
 def leaf_paths(o, prefix=""):
     if isinstance(o, dict) and o:
         for k, v in o.items():
@@ -87,11 +109,24 @@ def check_plugin(name, root, yaml):
     # 팀 설정 키가 스키마 안에 있는가
     team = Path.home() / ".claude" / TEAM_FILE.get(name, f"{name}-conventions.yaml")
     if team.exists() and known:
-        for p in leaf_paths(yaml.safe_load(team.read_text()) or {}):
+        tcfg = yaml.safe_load(team.read_text()) or {}
+        for p in leaf_paths(tcfg):
             if p.startswith("files."):        # 파일별 오버레이는 자유 키
                 continue
             if p not in known:
                 fails.append(f"[{name}] 팀 설정에만 있는 키: {p}")
+
+        # 내장 기본값이 팀 값과 똑같으면 실측값이 배포본에 실렸다는 뜻이다.
+        # layout 절 전체가 팀 설정과 바이트 단위로 같은 채로 나간 적이 있다.
+        # 우연히 겹칠 수도 있으니 경고로 둔다 — 판단은 사람이 한다
+        tv, sv = dict(leaf_kv(tcfg)), dict(leaf_kv(schema))
+        leaked = sorted(k for k in tv
+                        if k in MEASURED_KEYS and k in sv
+                        and tv[k] == sv[k] and tv[k] is not None)
+        if leaked:
+            warns.append(f"[{name}] 기본값이 팀 값과 동일: {', '.join(leaked[:6])}"
+                         + (f" 외 {len(leaked)-6}개" if len(leaked) > 6 else "")
+                         + " — 실측값이 배포본에 실렸는지 확인")
     elif not team.exists():
         warns.append(f"[{name}] 팀 설정 없음 ({team.name}) — 내장 기본값으로 동작")
 
