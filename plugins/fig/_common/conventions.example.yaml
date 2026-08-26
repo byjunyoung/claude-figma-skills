@@ -56,13 +56,16 @@ pages:
   queue:     null                             # 개발은 끝났고 정본 반영이 안 된 것
 
 # --- 배치 토큰 -----------------------------------------------------------------
+# 파일에서 재는 값이라 기본값을 두지 않는다. /fig:setup 이 관측해 채운다 —
+# 남의 팀 간격을 기본값으로 실으면 그 파일 전건이 위반으로 나온다
 layout:
-  column_grid: 1560                           # 화면 열 간격
-  section_padding: 120
-  frame_gap: 120
-  section_gap_same_row: 240
-  domain_row_gap: 480
-  section_resize_margin: [80, 160]            # 섹션 리사이즈 시 내용 bbox 여백 하한·상한
+  column_grid:          null                  # 화면 열 간격(열 피치)
+  section_padding:      null
+  frame_gap:            null
+  section_gap_same_row: null
+  domain_row_gap:       null
+  section_resize_margin: null                 # 섹션 리사이즈 시 내용 bbox 여백 하한·상한
+  # 아래 둘은 실측값이 아니라 판정 손잡이라 기본값을 둔다
   row_bucket: 1000                            # 행 판정 반올림 단위. 페이지 스케일에 맞춰 조정
   reference_frame_width: 1440                 # arrows 기본값이 기준으로 삼는 화면 폭
 
