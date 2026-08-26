@@ -9,7 +9,7 @@ Claude Code에서 디자인 파일과 기획 문서를 다루는 스킬 묶음 �
 | 플러그인 | 무엇을 | 스킬 |
 |---|---|---|
 | **fig** | 이미 그려진 Figma 파일을 정리·검증·동기화 | 13 |
-| **pm** | 기획 문서를 쓰고 검증하고, 거기서 나온 일감을 잡아 등록·정합 | 4 |
+| **pm** | 기획 문서를 쓰고 검증하고, 거기서 나온 일감을 잡아 등록·정합 | 5 |
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
@@ -196,6 +196,7 @@ flowchart TD
 
 | | |
 |---|---|
+| `/pm:setup` | 쓰는 도구들의 스키마를 읽어 설정 초안 — 손으로 못 찾는 id 포함 |
 | `/pm:prd` | 요구사항 문서를 양식에 맞춰 쓰고, 내기 전에 검증 |
 | `/pm:task-draft` | 요청 스레드를 일감 맥락표로 |
 | `/pm:task-publish` | 그 일감을 개발 트래커에 티켓으로 등록 |

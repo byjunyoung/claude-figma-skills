@@ -114,7 +114,7 @@ Create the record in `task.record`, writing properties and body in a single writ
 | Status | `task.properties.status_initial` |
 | Link to mirror | Left empty — `/pm:task-publish` fills it |
 
-**Read the tracker's own schema immediately before writing** and match the option names it currently has. Never trust option values pinned in this document or in the config — they drift.
+The calls are in `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md` for `task.record.type`. **Read the tracker's own schema immediately before writing** and match the option names it currently has. Never trust option values pinned in this document or in the config — they drift.
 
 **The body skeleton** comes from `task.notion.body_template` where one is set. Where it is `null`, write the context table alone and say that no template was applied. Some tools do not apply a database template automatically, which is why the skeleton is written explicitly rather than assumed.
 

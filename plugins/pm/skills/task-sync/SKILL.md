@@ -51,6 +51,8 @@ Read both sides in full where the tools allow it.
 
 Match each record to its ticket by the link property. Never match on the ticket body.
 
+The calls for each side are in `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md` — read the two matching `task.record.type` and `task.mirror.type` before scanning. They also carry what each tool cannot do, which is what the coverage line reports.
+
 ### 2. Diagnose — a rule broken is a drift
 
 | Kind | How it shows | What is proposed |
