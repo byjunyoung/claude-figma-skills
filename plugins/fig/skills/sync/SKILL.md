@@ -4,151 +4,151 @@ description: Audits whether changes finished on working and update pages actuall
 allowed-tools: AskUserQuestion, Bash, Read, Write, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 
-# fig:sync — 정본 최신화 (감사 → 반영 → 이관)
+# fig:sync — bring canonical current (audit → apply → archive)
 
-개발이 끝난 화면이 운영 페이지(정본)에 실제로 들어갔는지 전수로 대조하고, 빠진 것을 반영한 뒤 작업분을 아카이브로 옮긴다. 가이드가 정의한 릴리즈 후 절차를 사람 대신 집행하는 자리다.
+Checks every finished screen against the canonical page to see whether it actually landed there, applies what did not, then moves the working copies into the archive. This is the post-release procedure, executed instead of remembered.
 
-정본은 "현재 운영 중인 모습"이어야 하는데, 개발 반영과 정본 갱신은 서로 다른 시점에 일어난다. 그 사이가 벌어진 채로 방치되면 개발·QA가 옛 화면을 보고 판단한다. **이 스킬이 막는 사고는 그 시차다.**
+The canonical page is supposed to be "what is running right now", but shipping and updating canonical happen at different moments. Left alone, the gap widens and engineering and QA start making decisions against an old screen. **That lag is the accident this skill prevents.**
 
-**전제**: `use_figma` 호출 전 반드시 `figma:figma-use` 로드. 1단계(감사)는 **쓰기 0** — `use_figma`를 `return`으로 리포트만 하는 읽기 스크립트로 쓴다.
+**Prerequisites**: always load `figma:figma-use` before calling `use_figma`. Step 1 (audit) is **zero writes** — `use_figma` is used as a read-only script that only `return`s a report.
 
 ## When to invoke
 
-- "정본에 반영 안 된 화면 찾아줘", "운영 페이지 최신화해줘", "교체 안 된 것 전수 검사"
-- 릴리즈·개발 반영이 끝난 직후 정본을 맞출 때
-- 작업 페이지가 오래 쌓여 무엇이 반영됐는지 아무도 모를 때
-- 주기 점검 — 월 1회 정도 돌려 시차를 없애는 용도
+- "find what never made it into canonical", "bring the canonical page current", "check everything that wasn't replaced"
+- Right after a release or a batch of shipped work, to bring canonical in line
+- When working pages have piled up long enough that nobody knows what was applied
+- As a periodic sweep — roughly monthly, to keep the lag from opening
 
 ## When NOT to invoke
 
-- 시안 두 벌(AS-IS/TO-BE)의 변경점 표기·일감 문서 정리 → `/fig:diff`
-- 네이밍·섹션 정리, placeholder 채움 → `/fig:prep`
-- 규칙 위반 검증만 → `/fig:lint`
-- 흐름 화살표 → `/fig:arrows`
-- 프론트 레포 코드에 반영 → `/fig:code`
-- 파일 구조 파악만 → `/fig:read`
+- Marking changes between two designs (AS-IS/TO-BE) and writing up the task doc → `/fig:diff`
+- Naming and section tidying, stubbing placeholders → `/fig:prep`
+- Checking for violations only → `/fig:lint`
+- Flow arrows → `/fig:arrows`
+- Applying to frontend code → `/fig:code`
+- Just understanding the file structure → `/fig:read`
 
-## 규칙 원천 — 설정 파일 (fig:prep·fig:lint와 동일 출처)
+## Where the rules come from — the config file (same source as fig:prep and fig:lint)
 
-규칙은 **`figma-conventions.yaml`** 이 정한다. `resolve-config.py --js <fileKey>` 로 읽는다.
+The rules are set by **`figma-conventions.yaml`**, read through `resolve-config.py --js <fileKey>`.
 
-읽어 쓰는 절 — `pages`(3축 판별·제외 섹션) · `sync`(대조쌍 패턴·diff 상한·버전 페이지) · `naming`.
+Sections read: `pages` (the three axes, excluded sections) · `sync` (comparison-pair patterns, diff length limit, version pages) · `naming`.
 
-**반영 방식은 두 갈래고, 구조 대조가 그걸 가른다.** 기본은 프레임 이동이되, 레이어 구성이 같고 값만 다르면 이동 대신 값만 고친다 — 노드 id 가 유지돼야 기획서·티켓 딥링크가 안 끊기기 때문이다. 3단계가 그 판정을 집행하고, 어느 쪽을 썼는지 근거와 함께 결과 보고에 적는다.
+**There are two ways to apply a change, and a structure comparison decides which.** Moving the frame is the default, but when the layer composition is identical and only values differ, edit the values instead — node ids have to survive or the deep links in specs and tickets break. Step 3 executes that decision, and the report says which was used and why.
 
-팀 가이드 문서가 따로 있으면 설정 `guide_source` 에 적는다. 매 실행 fetch 하지 않는다.
+If the team keeps a written guide, point `guide_source` at it. It is not fetched on every run.
 
 ## Inputs
 
-- `figma_url` (필수): 대상 파일 URL. 특정 페이지를 지정해도 되지만, 감사는 파일 단위가 기본이다
-- `scope` (선택): 감사 범위를 특정 도메인·기간으로 좁힐 때
+- `figma_url` (required): the target file URL. A specific page can be given, but the audit is file-wide by default
+- `scope` (optional): to narrow the audit to a domain or a period
 
 ## Procedure
 
-### 1단계 — 축 확정 (추측 금지, 파일별로 설정에 남긴다)
+### Step 1 — settle the axes (never guess; record them per file)
 
-파일마다 관례가 갈린다. 버전 단위로 묶는 파일도, 기간 단위로 묶는 파일도, 구분선(`## 제목 ##` 형태의 빈 페이지)으로 진행 단계를 나누는 파일도 있다.
+Conventions differ per file. Some group by version, some by period, some split progress with divider pages (empty pages named `## title ##`).
 
-1. **설정 `files.<fileKey>.pages` 에 3축이 있으면 그대로 쓴다.** 있으면 2~5번을 건너뛴다
-2. 없으면 `figma.root.children` 으로 **페이지 목록과 순서**를 읽는다. `get_metadata` 의 파일 단위 응답은 페이지 목록이 불완전해 쓰지 않는다
-3. 세 축을 추정한다. 판별 방식이 두 가지라는 걸 잊지 않는다 — **이름으로 걸리는 축**(`match: name`)과 **구분선 아래 대역으로 걸리는 축**(`match: divider`)
+1. **If `files.<fileKey>.pages` already has the three axes, use them.** Skip to step 2 of the procedure
+2. Otherwise read **the page list and its order** from `figma.root.children`. The file-level response from `get_metadata` returns an incomplete page list, so it is not used
+3. Infer the three axes, remembering there are two ways to match — **by name** (`match: name`) and **by the band beneath a divider** (`match: divider`)
 
-   | 축 | 무엇 | 신호 |
+   | Axis | What it is | Signals |
    |---|---|---|
-   | 정본 | 대조 기준이 되는 운영 페이지 | 운영 prefix, 구조가 엄격하게 정리돼 있음 |
-   | 아카이브 | 반영이 끝나 정리된 작업분 | 버전·기간 prefix, 날짜·버전 섹션 계층 |
-   | 대기열 | 개발은 끝났고 정본 반영이 안 된 것 | 구분선 그룹 라벨(완료·배포 등), 개별 작업 페이지 |
+   | canonical | The page everything is compared against | A production prefix, strictly tidied structure |
+   | archive | Applied work, already tidied away | A version or period prefix, date or version section hierarchy |
+   | queue | Shipped by engineering, not yet in canonical | A divider group label (done, deployed), individual working pages |
 
-4. **구분선으로 나뉜 그룹을 반드시 훑는다.** 그룹 라벨이 "완료"에 해당하는 대역의 페이지가 곧 미반영 후보다. 이름 prefix 만 보고 아카이브 페이지만 대조하면 실제 미반영을 놓친다(실측). 대기열이 이름으로 안 잡히는 게 흔한 이유다
-5. 추정 결과를 **한 번 확인받는다** — 정본 N개 / 아카이브 M개 / 대기열 K개를 나열하고 맞는지
-6. 확인된 관례를 **설정 `files.<fileKey>` 에 적어 둔다**(label 과 3축). 다음 실행은 1번에서 바로 시작한다. 페이지 목록이 관례와 안 맞으면 다시 확인한다
+4. **Always sweep the groups split by dividers.** The pages in a band whose label means "done" are the un-applied candidates. Comparing only the archive pages found by name prefix misses real un-applied work — measured. This is exactly why the queue is usually not findable by name
+5. **Confirm the inference once** — list N canonical, M archive, K queue pages and ask whether that is right
+6. **Record the confirmed convention in `files.<fileKey>`** (the label and the three axes). The next run starts at point 1. If the page list stops matching the convention, confirm again
 
-### 2단계 — 감사 (쓰기 0, 3신호 판정)
+### Step 2 — audit (zero writes, three-signal judgement)
 
-아카이브·대기열의 각 작업 건이 정본에 들어갔는지 대조한다.
+Check each piece of work in the archive and queue against canonical.
 
-**프레임 이름으로는 안 잡힌다.** 작업분과 정본의 프레임 이름은 같게 유지되는 게 정상이라(같은 화면이므로), 이름 대조는 항상 "일치"로 나온다. 내용을 봐야 한다.
+**Frame names settle nothing.** The working copy and canonical keep the same frame names — it is the same screen — so a name comparison always says "match". You have to look at the content.
 
-**신호 1 — 텍스트 diff (주력)**
+**Signal 1 — text diff (the main one)**
 
-작업 건 안에 대조쌍 섹션이 있으면(이름 패턴은 설정 `sync.pair_patterns`) 양쪽 텍스트 집합을 뽑아 차집합을 구한다. 그것이 그 건의 변경 키워드다. 대조쌍이 없으면(신규 화면·단일안) 그 섹션 텍스트 전체를 후보로 본다.
+If the work contains a comparison pair (name patterns from `sync.pair_patterns`), take the text set of each side and difference them. That is the change keyword set for that piece. With no pair (a new screen, a single proposal), take the whole section's text as candidates.
 
-- 개선안에만 있는 문자열 → 정본에 **있어야** 반영
-- 현행안에만 있는 문자열 → 정본에 **없어야** 반영 (워딩 변경·항목 삭제가 여기 걸린다)
+- A string only in the new version → it **must be present** in canonical to count as applied
+- A string only in the current version → it **must be absent** from canonical to count as applied (this is what catches rewording and removals)
 
-**신호 2 — 프레임 높이**
+**Signal 2 — frame height**
 
-요소가 추가·삭제된 변경은 높이가 바뀐다. 개선안 높이와 정본 높이가 같고 현행안과 다르면 반영 정황, 반대면 미반영 정황. 단독으로는 판정하지 않고 신호 1의 보조로 쓴다.
+Changes that add or remove elements change the height. If the new version's height matches canonical and differs from the current version, that is evidence of applied; the reverse is evidence of not applied. Never decisive alone — it supports signal 1.
 
-**신호 3 — 컴포넌트 마스터**
+**Signal 3 — component master**
 
-컴포넌트 단위 변경(상태 추가·위계 정돈)은 프레임 텍스트에 안 드러난다. 정본 프레임 인스턴스의 `getMainComponentAsync()`로 마스터 id를 얻고, 작업분 쪽 인스턴스의 마스터 id와 비교한다. **같은 마스터를 참조하면 이미 통합된 것** — 마스터가 정본 페이지에 있으면 작업분 수정이 곧 정본 반영이다.
+Component-level changes (a state added, hierarchy tidied) do not show up in frame text. Get the master id from a canonical frame's instance via `getMainComponentAsync()` and compare it with the working copy's instance. **Referencing the same master means it is already merged** — if the master lives on the canonical page, editing the working copy *is* updating canonical.
 
-**결과는 3분류로만 낸다**
+**The result has exactly three buckets**
 
-| 분류 | 기준 |
+| Bucket | Basis |
 |---|---|
-| 반영 | 신호 중 하나 이상이 명확히 반영을 지지하고 반대 신호 없음 |
-| 미반영 | 개선안 키워드가 정본에 없거나, 현행안 키워드가 정본에 남아 있음 |
-| 확인 필요 | 세 신호가 모두 무증상 — 대조쌍 텍스트가 동일하고 높이도 같은 순수 시각 변경 |
+| Applied | At least one signal clearly supports it, with no signal against |
+| Not applied | A new-version keyword is missing from canonical, or a current-version keyword is still there |
+| Needs checking | All three signals are silent — a purely visual change where the pair's text is identical and heights match |
 
-**확인 필요 건은 판정하지 않는다.** 모아서 보고하고 스크린샷 대조를 돌릴지 묻는다 — 건수만큼 비용이 드니 자동으로 하지 않는다. 대조쌍의 현행안이 작업 후에 덧씌워져 개선안과 같아진 경우도 여기 들어오는데, 그 건은 대조 자료로 못 쓴다는 사실을 함께 적는다.
+**Never decide the needs-checking cases.** Collect them, report them, and ask whether to run a screenshot comparison — it costs per item, so it does not run automatically. Cases where the pair's "current" side was overwritten after the work and now matches the new version land here too; note that those cannot be used as comparison material at all.
 
-### 3단계 — 반영 (구조 대조로 방식 분기)
+### Step 3 — apply (structure comparison decides the method)
 
-미반영 건만 대상. 건별로 **먼저 구조를 대조**한다.
+Only the not-applied cases. For each one, **compare the structure first.**
 
-정본 프레임과 개선안 프레임의 텍스트 노드를 문서 순서대로 `부모이름|문자` 형태로 나열해 비교한다.
+List the text nodes of the canonical frame and the new-version frame in document order as `parent name|characters` and compare.
 
-- **순서·개수·부모 이름이 모두 일치** → 다른 것은 값뿐이다. **값만 수정한다.** 노드 id가 유지돼 외부 딥링크가 안 끊긴다. 수정 대상 개수를 미리 세어 기대값과 다르면 중단하는 방어를 스크립트에 넣는다
-- **하나라도 어긋남** → 구조가 바뀐 변경이다. **가이드대로 프레임을 이동**하고, 정본의 옛 프레임 id를 가리키던 외부 링크가 끊긴다는 사실을 리포트에 적는다(→ 딥링크 감사)
+- **Order, count, and parent names all match** → only the values differ. **Edit the values.** Node ids survive, so external deep links hold. Count the intended edits in advance and put a guard in the script that aborts when the count differs from expected
+- **Anything differs** → the structure changed. **Move the frame** as the convention prescribes, and note in the report that external links pointing at the old canonical frame id will break (see the deep link audit)
 
-값 수정은 텍스트 편집이므로 대상 노드의 **현재 폰트를 `getStyledTextSegments(['fontName'])`로 읽어 로드**한 뒤 바꾼다. 기본 폰트를 가정하지 않는다.
+Value edits are text edits, so **read the target node's current fonts with `getStyledTextSegments(['fontName'])` and load them** before writing. Never assume a default font.
 
-**미리보기 → go.** 대상 프레임, 바꿀 항목과 개수, 방식(값 수정/이동)과 그 근거를 적는다. 건이 여러 개면 쪼개서 건별로 게이트를 통과한다.
+**Preview → go.** State the target frames, what will change and how many, the method (value edit or move), and the reasoning. With several pieces, split them and pass a gate per piece.
 
-반영 직후 같은 대조를 다시 돌려 결과가 개선안과 일치하는지 확인한다.
+Right after applying, run the same comparison again and confirm the result matches the new version.
 
-### 4단계 — 이관
+### Step 4 — archive
 
-정본 반영이 끝난 작업 페이지를 아카이브로 옮긴다.
+Move working pages whose changes are now in canonical into the archive.
 
-1. **어느 아카이브 페이지·어느 기간(버전) 섹션에 넣을지 확인받는다.** 페이지 id 대역으로 작업 시점을 추정할 수 있지만 실제 개발 완료 시점은 파일에 없다 — 추측하지 말고 묻는다
-2. 아카이브의 **기존 작업 섹션에서 여백·간격·배경 스타일을 읽어** 새 작업 섹션에 그대로 적용한다. 스타일을 새로 정하지 않는다
-3. 프레임을 새 섹션으로 이동하고 기존 관례 위치에 배치
-4. 비워진 작업 페이지는 **자식이 0개임을 확인한 뒤** 삭제한다. 페이지 삭제는 되돌릴 수 없으므로 **다른 확인과 합치지 않고 독립 게이트**로 묻는다
-5. 아카이브 페이지가 오래 쌓였으면 보관 대역으로 옮길 후보만 알린다 — 이 스킬은 아카이브 개명·이동을 직접 하지 않는다
+1. **Confirm which archive page and which period (version) section they belong to.** Page id ranges hint at when the work happened, but the actual ship date is not in the file — ask rather than guess
+2. **Read padding, spacing, and background style from an existing work section** in the archive and apply the same to the new one. Do not invent a style
+3. Move the frames into the new section and place them at the conventional position
+4. Delete the emptied working page **after confirming it has zero children**. Page deletion cannot be undone, so ask for it as **an independent gate**, never folded into another confirmation
+5. If the archive pages have piled up, only name the candidates for moving into long-term storage — this skill does not rename or move archives itself
 
-**섹션을 늘릴 때는 4변 교차를 실제 좌표로 계산한다.** 페이지 안 섹션이 세로로 정렬돼 있지 않아 "아래 섹션"을 눈대중으로 고르면 틀린다. 세로 구간만 겹치고 가로는 안 겹치는 경우도 있어 네 변을 모두 봐야 한다.
+**When stretching a section, compute all four edges from real coordinates.** Sections on a page are not vertically ordered, so picking "the section below" by eye is wrong. There are cases that overlap vertically but not horizontally, so all four edges have to be checked.
 
-### 5단계 — 검증
+### Step 5 — verify
 
-- `/fig:lint` 를 호출해 프레임 소속·경계·섹션 겹침을 통과 확인한다. clone·move 가 끼면 필수
-- 이동한 프레임의 텍스트 노드 수가 이동 전과 같은지 확인한다
-- 정본에 두지만 검사 대상은 아닌 참고 자료(사이즈 변형 등)는 설정 `pages.exclude_sections` 에 걸리는 섹션에 넣는다. 일반 섹션에 두면 상태 변형 누락·흐름 orphan 으로 오탐된다
+- Call `/fig:lint` and confirm frame membership, bounds, and section overlap pass. Mandatory when clone or move was involved
+- Confirm the moved frames have the same text node count as before the move
+- Reference material kept in canonical but excluded from audits (size variants and the like) goes in a section matching `pages.exclude_sections`. Left in a normal section it reports as a missing state variant or a flow orphan
 
-## 결과 보고
+## Reporting
 
 ```
-감사 N건  →  반영 X · 미반영 Y · 확인 필요 Z
+audited N  →  applied X · not applied Y · needs checking Z
 
-[미반영 — 처리]
-· 건명 (담당)
-  이전: 정본이 어떤 상태였는지
-  반영: 무엇을 어떻게 바꿨는지 / 방식(값 수정·이동)과 근거
+[not applied — handled]
+· name (owner)
+  before: what canonical looked like
+  applied: what changed and how / method (value edit or move) and why
 
-[확인 필요]
-· 건명 — 어느 신호가 무증상인지, 스크린샷 대조 필요 여부
+[needs checking]
+· name — which signals were silent, whether a screenshot comparison is needed
 
-[이관]
-· 작업 페이지 → 아카이브 위치, 삭제 여부
+[archived]
+· working page → archive location, whether deleted
 ```
 
-미반영이 0건이면 그것만 짧게 보고한다.
+If nothing was un-applied, report just that, briefly.
 
-## 구현 스니펫
+## Implementation snippets
 
-**대조쌍 텍스트 diff (아카이브 한 페이지 통째)**
+**Comparison-pair text diff (one whole archive page)**
 
 ```js
 const page = await figma.getNodeByIdAsync(PAGE_ID);
@@ -171,11 +171,11 @@ for (const grp of page.children.filter(c => c.type === 'SECTION')) {
 return out;
 ```
 
-**키워드를 정본 프레임에서 찾기**
+**Finding the keywords in canonical frames**
 
 ```js
-const KW = [/* 위 diff에서 뽑은 문자열 */];
-function tf(n, acc) {   // 섹션 계층을 뚫고 화면 프레임만 모은다
+const KW = [/* the strings from the diff above */];
+function tf(n, acc) {   // dig through the section hierarchy, collect screen frames only
   for (const c of n.children || []) {
     if (c.type === 'SECTION') tf(c, acc);
     else if (['FRAME','COMPONENT','INSTANCE'].includes(c.type) && !c.name.startsWith('[label]')) acc.push(c);
@@ -188,22 +188,22 @@ for (const f of tf(figma.currentPage, [])) {
   const txt = f.findAll(x => x.type === 'TEXT').map(t => t.characters).join('');
   for (const kw of KW) if (txt.includes(kw)) res[kw].push(f.name);
 }
-return res;   // 빈 배열 = 그 키워드가 정본에 없음
+return res;   // an empty array means that keyword is absent from canonical
 ```
 
-**구조 대조 (값 수정이 가능한지 판정)**
+**Structure comparison (can this be a value edit?)**
 
 ```js
-// 양쪽 페이지에서 각각 실행해 결과를 비교한다 (setCurrentPageAsync는 스크립트당 1회)
+// Run on each page separately and compare the results (one setCurrentPageAsync per script)
 const f = await figma.getNodeByIdAsync(FRAME_ID);
 return f.findAll(x => x.type === 'TEXT').map(t => `${t.parent.name}|${t.characters.replace(/\n/g,' ')}`);
-// 두 배열의 길이·순서·부모 이름이 전부 같으면 값만 다르다 → 값 수정 가능
+// Same length, same order, same parent names on both sides → only values differ → value edit is safe
 ```
 
-**값 수정 (방어 + 폰트 로드)**
+**Value edit (guard plus font loading)**
 
 ```js
-const edits = [/* [textNode, newValue] 쌍 */];
+const edits = [/* [textNode, newValue] pairs */];
 if (edits.length !== EXPECTED) throw new Error(`aborted: expected ${EXPECTED}, got ${edits.length}`);
 const fonts = new Set();
 for (const [t] of edits) for (const s of t.getStyledTextSegments(['fontName'])) fonts.add(JSON.stringify(s.fontName));
@@ -212,36 +212,36 @@ for (const [t, v] of edits) t.characters = v;
 return { mutatedNodeIds: edits.map(([t]) => t.id) };
 ```
 
-**섹션 확장 전 4변 교차 검사**
+**Four-edge intersection check before stretching a section**
 
 ```js
 const t = target.absoluteBoundingBox;
-const T = { x: t.x, y: t.y, r: t.x + t.width, b: t.y + t.height };   // 확장 후 값으로 계산
+const T = { x: t.x, y: t.y, r: t.x + t.width, b: t.y + t.height };   // computed with the post-stretch values
 return figma.currentPage.children.filter(c => c.type === 'SECTION' && c.id !== target.id)
   .map(s => { const b = s.absoluteBoundingBox;
     return { name: s.name, hit: b.x < T.r && b.x + b.width > T.x && b.y < T.b && b.y + b.height > T.y }; })
-  .filter(s => s.hit);   // 비어야 안전
+  .filter(s => s.hit);   // must be empty to be safe
 ```
 
-## 함정
+## Traps
 
-| 함정 | 대응 |
+| Trap | What to do |
 |---|---|
-| 프레임 이름이 양쪽 같아 이름 대조가 항상 "일치" | 내용 3신호로 판정. 이름은 페어링에만 쓴다 |
-| 아카이브 페이지만 대조하고 끝냄 | 구분선 그룹의 완료 대역이 실제 미반영 소굴 — `match: divider` 축을 반드시 포함 |
-| 대조쌍의 현행안이 작업 후 덧씌워져 개선안과 동일 | 그 건은 대조 불가로 분류하고 정본 구조를 직접 확인 |
-| 프레임 통째 교체로 외부 딥링크 끊김 | 구조가 같으면 값만 수정. 이동이 불가피하면 끊길 링크를 리포트 |
-| 섹션 확장이 이웃 섹션 침범 | 확장 후 좌표로 4변 교차 계산. 세로만 보지 않는다 |
-| 섹션 자식 좌표를 절대 좌표로 착각 | 섹션 자식의 x/y는 부모 섹션 기준 상대 좌표 |
-| 폰트 로드 없이 텍스트 수정 | 노드의 현재 폰트를 읽어 로드. 기본 폰트를 가정하지 않는다 |
-| 참고 자료를 정본 섹션에 배치 | lint 제외 섹션에 넣어 오탐 방지 |
-| 빈 작업 페이지를 다른 확인과 묶어 삭제 | 페이지 삭제는 독립 게이트. 자식 0개 확인 후 실행 |
+| Identical frame names make every name comparison say "match" | Judge on the three content signals. Names are only for pairing |
+| Comparing archive pages and stopping there | The "done" band under a divider is where un-applied work actually hides — always include the `match: divider` axis |
+| The pair's current side was overwritten after the work and now matches the new version | Classify it as un-comparable and inspect canonical's structure directly |
+| Replacing a whole frame breaks external deep links | When the structure matches, edit values only. If a move is unavoidable, report which links will break |
+| A stretched section invades its neighbour | Compute the four-edge intersection with post-stretch coordinates. Do not check vertically alone |
+| Mistaking a section child's coordinates for absolute | A section child's x/y are relative to the parent section |
+| Editing text without loading the font | Read the node's current fonts and load them. Never assume a default |
+| Putting reference material in a canonical section | Put it in a lint-excluded section to prevent false positives |
+| Deleting an empty working page as part of another confirmation | Page deletion is its own gate. Confirm zero children first |
 
 ## Constraints
 
-- 1·2단계는 **쓰기 0** — 감사 중에는 어떤 노드도 바꾸지 않는다
-- 3·4단계의 모든 쓰기는 **미리보기 → go**. 건이 여러 개면 건별로 게이트를 통과한다
-- **페이지 삭제는 독립 게이트** — 다른 확인과 합치지 않는다
-- 설정에 없는 판단(값 수정이냐 이동이냐)은 쓸 때마다 근거를 결과 보고에 적는다
-- 아카이브 페이지의 개명·이동은 하지 않는다 — 후보만 알린다
-- 정본을 신규안에 없는 방향으로 "개선"하지 않는다. 반영은 신규안과 일치시키는 것까지다
+- Steps 1 and 2 are **zero writes** — no node changes during the audit
+- Every write in steps 3 and 4 goes through **preview → go**. With several pieces, pass a gate per piece
+- **Page deletion is an independent gate** — never folded into another confirmation
+- Any judgement the config does not cover (value edit versus move) has its reasoning written into the report each time
+- Archive pages are never renamed or moved by this skill — only named as candidates
+- Never "improve" canonical in a direction the new version does not have. Applying means matching the new version, and stopping there
