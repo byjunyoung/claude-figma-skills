@@ -95,6 +95,17 @@ def check_plugin(name, root, yaml):
     elif not team.exists():
         warns.append(f"[{name}] 팀 설정 없음 ({team.name}) — 내장 기본값으로 동작")
 
+    # 스크립트에도 고유값이 샌다. SKILL.md 만 보다가 주석에 팀 폰트 이름이
+    # 남은 채 배포된 적이 있다 — 검사 범위가 문서에만 걸려 있었기 때문이다.
+    if (common / "scripts").is_dir():
+        for f in sorted((common / "scripts").rglob("*")):
+            if not f.is_file() or f.suffix not in (".js", ".py", ".sh"):
+                continue
+            t = f.read_text(errors="ignore")
+            for w in TEAM_STRINGS:
+                if w in t:
+                    fails.append(f"[{name}] {f.name}: 고유값 '{w}'")
+
     # 스크립트 문법
     chk = common / "scripts" / "lib" / "check.sh"
     if chk.exists():
