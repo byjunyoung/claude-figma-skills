@@ -1,18 +1,18 @@
 /* =============================================================================
- * probe-page.js — 한 페이지에서 관례를 역추출한다 (읽기 전용, 쓰기 0)
+ * probe-page.js — infers conventions from one page (read-only, zero writes)
  *
- * /figma-setup 이 낯선 파일의 conventions.yaml 초안을 만들 때 쓴다.
- * 규칙을 판정하지 않고 **관측치만** 낸다 — 무엇을 관례로 볼지는 호스트에서 집계한다.
+ * Used by /fig:setup when drafting a conventions.yaml for an unfamiliar file.
+ * It decides no rules and emits **observations only** — what counts as a convention is aggregated on the host.
  *
- * 앞에 붙일 것: `const PAGE_ID = "<page id>";`
- * 반환: 아래 shape 의 관측 객체
+ * What to prepend: `const PAGE_ID = "<page id>";`
+ * Returns: an observation object of the shape below
  *
- * 판정하지 않는 이유 — 표본이 한 페이지뿐이면 우연을 관례로 굳힌다.
- * 여러 페이지를 병렬로 돌려 합산한 뒤에야 최빈값을 관례로 본다.
+ * Why it decides nothing — with one page as the sample, coincidence hardens into convention.
+ * Only after running several pages in parallel and summing them does the mode count as a convention.
  * ========================================================================== */
 
 const page = await figma.getNodeByIdAsync(PAGE_ID);
-if (!page) return { error: `페이지 없음: ${PAGE_ID}` };
+if (!page) return { error: `page not found: ${PAGE_ID}` };
 await figma.setCurrentPageAsync(page);
 
 const hex = c => "#" + [c.r, c.g, c.b].map(v =>
@@ -34,8 +34,8 @@ const out = {
   arrows: { count: 0, styles: [], headGaps: [] },
   labels: { count: 0, styles: [] },
   stateLinks: 0,
-  dashedFrames: [],          // placeholder 후보
-  pageDirectFrames: 0        // 섹션 밖 화면 프레임 = 이 페이지가 느슨하다는 신호
+  dashedFrames: [],          // placeholder candidates
+  pageDirectFrames: 0        // screen frames outside a section = a signal that this page is loose
 };
 
 for (const f of page.children) if (f.type === "FRAME") out.pageDirectFrames++;
@@ -53,7 +53,7 @@ for (const s of secs) {
   const frames = s.children.filter(c => c.type === "FRAME");
   for (const f of frames) {
     out.frameNames.push(f.name);
-    const m = f.name.match(/-([A-Za-z][\w]*)$/);        // [화면명]-[상태] 의 상태부
+    const m = f.name.match(/-([A-Za-z][\w]*)$/);        // the state part of [screen name]-[state]
     if (m) out.suffixes[m[1]] = (out.suffixes[m[1]] || 0) + 1;
     if (Array.isArray(g(f, "dashPattern")) && f.dashPattern.length)
       out.dashedFrames.push({ name: f.name, dash: f.dashPattern,
@@ -61,8 +61,9 @@ for (const s of secs) {
         strokeWeight: g(f, "strokeWeight") });
   }
 
-  // 간격은 **인접 쌍만** 센다. 모든 쌍을 세면 배수(2칸·3칸 건너뛴 거리)가 목록을 덮어
-  // 최빈값이 무너진다 — 실측에서 frame_gap 이 24/69(35%)로 떨어져 추정 불가가 됐다.
+  // Gaps count **adjacent pairs only**. Counting every pair floods the list with multiples
+  // (distances skipping two or three slots) and the mode collapses — measured, frame_gap fell
+  // to 24/69 (35%) and became impossible to infer.
   const bucket = (arr, key) => {
     const m = {};
     for (const f of arr) { const k = Math.round(f[key] / 8); (m[k] = m[k] || []).push(f); }
@@ -72,7 +73,7 @@ for (const s of secs) {
     row.sort((a, b) => a.x - b.x);
     for (let i = 1; i < row.length; i++) {
       out.gaps.frameX.push(Math.round(row[i].x - (row[i - 1].x + row[i - 1].width)));
-      out.columnPitch.push(Math.round(row[i].x - row[i - 1].x));   // 열 그리드 = 인접 열 시작점 차이
+      out.columnPitch.push(Math.round(row[i].x - row[i - 1].x));   // column grid = the difference between adjacent column origins
     }
   }
   for (const col of bucket(frames, "x")) {
@@ -89,7 +90,7 @@ for (const s of secs) {
     } else if (n.name.includes("-->")) {
       out.arrows.count++;
       if (out.arrows.styles.length < 8) out.arrows.styles.push(st);
-      // 화살촉과 도착 프레임 사이 여백 — 기본값 역추출용
+      // the gap between the arrowhead and the target frame — for inferring the default
       const to = n.name.split("-->")[1];
       const T = to && frames.find(f => f.name === to.trim());
       if (T) {
@@ -119,7 +120,7 @@ for (const s of secs) {
   }
 }
 
-// 섹션 간 간격 — 프레임과 같은 이유로 인접 쌍만
+// Gaps between sections — adjacent pairs only, for the same reason as frames
 const sbucket = (key) => {
   const m = {};
   for (const s of secs) { const k = Math.round(s[key] / 40); (m[k] = m[k] || []).push(s); }

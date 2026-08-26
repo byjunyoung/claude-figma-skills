@@ -1,37 +1,37 @@
 # pm
 
-기획 문서를 양식에 맞춰 쓰고, 쓰기 전에 검증하는 스킬 묶음.
+A bundle for writing product specs against a format, and verifying them before they are written out.
 
-| 명령 | 무엇을 |
+| Command | What it does |
 |---|---|
-| `/pm:prd` | 요구사항 문서 신규 작성·보강 |
+| `/pm:prd` | Writes a new requirements document, or extends one |
 
-## 어디에 쓰나
+## Where it writes
 
-저장 대상은 `pm-conventions.yaml`의 `prd.target`이 정합니다. 골격은 어느 쪽이든 같고 발행 방식만 갈립니다.
-
-```
-markdown   로컬 파일. 기본값 — 다른 도구가 필요 없다
-git        마크다운으로 쓰고 브랜치·PR 까지
-notion     Notion 페이지. prd.notion 절을 채워야 동작한다
-```
-
-## 설정
+Where it is stored is decided by `prd.target` in `pm-conventions.yaml`. The skeleton is the same either way; only the publishing differs.
 
 ```
-플러그인 내장 기본값                바닥
-      ↓ 덮어씀
-~/.claude/pm-conventions.yaml      내 공통 설정
-      ↓ 덮어씀
-./pm-conventions.yaml              프로젝트별 (가장 셈)
+markdown   local files. The default — no other tool required
+git        written as markdown, then a branch and a PR
+notion     a Notion page. Requires the prd.notion section filled in
 ```
 
-세 층을 겹쳐 읽으므로 **필요한 키만 적으면 됩니다.** 전체 스키마는 `_common/conventions.example.yaml`에 있습니다.
+## Configuration
 
-## 이 스킬이 지키는 것
+```
+the plugin's bundled defaults        the floor
+      ↓ covered by
+~/.claude/pm-conventions.yaml        your own shared config
+      ↓ covered by
+./pm-conventions.yaml                per project (strongest)
+```
 
-**모호함을 남기지 않습니다.** 판정·집계의 단위, 필터·정렬의 대상, '대표' 선정 기준, 상태 전환의 정의 — 이 넷이 비면 기능이 성립하지 않으니 값으로 채웁니다. 자료로 정할 수 있는데 TBD로 둔 칸이 하나라도 있으면 검증을 통과시키지 않습니다.
+Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`.
 
-**기획 문서를 개발 문서로 만들지 않습니다.** `forbidden_terms`에 적힌 말이 본문에 있으면 반려합니다. "무엇(요구)"까지만 쓰고 "어떻게(구현)"는 개발에 위임하거나 TBD로 둡니다.
+## What this skill holds to
 
-**쓰기 전에 멈춥니다.** 검증은 읽기 전용이고, 발행은 미리보기 → "go" 뒤에만, 그것도 뼈대 → 사용자 그룹 → 기능 항목으로 쪼개서 합니다.
+**It leaves no ambiguity.** The unit of judgement and aggregation, the target of filtering and sorting, the criteria for picking a 'representative', the definition of a state transition — a feature does not work with those four left blank, so they get filled with values. One slot left TBD that the material could have settled does not pass verification.
+
+**It does not turn a product spec into an engineering doc.** Anything on the `forbidden_terms` list appearing in the body is rejected. Write as far as "what" (the requirement) and leave "how" (the implementation) to engineering or to a TBD.
+
+**It stops before writing.** Verification is read-only, publishing happens only after preview → "go", and even then split into skeleton → user groups → feature entries.

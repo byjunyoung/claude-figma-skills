@@ -231,12 +231,6 @@ An item with no screen becomes a diagram rather than an empty card. A chain (A�
 
 43. **A card shrunk to its content goes in the vertical centre of the band** — an archetype's card height presupposes filling from the label's top to the key statement's bottom. Put a paragraph in and shrink the card and it stays pinned to the top with a large gap below. Centring it in the band splits the margin above and below. Keep cards in a row at equal height, matched to the tallest, but put that difference exceeding 100px into the checks
 
-## Related
-
-- No template assets, or stale ones → `/fig:deck-setup`
-- Design values and the archetype catalog are in `template-spec.md` in `deck.assets_dir`, the builders in `template.js`, the generic helpers in `${CLAUDE_PLUGIN_ROOT}/_common/scripts/deck-base.js`
-- Where a recurring deck needs its own data collection, finish that collection upstream and hand it to this skill as the source
-
 44. **After deleting slides, `getSlideGrid()` keeps returning dead nodes** — calling it again inside the same script leaves the deleted nodes in the array, and it throws on a single `s.name`. The next call comes back stale too. **Take a copy of the slide array before deleting and handle the aftermath from that copy.** Later reads walk up from one surviving node through its parents to the `SLIDE_ROW` and read `children` rather than using the grid. Where slides are named by number, do not forget to renumber the ones behind a deletion
 
 45. **Do not mechanically give one slide to one section of the source** — one-to-one by section is convenient for keeping the order but erases the differences in volume. A section with four sub-items and a section with four sentences getting the same single slide inverts the density. Choose the archetype by item count on top of that (four figures, so a 2×2 metrics slide) and the thinnest section ends up with the largest type in the deck. **Count the slides using the deck's largest type and ask whether that is what belongs there.** And before cutting a slide, count how many more times the same material appears in the deck — appearing twice already means cutting leaves no hole. Whether to cut it from the source too is a separate question: a section there may be tied to a research question, a summary table, or a follow-up item, so find every tie exhaustively before deciding
@@ -244,3 +238,9 @@ An item with no screen becomes a diagram rather than an empty card. A chain (A�
 46. **Settle the register of the body copy first** — where the source is academic or report prose, the sentences get carried over as they are, and on a presentation screen that reads as long-winded. Body copy defaults to the compressed register the language offers (in Korean, nominal endings). **But apply it in layers** — titles and leads stay as present-tense assertions (turning "the bar disagrees with reality" into "disagreement" costs the title its force). Direct quotations stay verbatim, and lists, labels, and table cells already in that register are left alone. When changing register, **swap the endings only and leave hand-placed newlines alone** — the compressed form is the same length or shorter, so the line count and height do not change and no rebreaking or re-verification is needed. Check afterwards that the line count and height are unchanged
 
 47. **A slide child's x/y is relative to its parent, not to the slide** — adding the slide's absolute coordinate to a value read from `absoluteBoundingBox` pushes the node over by the slide's width. Read as `b.x - slide.absoluteBoundingBox.x`, and write that relative value into `node.x` **as it is**. And **do not trust `clone()` to land in the same parent as the original** — a node cloned inside a slide has been known to attach to the slide next door. After cloning, pin membership with `slide.appendChild(clone)`, and only then set the coordinates (the same order as pitfall 4). After placement, check `parent.id` and the slide's child count together
+
+## Related
+
+- No template assets, or stale ones → `/fig:deck-setup`
+- Design values and the archetype catalog are in `template-spec.md` in `deck.assets_dir`, the builders in `template.js`, the generic helpers in `${CLAUDE_PLUGIN_ROOT}/_common/scripts/deck-base.js`
+- Where a recurring deck needs its own data collection, finish that collection upstream and hand it to this skill as the source

@@ -1,35 +1,37 @@
 #!/usr/bin/env python3
-"""probe-page.js 관측치 → figma-conventions.yaml 초안.
+"""probe-page.js observations → a figma-conventions.yaml draft.
 
     python3 draft-conventions.py probe1.json probe2.json ... [--pages pages.txt]
 
-각 값에 근거(표본 수·비율)를 주석으로 달고, 표본이 얇으면 값을 넣지 않고 null 로 둔다.
-**추정을 확정처럼 쓰지 않는 것이 이 도구의 전부다** — 애매한 건 사람이 채워야 한다.
+Every value carries its evidence (sample count and ratio) as a comment, and a thin sample
+leaves the value out as null rather than filling it in.
+**Not writing an inference as though it were settled is the whole of this tool** — what is
+ambiguous has to be filled in by a person.
 """
 import json, re, sys
 from collections import Counter
 
-MIN_SUPPORT = 3          # 이 수 미만 표본은 관례로 보지 않는다
-DOMINANCE = 0.6          # 최빈값이 이 비율 미만이면 갈린 것으로 본다
+MIN_SUPPORT = 3          # fewer samples than this does not count as a convention
+DOMINANCE = 0.6          # a mode below this ratio counts as split
 
 
 def mode(vals, min_support=MIN_SUPPORT, dominance=DOMINANCE):
-    """(값, 근거문자열) 또는 (None, 사유)."""
+    """(value, evidence string) or (None, reason)."""
     vals = [v for v in vals if v is not None]
     if not vals:
-        return None, "관측 0"
+        return None, "0 observed"
     c = Counter(json.dumps(v, sort_keys=True, ensure_ascii=False) for v in vals)
     top, n = c.most_common(1)[0]
     ratio = n / len(vals)
     if len(vals) < min_support:
-        return None, f"표본 {len(vals)}개 — 부족"
+        return None, f"{len(vals)} samples — too few"
     if ratio < dominance:
-        return None, f"갈림 (최빈 {n}/{len(vals)}, {ratio:.0%})"
+        return None, f"split (mode {n}/{len(vals)}, {ratio:.0%})"
     return json.loads(top), f"{n}/{len(vals)} ({ratio:.0%})"
 
 
 def snap(vals, grid=4):
-    """좌표 오차를 흡수하려고 격자에 맞춰 반올림한 뒤 최빈값을 본다."""
+    """Rounds to a grid to absorb coordinate noise, then takes the mode."""
     return [round(v / grid) * grid for v in vals if isinstance(v, (int, float)) and v > 0]
 
 
@@ -45,17 +47,17 @@ def main():
         probes.extend(d if isinstance(d, list) else [d])
     probes = [p for p in probes if not p.get("error")]
     if not probes:
-        sys.exit("관측치 없음")
+        sys.exit("no observations")
 
     L, notes = [], []
 
     def line(k, v, why, indent=2):
         L.append(f"{' ' * indent}{k}: {y(v)}" + (f"   # {why}" if why else ""))
 
-    # ── 네이밍 ────────────────────────────────────────────────
+    # ── Naming ────────────────────────────────────────────────
     frames = [n for p in probes for n in p.get("frameNames", [])]
     secnames = [s["name"] for p in probes for s in p.get("sections", [])]
-    fr_re = r'^.+-[^-\s]+$'        # 접미사를 라틴 문자로 제한하면 비라틴 상태명이 전건 오탐된다
+    fr_re = r'^.+-[^-\s]+$'        # restricting the suffix to Latin characters false-positives every non-Latin state name
     fr_hit = sum(1 for n in frames if re.match(fr_re, n))
     fr_ok = frames and fr_hit / len(frames) >= DOMINANCE
 
@@ -68,33 +70,35 @@ def main():
     states = [k for k, v in suf.most_common() if v >= 2]
 
     L.append("naming:")
-    line("frame", "{screen}-{state}" if fr_ok else None, f"{fr_hit}/{len(frames)} 일치" if frames else "관측 0")
-    line("frame_pattern", fr_re if fr_ok else None, "" if fr_ok else "패턴이 안 잡힘 — 검사 안 함")
-    line("section", "NN. {domain} - {feature}" if sec_ok else None, f"{sec_num}/{len(secnames)} 번호 접두")
+    line("frame", "{screen}-{state}" if fr_ok else None, f"{fr_hit}/{len(frames)} match" if frames else "0 observed")
+    line("frame_pattern", fr_re if fr_ok else None, "" if fr_ok else "no pattern found — check disabled")
+    line("section", "NN. {domain} - {feature}" if sec_ok else None, f"{sec_num}/{len(secnames)} number-prefixed")
     line("section_pattern", r'^\d{2}\. .+$' if sec_ok else None, "")
-    line("states", states or None, f"접미사 빈도 상위: {dict(suf.most_common(8))}" if suf else "관측 0")
-    L.append("  required_states: null   # 화면 유형 판정이 필요해 자동 추정 불가 — 직접 채운다")
+    line("states", states or None, f"most frequent suffixes: {dict(suf.most_common(8))}" if suf else "0 observed")
+    L.append("  required_states: null   # needs a screen-type judgement, so it cannot be inferred — fill it in")
     for k, v in [("arrow_delimiter", " --> "), ("state_chain_delimiter", " ~ "),
                  ("label_prefix", "[label] "), ("state_chain_prefix", "[state] ")]:
         L.append(f"  {k}: {y(v)}")
+    # The non-English alternatives here and below are detection breadth, not untranslated text:
+    # section names are written in the team's own language, so dropping them would narrow the probe.
     ncommon = [s for s in secnames if re.match(r'^공통|^common', s, re.I)]
-    line("common_page_pattern", None, "공통 페이지는 파일 밖에 있을 수 있어 추정하지 않는다" if not ncommon else f"섹션 {len(ncommon)}건 관측 — 확인 필요")
+    line("common_page_pattern", None, "a shared page may live outside this file, so nothing is inferred" if not ncommon else f"{len(ncommon)} sections observed — needs confirming")
     line("common_frame_prefix", None, "")
     L.append("")
 
-    # ── 페이지 ────────────────────────────────────────────────
+    # ── Pages ─────────────────────────────────────────────────
     excl = sorted({s for s in secnames if re.match(r'^템플릿$|^[Tt]emplate$|^\[?[Aa]rchive|^9\d\.', s)})
     L.append("pages:")
-    L.append("  strict: []     # 자동 추정 불가 — 어느 페이지가 정본인지는 사람이 안다")
+    L.append("  strict: []     # cannot be inferred — which page is canonical is something a person knows")
     L.append("  free: []")
     L.append("  readonly: []")
-    line("exclude_sections", [f"^{re.escape(s)}$" for s in excl] or [], f"관측된 제외 후보: {excl}" if excl else "후보 없음")
+    line("exclude_sections", [f"^{re.escape(s)}$" for s in excl] or [], f"exclusion candidates observed: {excl}" if excl else "no candidates")
     L.append("  protected_numbers: []")
     for k in ("canonical", "archive", "queue"):
-        L.append(f"  {k}: null   # figma-sync 첫 실행에서 확인받아 채운다")
+        L.append(f"  {k}: null   # confirmed and filled on the first /fig:sync run")
     L.append("")
 
-    # ── 배치 ─────────────────────────────────────────────────
+    # ── Layout ────────────────────────────────────────────────
     fx = snap([v for p in probes for v in p["gaps"]["frameX"]])
     fy = snap([v for p in probes for v in p["gaps"]["frameY"]])
     sx = snap([v for p in probes for v in p["gaps"]["sectionX"]])
@@ -107,17 +111,17 @@ def main():
     sgy, sgyw = mode(sy)
     L.append("layout:")
     line("column_grid", cg, cgw)
-    line("section_padding", None, "섹션 내부 여백은 프레임 위치만으론 안 갈라진다 — 직접 채운다")
+    line("section_padding", None, "section padding cannot be separated from frame positions alone — fill it in")
     line("frame_gap", fg, fgw)
     line("section_gap_same_row", sgx, sgxw)
     line("domain_row_gap", sgy, sgyw)
     L.append("  section_resize_margin: [80, 160]")
     L.append("  row_bucket: 1000")
     ws = [s["w"] for p in probes for s in p.get("sections", [])]
-    L.append(f"  reference_frame_width: null   # 화면 폭 관측 필요 (섹션 폭 중앙값 {sorted(ws)[len(ws)//2] if ws else '-'})")
+    L.append(f"  reference_frame_width: null   # needs a screen-width observation (median section width {sorted(ws)[len(ws)//2] if ws else '-'})")
     L.append("")
 
-    # ── 섹션 스타일 ────────────────────────────────────────────
+    # ── Section style ─────────────────────────────────────────
     S = [s for p in probes for s in p.get("sections", [])]
     fill, fw = mode([s["fill"] for s in S])
     strk, sw = mode([s["stroke"] for s in S])
@@ -143,12 +147,12 @@ def main():
     line("stroke", ps["hex"] if ps else None, psw)
     line("stroke_weight", mode([d["strokeWeight"] for d in D])[0], "")
     line("dash", pd, pdw)
-    L.append("  font: null   # 점선 프레임 안 텍스트를 직접 확인해 채운다")
+    L.append("  font: null   # check the text inside a dashed frame yourself and fill it in")
     L.append("  text_color: null")
     L.append('  text_prefix: "Placeholder — "')
     L.append("")
 
-    # ── 화살표 ────────────────────────────────────────────────
+    # ── Arrows ────────────────────────────────────────────────
     A = [a for p in probes for a in p["arrows"]["styles"]]
     HG = snap([v for p in probes for v in p["arrows"]["headGaps"]], grid=1)
     LB = [l for p in probes for l in p["labels"]["styles"]]
@@ -159,9 +163,9 @@ def main():
     line("color", ac["hex"] if ac else None, acw)
     line("stroke_weight", aw_, aww)
     dashes = [a["dash"] for a in A if a["dash"]]
-    line("dash_conditional", mode(dashes)[0] if dashes else None, f"점선 화살표 {len(dashes)}건")
+    line("dash_conditional", mode(dashes)[0] if dashes else None, f"{len(dashes)} dashed arrows")
     line("head_gap", hg, hgw)
-    L.append("  trunk: null            # 엘보 경로에서만 드러나 자동 추정이 부정확하다")
+    L.append("  trunk: null            # only shows on elbow paths, so inference is unreliable")
     L.append("  trunk_to_target_min: null")
     L.append("  parallel_offset: null")
     L.append('  cap: { start: ROUND, end: ARROW_EQUILATERAL }')
@@ -187,7 +191,7 @@ def main():
     L.append("component_audit:")
     L.append("  min_samples: 5")
     L.append("  dominance: 0.9")
-    L.append("  body_offset: null   # 화면 공통 껍데기 폭·높이 — 화면 하나를 열어 재야 한다")
+    L.append("  body_offset: null   # the shared shell's width and height — open one screen and measure")
     L.append("")
     L.append("design_system:\n  library: auto\n  token_prefixes: []\n  match_threshold_channel: 8\n")
     L.append("sync:")
@@ -201,20 +205,20 @@ def main():
     L.append("files: {}")
 
     head = [
-        "# figma-conventions.yaml — /figma-setup 자동 초안",
+        "# figma-conventions.yaml — auto-draft from /fig:setup",
         "#",
-        f"# 관측 페이지 {len(probes)}개 · 섹션 {len(S)}개 · 프레임 {len(frames)}개"
-        f" · 화살표 {sum(p['arrows']['count'] for p in probes)}개",
+        f"# observed {len(probes)} pages · {len(S)} sections · {len(frames)} frames"
+        f" · {sum(p['arrows']['count'] for p in probes)} arrows",
         "#",
-        "# null 은 '추정하지 않았다'는 뜻이다. 추정을 확정처럼 쓰지 않으려고 비워 둔 것이므로,",
-        "# 그대로 두면 해당 검사를 건너뛴다. 아는 값은 직접 채운다.",
-        "# 각 줄 주석의 n/m 은 그 값이 몇 건 중 몇 건에서 관측됐는지다.",
+        "# null means 'not inferred'. It is left empty so an inference is never written as settled,",
+        "# and left as it is, that check is skipped. Fill in whatever you know.",
+        "# The n/m in each line comment is how many observations out of how many carried that value.",
         "",
     ]
     print("\n".join(head + L))
     pd_ = sum(p.get("pageDirectFrames", 0) for p in probes)
     if pd_:
-        print(f"\n# 참고: 섹션 밖 페이지 직속 프레임 {pd_}개 관측 — 이 파일은 섹션 규약이 느슨할 수 있다.",
+        print(f"\n# Note: {pd_} frames observed sitting directly on a page outside any section — this file's section convention may be loose.",
               file=sys.stderr)
 
 

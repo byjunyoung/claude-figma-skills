@@ -1,20 +1,20 @@
 /* =============================================================================
- * arrow-build.js — 흐름 화살표 생성 헬퍼 (프리앰블)
+ * arrow-build.js — flow arrow creation helpers (preamble)
  *
- * 이 파일은 감사가 아니라 **빌드용 프리앰블**이다. 앞에 설정을 붙이고, 뒤에
- * 실제 생성 호출을 이어 붙여 use_figma 에 넣는다. deck/deck-assets/preamble.js 와 같은 방식.
+ * This is not an audit but a **build preamble**. Prepend the config, append the actual
+ * creation calls, and hand the whole thing to use_figma. The same shape as a deck preamble.
  *
  *   const CFG = {...};        ← resolve-config.py --js
- *   <이 파일 전문>
- *   const sec = figma.currentPage.children.find(c => c.name === "01. 회원 - 목록");
- *   await straight(sec, "로그인-Default", "홈-Default");
+ *   <this whole file>
+ *   const sec = figma.currentPage.children.find(c => c.name === "01. Member - List");
+ *   await straight(sec, "Login-Default", "Home-Default");
  *   return { createdNodeIds: [...] };
  *
- * 좌표는 밖에서 계산해 넘기지 않는다. find() 로 스크립트 안에서 실시간 조회한다 —
- * 사용자가 그 사이 캔버스를 재배치했을 수 있다.
+ * Coordinates are never computed outside and passed in. They are looked up live inside the
+ * script with find() — the user may have rearranged the canvas in the meantime.
  *
- * 규칙은 설정이 정한다(색·굵기·트렁크·여백·라벨). 페이지에 기존 화살표가 있으면
- * 그 stroke 를 읽어 따르는 게 우선이고, 없을 때만 이 기본값을 쓴다.
+ * The config decides the rules (colour, weight, trunk, clearance, labels). Where the page already
+ * has arrows, reading their stroke and following it comes first; these defaults apply only otherwise.
  * ========================================================================== */
 
 const C = typeof CFG !== "undefined" ? CFG : {};
@@ -41,17 +41,17 @@ const STATE_P = NM.state_chain_prefix || "[state] ";
 const arrowName = (from, to) => from + ARROW_D + to;
 const chainName = (from, to) => STATE_P + from + CHAIN_D + to;
 
-/** 섹션 내 프레임 좌표 실시간 조회. 섹션 기준 상대좌표를 준다.
- *  섹션 간 화살표는 section.x/y 를 더해 절대좌표로 바꿔 계산한다. */
+/** Live lookup of a frame's coordinates within a section. Returns section-relative coordinates.
+ *  A cross-section arrow adds section.x/y to convert to absolute before computing. */
 function find(section, name) {
   const n = section.children.find(c => c.name === name && c.type === "FRAME");
-  if (!n) throw new Error(`프레임 없음: ${name}`);
+  if (!n) throw new Error(`frame not found: ${name}`);
   return { x: n.x, y: n.y, w: n.width, h: n.height,
            r: n.x + n.width, b: n.y + n.height,
            cx: n.x + n.width / 2, cy: n.y + n.height / 2 };
 }
 
-/** 꼭짓점 배열로 화살표 생성. 2점이면 직선, 3점 이상이면 직각 엘보.
+/** Creates an arrow from an array of vertices. Two points is a straight line, three or more a right-angle elbow.
  *  opts: { dashed, bidirectional } */
 async function arrow(parent, name, pts, opts) {
   const o = opts || {};
@@ -69,22 +69,22 @@ async function arrow(parent, name, pts, opts) {
   v.strokeWeight = WEIGHT;
   if (o.dashed) v.dashPattern = DASH;
   v.name = name;
-  parent.appendChild(v);          // appendChild 가 먼저, 좌표는 그 다음
+  parent.appendChild(v);          // appendChild first, coordinates after
   v.x = minX; v.y = minY;
   return v.id;
 }
 
-/* ── 경로 패턴 3종 (도착이 오른쪽 기준. 다른 방향은 축 대칭) ─────────────────── */
+/* ── Three path patterns (target on the right. Other directions mirror on the axis) ─── */
 
-/** 1) 직선 — 교차축 좌표가 같을 때 */
+/** 1) Straight — when the cross-axis coordinates match */
 async function straight(section, fromName, toName, opts) {
   const s = find(section, fromName), d = find(section, toName);
   return arrow(section, arrowName(fromName, toName),
     [[s.r, s.cy], [d.x - GAP, s.cy]], opts);
 }
 
-/** 2) 분기 트렁크 엘보 — 같은 출발점에서 여러 도착지로.
- *  trunkX 는 출발 프레임당 하나로 공유해야 줄기가 겹쳐 한 줄로 보인다. */
+/** 2) Branching trunk elbow — from one source to several targets.
+ *  trunkX must be shared, one per source frame, so the trunks overlap and read as a single line. */
 async function trunkElbow(section, fromName, toName, trunkX, opts) {
   const s = find(section, fromName), d = find(section, toName);
   const tx = trunkX != null ? trunkX : s.r + TRUNK;
@@ -92,9 +92,10 @@ async function trunkElbow(section, fromName, toName, trunkX, opts) {
     [[s.r, s.cy], [tx, s.cy], [tx, d.cy], [d.x - GAP, d.cy]], opts);
 }
 
-/** 3) 우회(ㄷ자) — 직행 경로가 다른 프레임과 교차할 때 행 위 복도로.
- *  위/아래로 돌아 닿을 땐 좌·우변이 아니라 상·하변을 타겟해야 한다 —
- *  좌변을 노리고 수직 하강하면 화살촉이 변과 평행해 옆 허공을 가리킨다. */
+/** 3) Detour (a U shape) — up into the corridor above the row when the direct path crosses another frame.
+ *  Arriving from above or below must target the top or bottom edge, not the left or right —
+ *  aiming at the left edge and descending vertically leaves the arrowhead parallel to that edge,
+ *  pointing at empty space beside it. */
 async function detour(section, fromName, toName, corridorY, opts) {
   const s = find(section, fromName), d = find(section, toName);
   const cy = corridorY != null ? corridorY : Math.min(s.y, d.y) - 80;
@@ -102,8 +103,8 @@ async function detour(section, fromName, toName, corridorY, opts) {
     [[s.cx, s.y], [s.cx, cy], [d.cx, cy], [d.cx, d.y - GAP]], opts);
 }
 
-/** 라벨 pill. 반드시 화살표를 다 만든 뒤 호출한다 — pill 이 z순서 위여야
- *  선이 라벨 텍스트를 관통하지 않는다. (cx, cy) 는 라벨을 얹을 선 위의 중심점. */
+/** The label pill. Always call it after every arrow is made — the pill has to be above in z-order
+ *  or the line runs through the label text. (cx, cy) is the centre point on the line it sits on. */
 async function pill(section, forArrowName, text, cx, cy) {
   const font = LB.font || { family: "Inter", style: "Medium", size: 20 };
   await figma.loadFontAsync({ family: font.family, style: font.style });
@@ -122,18 +123,18 @@ async function pill(section, forArrowName, text, cx, cy) {
   t.fills = [{ type: "SOLID", color: hx(LB.text_color || "#59616E") }];
   p.appendChild(t);
   section.appendChild(p);
-  p.x = cx - p.width / 2;         // hug 측정이 끝난 뒤 중앙 정렬
+  p.x = cx - p.width / 2;         // centred after the hug measurement completes
   p.y = cy - p.height / 2;
   return p.id;
 }
 
-/** [state] 상태 체인 — 같은 화면의 인접 상태 변형을 잇는 화살촉 없는 점선.
- *  전환이 아니라 묶음 표시다. 같은 열에 위아래로 맞닿은 쌍에만 쓴다 —
- *  사이에 다른 프레임이 끼면 직선이 그걸 관통한다. */
+/** [state] chain — a headless dashed line joining one screen's adjacent state variants.
+ *  It marks a grouping, not a transition. Use it only on pairs that touch vertically in one column —
+ *  another frame in between gets crossed by the straight line. */
 async function stateLink(section, fromName, toName) {
   const f = find(section, fromName), t = find(section, toName);
   const v = figma.createVector();
-  await v.setVectorNetworkAsync({                 // strokeCap 미지정 = 화살촉 없음
+  await v.setVectorNetworkAsync({                 // no strokeCap = no arrowhead
     vertices: [{ x: 0, y: 0 }, { x: 0, y: t.y - f.b }],
     segments: [{ start: 0, end: 1 }]
   });
@@ -146,7 +147,7 @@ async function stateLink(section, fromName, toName) {
   return v.id;
 }
 
-/** 경로가 다른 프레임을 지나는지. straight 로 판정 후 걸리면 trunkElbow·detour 로 승격한다. */
+/** Whether the path crosses another frame. Judge with straight first, and on a hit promote to trunkElbow or detour. */
 function hits(section, pts, exclude) {
   const skip = new Set(exclude || []);
   const rects = section.children

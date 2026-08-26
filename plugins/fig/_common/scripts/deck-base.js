@@ -1,21 +1,21 @@
 /* =====================================================================
- * DECK BASE — Figma Slides 빌드 공통 헬퍼
+ * DECK BASE — shared helpers for Figma Slides builds
  *
- * 빌드 스크립트 맨 위에 이 파일을 붙이고, 그 아래에 /fig:deck-setup 이 만든
- * template.js (팔레트 C · 타이포 T · 레이아웃 상수 · 아키타입 빌더) 를 붙인다.
- * 순서가 이 방향이어야 한다 — 여기 함수들은 선언이라 끌어올려지고, C·T 는
- * 호출 시점에만 읽히므로 아래에서 정의돼도 된다.
+ * Put this file at the top of a build script, and below it the template.js that
+ * /fig:deck-setup produced (palette C · type T · layout constants · archetype builders).
+ * The order has to be this way round — the functions here are declarations and hoist,
+ * while C and T are read only at call time, so they may be defined below.
  *
- * 이 파일에는 **값이 없다.** 색·크기·좌표는 전부 template.js 몫이다.
- * 여기 값을 박으면 다른 팀 템플릿에서 그 값이 그대로 새어 나간다.
+ * **There are no values in this file.** Colours, sizes, and coordinates all belong to template.js.
+ * Pin a value here and it leaks straight through into another team's template.
  *
- * template.js 가 정의해야 하는 것
- *   C     { bg, text, textMuted, cardSurface, ... }   0~1 범위 색
+ * What template.js has to define
+ *   C     { bg, text, textMuted, cardSurface, ... }   colours in the 0–1 range
  *   T     { title, h1, h2, body1, ... }               {size, style, ls, lh}
- *   FAMS  ['<팀 폰트>', 'Inter']                       선호 순 폰트 후보
+ *   FAMS  ['<team font>', 'Inter']                    font candidates in order of preference
  *
- * use_figma 규칙이 박혀 있다 — appendChild 를 x/y 보다 먼저, characters 전에
- * 폰트 로드, 색은 0~1, fills 는 새 배열로 재대입.
+ * The use_figma rules are baked in — appendChild before x/y, load the font before characters,
+ * colours in 0–1, fills reassigned as a new array.
  * ===================================================================== */
 
 function hx(h) {
@@ -23,10 +23,10 @@ function hx(h) {
   return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
 }
 
-/* ---- 폰트 -------------------------------------------------------------
- * 클라우드 환경에는 팀 폰트가 없을 수 있다. 후보를 순서대로 찔러 있는 것을 쓴다.
- * 굵기 이름이 패밀리마다 달라서(Inter 는 'Semi Bold', 대개는 'SemiBold')
- * f() 로 한 겹 감싼다. */
+/* ---- Fonts ------------------------------------------------------------
+ * A cloud environment may not have the team font. Probe the candidates in order and use
+ * whichever exists. Weight names differ per family (Inter says 'Semi Bold', most say
+ * 'SemiBold'), so f() wraps that difference. */
 let FAM = null;
 async function loadFonts() {
   const avail = await figma.listAvailableFontsAsync();
@@ -44,10 +44,10 @@ function f(style) {
   return { family: FAM, style: style };
 }
 
-/* ---- named 텍스트 스타일 바인딩 ----------------------------------------
- * 빌드가 끝난 뒤 각 TEXT 를 family|style|size 로 파일의 named 스타일에 묶는다.
- * 못 찾으면 raw 값으로 남긴다 — 사다리 밖 크기나 폰트 대체 상황에서는 정상이다.
- * 색은 건드리지 않는다(텍스트 스타일은 타입만 담는다). */
+/* ---- Binding named text styles ----------------------------------------
+ * After the build, bind each TEXT to the file's named styles by family|style|size.
+ * What cannot be found stays as a raw value — normal for sizes outside the scale, or
+ * where a font was substituted. Colour is left alone (a text style carries type only). */
 let _styleIdx = null;
 async function applyTextStyles(root) {
   if (!_styleIdx) {
@@ -59,18 +59,18 @@ async function applyTextStyles(root) {
   const texts = root.type === 'TEXT' ? [root] : root.findAllWithCriteria({ types: ['TEXT'] });
   let bound = 0;
   for (const t of texts) {
-    if (typeof t.fontName === 'symbol') continue;          // 여러 서식이 섞인 런
+    if (typeof t.fontName === 'symbol') continue;          // a run with mixed formatting
     const id = _styleIdx[`${t.fontName.family}|${t.fontName.style}|${t.fontSize}`];
     if (id && t.textStyleId !== id) { try { await t.setTextStyleIdAsync(id); bound++; } catch (e) {} }
   }
   return bound;
 }
 
-/* ---- 요소 헬퍼 (appendChild → 속성 → x/y) -------------------------------
- * 순서를 바꾸면 노드가 밀린다. 헬퍼를 쓰면 순서가 강제된다. */
+/* ---- Element helpers (appendChild → properties → x/y) ------------------
+ * Change the order and the node shifts. Using the helpers forces the order. */
 
-// 테마가 입혀진 예시 슬라이드 id 를 넣어두면 그걸 복제해 테마를 물려받는다.
-// 비어 있으면 createSlide 로 맨 슬라이드를 만든다 — 폰트·색이 'Pick a style' 로 깨진다.
+// Give it the id of a themed sample slide and it clones that to inherit the theme.
+// Left empty, createSlide makes a bare slide — fonts and colours break into 'Pick a style'.
 let REF_SLIDE = null;
 function newSlide(bg) {
   let s;
@@ -109,19 +109,19 @@ function addRect(parent, o) {
   return r;
 }
 
-// scaleMode 'FIT' 는 안 자른다(기본). 'FILL' 은 잘린다 — 사진·배경에만.
+// scaleMode 'FIT' does not crop (the default). 'FILL' crops — photographs and backgrounds only.
 function addImageRect(parent, o) {
   const r = figma.createRectangle(); parent.appendChild(r);
   r.resize(o.w, o.h);
   if (o.radius) r.cornerRadius = o.radius;
   r.fills = o.imageHash
     ? [{ type: 'IMAGE', imageHash: o.imageHash, scaleMode: o.scaleMode || 'FIT' }]
-    : [{ type: 'SOLID', color: C.cardSurface }];       // 이미지 준비 전 자리
+    : [{ type: 'SOLID', color: C.cardSurface }];       // the slot before the image is ready
   if (o.x != null) r.x = o.x; if (o.y != null) r.y = o.y;
   return r;
 }
 
-function addLine(parent, o) {                            // 가는 선·대각 모티프. rot 은 도(°)
+function addLine(parent, o) {                            // hairlines and diagonal motifs. rot is in degrees
   const l = figma.createLine(); parent.appendChild(l);
   l.resize(o.len, 0);
   if (o.rot) l.rotation = o.rot;
@@ -131,16 +131,16 @@ function addLine(parent, o) {                            // 가는 선·대각 �
   return l;
 }
 
-// 오토레이아웃 프레임 안의 텍스트. 슬라이드 직속에 layoutSizing 을 쓰면 던진다
+// text inside an auto-layout frame. layoutSizing directly under a slide throws
 function alText(parent, o) {
   const t = addText(parent, o);
   if (o.fill) t.layoutSizingHorizontal = 'FILL';
   return t;
 }
 
-/* ---- 측정 -------------------------------------------------------------
- * 자동 꺾임 검사의 기준. 렌더 줄 수가 수동 개행 수보다 크면 조판기가
- * 낱말 한가운데를 자르고 있다는 뜻이다. */
+/* ---- Measurement ------------------------------------------------------
+ * The basis for the auto-wrap check. A rendered line count greater than the manual
+ * newline count means the typesetter is cutting mid-word. */
 function renderedLines(t) {
   const lh = (t.lineHeight && t.lineHeight.unit === 'PERCENT') ? t.lineHeight.value / 100 : 1.2;
   return Math.round(t.height / (t.fontSize * lh));
@@ -150,9 +150,9 @@ function manualLines(t) {
 }
 function isWrapped(t) { return renderedLines(t) > manualLines(t); }
 
-/* ---- 좌표 -------------------------------------------------------------
- * 슬라이드 자식의 x/y 는 슬라이드 기준이 아니라 부모 기준이다.
- * absoluteBoundingBox 로 읽은 값을 그대로 쓰면 슬라이드 폭만큼 밀려난다. */
+/* ---- Coordinates ------------------------------------------------------
+ * A slide child's x/y is relative to its parent, not to the slide.
+ * Writing a value read from absoluteBoundingBox as-is pushes it over by the slide's width. */
 function relTo(slide, node) {
   const a = node.absoluteBoundingBox, s = slide.absoluteBoundingBox;
   return { x: a.x - s.x, y: a.y - s.y, w: a.width, h: a.height };
