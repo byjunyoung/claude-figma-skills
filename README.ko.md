@@ -17,7 +17,7 @@ claude plugin install pm@byjunyoung      # 기획 문서까지 쓸 때
 
 아래는 대부분 `fig` 이야기입니다. `pm`은 [따로 정리해 뒀습니다](#pm--기획-문서).
 
-[어떤 자리에 서는 도구인가](#어떤-자리에-서는-도구인가) · [누가 쓰면 좋은가](#누가-쓰면-좋은가) · [무엇을 해결하나](#무엇을-해결하나) · [어떻게 쓰나](#어떻게-쓰나) · [스킬 열세 개](#스킬-열세-개) · [설치](#설치) · [설정](#설정) · [설계 원칙](#설계-원칙) · [pm](#pm--기획-문서)
+[어떤 자리에 서는 도구인가](#어떤-자리에-서는-도구인가) · [누가 쓰면 좋은가](#누가-쓰면-좋은가) · [무엇을 해결하나](#무엇을-해결하나) · [어떻게 쓰나](#어떻게-쓰나) · [스킬 열세 개](#스킬-열세-개) · [시작하기](#시작하기) · [설정](#설정) · [막혔을 때](#막혔을-때) · [설계 원칙](#설계-원칙) · [pm](#pm--기획-문서)
 
 ---
 
@@ -208,19 +208,49 @@ notion     Notion 페이지. prd.notion 절을 채워야 동작
 
 ---
 
-## 설치
+## 시작하기
+
+### 미리 있어야 하는 것
+
+| 무엇 | 왜 |
+|---|---|
+| **Claude Code** | Claude Code 플러그인입니다 |
+| **Figma MCP 플러그인**(`plugin:figma`) | `fig` 스킬은 전부 이걸 거쳐 Figma를 읽고 씁니다. 응답하는지 먼저 확인하세요 |
+| **평소 쓰는 Figma 파일** | `/fig:setup`은 실제 파일을 재서 관례를 뽑습니다. 빈 파일은 관측할 게 없습니다 |
+| **`python3` + PyYAML, `node`** | 설정 해석은 호스트에서 돌고, 감사 스크립트는 `node --check`로 문법을 봅니다 |
+| **Figma 개인 액세스 토큰** *(선택)* | `/fig:read`만 씁니다. 페이지를 전수로 훑을 때 REST API가 필요해서인데, 없으면 MCP로 물러나 일부 페이지만 보일 수 있습니다 |
+
+`pm`은 Figma 쪽이 하나도 필요 없습니다. 기획 문서만 쓴다면 그것만 깔면 됩니다.
+
+### 1. 설치
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install fig@byjunyoung
-claude plugin install pm@byjunyoung
+claude plugin install pm@byjunyoung      # 기획 문서도 쓴다면
 ```
 
-갱신은 `claude plugin marketplace update byjunyoung` 한 줄이고, 두 플러그인에 함께 적용됩니다.
+`claude plugin list`에 `fig@byjunyoung`이 보이면 된 것입니다. 나중에 갱신은 `claude plugin marketplace update byjunyoung`.
 
-- **필요한 것** — Claude Code, Figma MCP 플러그인(`plugin:figma`), `python3` + PyYAML, `node`
-- **설치 확인** — `claude plugin list`에 `fig@byjunyoung`·`pm@byjunyoung`이 보이면 됩니다
-- **설치 뒤** — 대상 파일에서 `/fig:setup`을 먼저 돌려 설정을 만듭니다
+### 2. 파일을 읽게 한다
+
+```
+/fig:setup <Figma 파일 URL>
+```
+
+Figma에는 아무것도 쓰지 않습니다. 이 파일이 프레임 이름을 어떻게 짓는지, 섹션 간격을 얼마로 두는지, 화살표를 어떤 스타일로 그리는지를 세어 최빈값을 관례로 잡고, **못 정한 건 추측하지 않고 `null`로 둡니다.** 표본이 얇거나 값이 갈리면 `null`이 되고, 그건 채워 넣는 대신 물어봅니다.
+
+초안은 `~/.claude/figma-conventions.yaml`에 떨어집니다. 플러그인을 지웠다 깔아도 남는 자리입니다. 프로젝트 안에 두고 싶으면 `out: ./figma-conventions.yaml`로 지정하세요.
+
+받아들이기 전에 줄 주석을 읽어보세요. 근거가 붙어 있습니다 — `24/69 (35%)`는 69번 관측 중 24번 나왔다는 뜻이고, 그래서 그 값이 `null`이 된 것입니다.
+
+### 3. 첫 검증을 읽는다
+
+`/fig:setup`은 마지막에 `/fig:lint`까지 돌려 줍니다. **위반 건수가 아니라 오탐 비율로 읽으세요.**
+
+거의 모든 프레임이 걸렸다면 파일이 아니라 설정이 틀린 것입니다. 걸리게 만든 패턴을 느슨하게 하거나 `null`로 검사를 끄면 됩니다. 봤을 때 "이건 진짜네" 싶은 게 몇 건 나오면 맞게 잡힌 것입니다.
+
+여기까지가 세팅입니다. 이후 흐름은 [어떻게 쓰나](#어떻게-쓰나)에 있습니다.
 
 ## 설정
 
@@ -234,7 +264,7 @@ claude plugin install pm@byjunyoung
 ./figma-conventions.yaml              프로젝트별 (가장 셈)
 ```
 
-전체 스키마는 [`conventions.example.yaml`](_common/conventions.example.yaml)에 있습니다. 14개 절, 112개 항목이고 값마다 무엇을 검사하는지 주석이 붙어 있어 그대로 복사해 고쳐 쓰면 됩니다. 생긴 모양은 이렇습니다.
+전체 스키마는 [`conventions.example.yaml`](plugins/fig/_common/conventions.example.yaml)에 있습니다. 14개 절, 112개 항목이고 값마다 무엇을 검사하는지 주석이 붙어 있어 그대로 복사해 고쳐 쓰면 됩니다. 생긴 모양은 이렇습니다.
 
 ```yaml
 naming:
@@ -263,6 +293,40 @@ arrows:
 - **파일별 설정** — 정본·아카이브 페이지 구분처럼 파일마다 다른 항목은 `files.<fileKey>`에 적습니다
 
 초안이 나오면 `/fig:lint`를 한 번 돌려 오탐률로 검증합니다. 위반이 전건에 가까우면 파일이 잘못된 게 아니라 설정이 틀린 것입니다.
+
+---
+
+## 막혔을 때
+
+**리포트에 "기본값으로 진행"이 찍힙니다.**
+설정 파일이 아예 안 읽히고 있습니다. 프로젝트 폴더에서 `python3 plugins/fig/_common/scripts/lib/resolve-config.py --where`를 돌리면 실제로 찾은 파일을 찍어 줍니다. 대개 파일명 오타이거나, `~/.claude/`가 아닌 데 놓여 있습니다.
+
+**파일 전체가 위반으로 나옵니다.**
+파일이 아니라 설정이 틀린 것입니다. 네이밍 패턴이 너무 빡빡하면 이렇게 됩니다 — 상태 접미사를 라틴 문자로 제한한 패턴은 한글 이름을 전건 오탐합니다. 패턴을 느슨하게 하거나 `null`로 그 검사를 끄세요.
+
+**스킬을 고쳤는데 안 바뀝니다.**
+설치본은 `plugins/cache/<마켓>/<플러그인>/<버전>/`에 버전으로 고정돼 있습니다. `plugin.json`의 버전을 그대로 두면 마켓을 갱신해도 설치본은 옛 코드를 계속 씁니다. 버전을 올리고 → `claude plugin marketplace update` → uninstall·install 순입니다.
+
+**`check.sh`에서 `Permission denied`가 납니다.**
+GitHub Contents API로 올라간 파일에는 실행 비트가 안 따라옵니다. 직접 실행하지 말고 `bash <경로>`로 부르세요.
+
+**Figma 토큰 요청이 401로 돌아옵니다.**
+401은 "토큰 없음"·"만료"·"무효"가 다 같이 나오는 코드입니다. `/fig:read`는 환경변수 존재 여부를 먼저 보고 호출하므로, 401이 떴다면 값은 있는데 거부됐다는 뜻입니다. Figma Security 탭에서 재발급하세요.
+
+**`/fig:read`가 페이지를 일부만 가져옵니다.**
+REST 경로가 아니라 MCP 폴백으로 돈 것입니다. fileKey만 준 `get_metadata`는 데스크톱 앱의 열린 파일·뷰포트에 묶입니다. 전수로 훑으려면 REST가 필요하고, REST에는 토큰이 필요합니다.
+
+**`/fig:deck`이 "자산 없음"으로 멈춥니다.**
+`/fig:deck-setup`을 먼저 돌리세요. 팀 슬라이드 템플릿을 실측해 `~/.claude/deck-assets`에 만들어 줍니다. 플러그인에는 템플릿 값이 하나도 안 들어 있습니다 — 덱 배경에 회사 워드마크가 박혀 있어 배포할 수 없기 때문입니다.
+
+**덱 폰트가 다르게 나옵니다.**
+이 환경에 팀 폰트가 없습니다. 빌드가 `FAMS`의 후보를 순서대로 찔러 다음 것으로 물러나는데, 그러면 자간이 달라집니다. 폰트를 깔거나, 대체 폰트를 받아들이고 줄이 어디서 꺾이는지 다시 보세요.
+
+**리포트가 원하는 언어로 안 나옵니다.**
+`meta.language`가 정합니다. `auto`는 대화 언어를 따르고, `ko`·`en` 같은 태그를 적으면 고정됩니다. 스킬 본문이 영어인 것과는 상관없습니다.
+
+**컨펌 없이 뭔가 써졌습니다.**
+외부 쓰기는 Figma 노드든 기획 페이지든 브랜치든 전부 미리보기 → "go"를 거칩니다. 그게 없이 실행됐다면 버그이니 [알려주세요](https://github.com/byjunyoung/claude-product-skills/issues).
 
 ---
 
