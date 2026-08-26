@@ -17,9 +17,9 @@ claude plugin install fig@byjunyoung
 claude plugin install pm@byjunyoung      # if you also write specs
 ```
 
-Most of what follows is about `fig`. `pm` has [its own section](#pm--product-docs).
+Neither needs the other. Most of what follows is about `fig`; `pm` has [its own section](#pm--product-docs), and the two config values you set when you run both are in [Where the two meet](#where-the-two-meet).
 
-[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Getting started](#getting-started) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Design principles](#design-principles) · [pm](#pm--product-docs)
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Getting started](#getting-started) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Design principles](#design-principles) · [pm](#pm--product-docs) · [Where the two meet](#where-the-two-meet)
 
 ---
 
@@ -202,6 +202,20 @@ A separate plugin covering the document and the work that comes out of it.
 | `/pm:task-publish` | File that task as a ticket in the engineering tracker |
 | `/pm:task-sync` | Reconcile the planning list against that tracker |
 
+### The cycle — a request through to a filed ticket
+
+```
+/pm:setup          First time in a workspace, read the schemas and draft a config
+/pm:task-draft     Sort a request thread into the task's context rows
+/pm:prd            Write the entries the work will be built and judged against
+/pm:task-publish   File it as a ticket, once the scope has settled
+/pm:task-sync      Every so often, reconcile the whole list against the tracker
+```
+
+`task-draft` comes before `prd` because the context table is what tells you whether there is enough here to write a spec at all. The rows that stay empty are the interview you still owe someone.
+
+`task-publish` takes one task and `task-sync` takes the list, because the two fail differently. One task fails by being filed wrong. A list fails by drifting — unfiled, duplicated, wrong parent, resurrected. Diagnosing drift means reading both sides first, which is why `sync` shows you the diagnosis and waits rather than writing.
+
 **The task side assumes nothing about your tracker.** A team that plans and builds in one place sets `task.mirror.type: none`, and `/pm:task-sync` says there is nothing to reconcile — which is the right answer, not an error. A team that plans in one tool and builds in another names both, and matching runs on one property holding the ticket's url. A back-link in the ticket body is never trusted for matching: it can point at a source that was already discarded, and that is how duplicates and resurrected tickets happen.
 
 **It doesn't care where the doc lives.** The structure is the same everywhere; `prd.target` only changes how it's published.
@@ -221,6 +235,36 @@ Three things it holds to.
 **It stops before writing.** Verification is read-only, publishing happens only after a preview and an explicit go, and even then in stages — skeleton, then user groups, then feature entries.
 
 Configuration lives in `pm-conventions.yaml`, layered the same way as `fig`.
+
+---
+
+## Where the two meet
+
+The two plugins never call each other. What they share is two objects, each named twice — once in `figma-conventions.yaml` and once in `pm-conventions.yaml`. **Install both and you point each pair at the same place.**
+
+| The object | `fig` calls it | `pm` calls it |
+|---|---|---|
+| The requirements doc | `qa.baseline.prd` | `prd.target`, and the `prd.notion` block |
+| The task record | `task_tracker.ref` | `task.record.ref` |
+
+That is the entire contract, and each half of it exists for a reason. `/fig:qa` needs the spec because a defect report is only worth handing over when it reads *this breaks rule X in document Y* — and `/pm:prd` is what wrote document Y. `/fig:diff` needs the task record because an AS-IS/TO-BE table belongs beside the request that caused it — and `/pm:task-draft` is what opened that record.
+
+Neither link is required. Leave `qa.baseline.prd` at `null` and `/fig:qa` files everything as needs-checking rather than as a defect. Leave `task_tracker.type` at `none` and `/fig:diff` prints its table as markdown instead. You lose the linkage, not the skill.
+
+Drawn out, one feature goes round like this.
+
+```
+a request arrives
+   └─▶ pm:task-draft      the context table — what was asked, by whom, and what nobody has decided
+        └─▶ pm:prd        the spec — what has to be true once this is built
+             └─▶ fig      prep · draw · arrows · lint · diff, then hand off
+                  └─▶ pm:task-publish    the ticket engineering picks up
+                       └─▶ it ships
+                            ├─▶ fig:qa     judged against that same spec
+                            └─▶ fig:sync   the canonical page brought up to what shipped
+```
+
+And the next request starts it again, against a canonical page that is now current.
 
 ---
 

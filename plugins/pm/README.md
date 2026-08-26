@@ -2,6 +2,11 @@
 
 A bundle for product specs and the tasks that come out of them. Write the spec, draft the task, file it, and keep both sides reconciled.
 
+```bash
+claude plugin marketplace add byjunyoung/claude-product-skills
+claude plugin install pm@byjunyoung
+```
+
 | Command | What it does |
 |---|---|
 | `/pm:setup` | Reads your tool schemas and drafts the config |
@@ -39,3 +44,7 @@ Three layers merge, so **only the keys you need have to be written.** The full s
 **It does not turn a product spec into an engineering doc.** Anything on the `forbidden_terms` list appearing in the body is rejected. Write as far as "what" (the requirement) and leave "how" (the implementation) to engineering or to a TBD.
 
 **It stops before writing.** Verification is read-only, publishing happens only after preview → "go", and even then split into skeleton → user groups → feature entries.
+
+## The other half
+
+[`fig`](../fig/README.md) works the design file this spec is drawn into. The two never call each other, but they share two objects. If you install both, set `qa.baseline.prd` in `figma-conventions.yaml` to the spec this config writes, and `task_tracker.ref` to the task record it opens — otherwise `/fig:qa` has no baseline to judge against and `/fig:diff` has nowhere to write the comparison. The [repository README](https://github.com/byjunyoung/claude-product-skills#where-the-two-meet) draws the whole loop.

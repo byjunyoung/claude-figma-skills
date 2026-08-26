@@ -26,3 +26,7 @@ claude plugin install fig@byjunyoung
 A single `figma-conventions.yaml` decides the rules. The layers merge bundled defaults → `~/.claude/figma-conventions.yaml` → `./figma-conventions.yaml`, so **only the keys you need have to be written.**
 
 On a file you are opening for the first time, run `/fig:setup` first and let it observe the conventions. The full explanation is in the [repository README](https://github.com/byjunyoung/claude-product-skills).
+
+## The other half
+
+[`pm`](../pm/README.md) writes the spec this file is drawn against and opens the task the changes belong to. The two never call each other, but they share two objects: point `qa.baseline.prd` at the spec `pm` writes and `task_tracker.ref` at the record it opens, and `/fig:qa` gains a baseline while `/fig:diff` gains somewhere to put the comparison table. Neither is required — left `null` and `none`, both skills still run. The [repository README](https://github.com/byjunyoung/claude-product-skills#where-the-two-meet) draws the whole loop.
