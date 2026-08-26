@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""저장소 정합성 검사 — 마켓플레이스에 등록된 플러그인 전부.
+"""Repository consistency check — every plugin registered in the marketplace.
 
     python3 tools/verify.py
 
-스킬을 고친 뒤 이걸 돌린다. `plugin eval` 이 얼리 액세스라 못 쓰는 동안의 회귀 게이트다.
-검사하는 것은 '문서와 실제가 어긋났는가' 하나다 —
-스킬이 참조하는 설정 키가 스키마에 없거나, 가리키는 스킬이 없거나, 고유값이 남았거나.
+Run this after editing a skill. It is the regression gate for as long as `plugin eval` stays
+behind early access. It checks one thing: has the documentation drifted from the reality —
+a config key a skill references that is not in the schema, a skill it points at that does not
+exist, a team-specific value left in.
 
-이 파일은 저장소 개발 도구라 플러그인 안에 두지 않는다. 설치본에는 안 실린다.
+This is a repository development tool, so it does not live inside a plugin. It never ships to an install.
 
-종료 코드 0 통과 / 1 위반.
+Exit code 0 pass / 1 violations.
 """
 import json, re, subprocess, sys
 from pathlib import Path
@@ -17,20 +18,20 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 MARKET = REPO / ".claude-plugin" / "marketplace.json"
 
-# 팀 설정 파일명은 플러그인마다 다르다. fig 만 예전 이름을 지킨다(이미 쓰고 있는 파일이라)
+# The team config filename differs per plugin. Only fig keeps the older name (it is a file already in use)
 TEAM_FILE = {"fig": "figma-conventions.yaml"}
 
-# 플러그인 사이에서 사본으로 도는 파일. 갈리면 한쪽만 고쳐진 채 배포된다 —
-# fig 개편 때 감사 코드가 세 벌로 갈라져 있던 걸 겪었다. 사본은 두되 같은지는 검사한다.
+# Files that live as copies across plugins. Let them diverge and one gets fixed while the other ships —
+# during the fig rework the audit code had already split into three copies. Keep the copies, but check they match.
 SHARED = ["_common/scripts/lib/resolve-config.py"]
 
-# 고유값 검사. **패턴을 하나씩 따로 돌린다** — 여럿을 | 로 이어 붙이면
-# 이스케이프가 꼬여 조용히 0 을 낸다(실측으로 한 건을 놓쳤다).
+# Team-value check. **One pattern at a time** — joining several with | tangles the escaping
+# and silently returns zero (one case was actually missed that way).
 #
-# 두 층으로 나눈다. 값이 팀마다 다른 것과, 팀을 **식별**하는 것은 다르다.
-#   · SKILL.md 는 판단만 담으므로 값이 박혀 있으면 안 된다 → 전부 검사
-#   · conventions 기본값·README 는 값을 담는 게 일이다. 다만 브랜드 색·제품명·문서 id 처럼
-#     남의 회사를 가리키는 것은 배포본에 실리면 안 된다 → 식별자만 검사
+# Two layers. A value that differs per team and a value that **identifies** a team are different things.
+#   · SKILL.md carries judgement only, so no value belongs in it → check all of them
+#   · conventions defaults and READMEs exist to carry values. But anything pointing at someone
+#     else's company — a brand colour, a product name, a document id — must not ship → check identifiers only
 TEAM_STRINGS = ["REDACTED", "REDACTED", "1560", "REDACTED", "[UI]", "[Update]",
                 "REDACTED", "REDACTED", "REDACTED", "매 실행 시 fetch",
                 "REDACTED", "Pretendard", "townhall"]
@@ -40,10 +41,10 @@ IDENTITY_STRINGS = ["REDACTED", "REDACTED", "REDACTED", "REDACTED", "REDACTED", 
 fails, warns, counts = [], [], []
 
 
-# **특정 파일에서 잰 공간 수치**만 본다. 판별 기준은 하나 — 이 값이 남의 파일에
-# 기본값으로 실리면 그 파일 전건이 위반으로 나오는가.
-# 스타일·허용오차·통계 문턱값은 누군가 정해야 하는 기본값이라 팀 값과 겹치는 게
-# 정상이고, 거기까지 넓히면 경고가 42건 나온다. 늘 켜져 있는 경고는 안 읽힌다.
+# Only **spatial numbers measured in a specific file**. One test decides it — would shipping this
+# value as a default make every frame in someone else's file report as a violation?
+# Style, tolerance, and statistical thresholds are defaults somebody has to pick, so overlapping with
+# a team's value is normal; widening to them produces 42 warnings. A warning that is always on never gets read.
 MEASURED_KEYS = {
     "layout.column_grid", "layout.section_padding", "layout.frame_gap",
     "layout.section_gap_same_row", "layout.domain_row_gap",
@@ -52,7 +53,7 @@ MEASURED_KEYS = {
 
 
 def leaf_kv(o, prefix=""):
-    """잎 노드만 (경로, 값) 으로."""
+    """Leaf nodes only, as (path, value)."""
     if isinstance(o, dict) and o:
         for k, v in o.items():
             p = f"{prefix}.{k}" if prefix else k
@@ -71,18 +72,18 @@ def leaf_paths(o, prefix=""):
 
 
 def check_plugin(name, root, yaml):
-    """플러그인 하나를 검사한다. root 는 <repo>/plugins/<name>."""
+    """Checks one plugin. root is <repo>/plugins/<name>."""
     common = root / "_common"
     skills = root / "skills"
     example = common / "conventions.example.yaml"
 
     if not skills.is_dir():
-        fails.append(f"[{name}] skills/ 없음")
+        fails.append(f"[{name}] no skills/")
         return
-    # 스킬 목록은 디렉터리에서 읽는다 — 목록을 손으로 적으면 스킬을 늘릴 때 같이 안 늘어난다
+    # The skill list comes from the directory — a hand-written list does not grow when a skill is added
     names = sorted(d.name for d in skills.iterdir() if (d / "SKILL.md").exists())
     if not names:
-        fails.append(f"[{name}] SKILL.md 가 하나도 없음")
+        fails.append(f"[{name}] no SKILL.md at all")
         return
 
     schema, known = {}, set()
@@ -90,48 +91,48 @@ def check_plugin(name, root, yaml):
         schema = yaml.safe_load(example.read_text()) or {}
         known = set(leaf_paths(schema))
     else:
-        warns.append(f"[{name}] conventions.example.yaml 없음 — 설정 검사 건너뜀")
+        warns.append(f"[{name}] no conventions.example.yaml — config checks skipped")
 
-    # 매니페스트
+    # Manifest
     pj = root / ".claude-plugin" / "plugin.json"
     if not pj.exists():
-        fails.append(f"[{name}] .claude-plugin/plugin.json 없음")
+        fails.append(f"[{name}] no .claude-plugin/plugin.json")
     else:
         try:
             d = json.loads(pj.read_text())
             if d.get("name") != name:
-                fails.append(f"[{name}] plugin.json name 불일치: {d.get('name')}")
+                fails.append(f"[{name}] plugin.json name mismatch: {d.get('name')}")
             if not d.get("version"):
-                fails.append(f"[{name}] plugin.json version 없음")
+                fails.append(f"[{name}] plugin.json has no version")
         except Exception as e:
-            fails.append(f"[{name}] plugin.json 파싱 실패: {e}")
+            fails.append(f"[{name}] plugin.json failed to parse: {e}")
 
-    # 팀 설정 키가 스키마 안에 있는가
+    # Does every team config key exist in the schema
     team = Path.home() / ".claude" / TEAM_FILE.get(name, f"{name}-conventions.yaml")
     if team.exists() and known:
         tcfg = yaml.safe_load(team.read_text()) or {}
         for p in leaf_paths(tcfg):
-            if p.startswith("files."):        # 파일별 오버레이는 자유 키
+            if p.startswith("files."):        # per-file overlays take free-form keys
                 continue
             if p not in known:
-                fails.append(f"[{name}] 팀 설정에만 있는 키: {p}")
+                fails.append(f"[{name}] key present only in the team config: {p}")
 
-        # 내장 기본값이 팀 값과 똑같으면 실측값이 배포본에 실렸다는 뜻이다.
-        # layout 절 전체가 팀 설정과 바이트 단위로 같은 채로 나간 적이 있다.
-        # 우연히 겹칠 수도 있으니 경고로 둔다 — 판단은 사람이 한다
+        # A bundled default identical to the team's value means a measured number shipped.
+        # The whole layout section once went out byte-identical to the team config.
+        # It can also coincide, so this stays a warning — a person makes the call
         tv, sv = dict(leaf_kv(tcfg)), dict(leaf_kv(schema))
         leaked = sorted(k for k in tv
                         if k in MEASURED_KEYS and k in sv
                         and tv[k] == sv[k] and tv[k] is not None)
         if leaked:
-            warns.append(f"[{name}] 기본값이 팀 값과 동일: {', '.join(leaked[:6])}"
-                         + (f" 외 {len(leaked)-6}개" if len(leaked) > 6 else "")
-                         + " — 실측값이 배포본에 실렸는지 확인")
+            warns.append(f"[{name}] default identical to team value: {', '.join(leaked[:6])}"
+                         + (f" and {len(leaked)-6} more" if len(leaked) > 6 else "")
+                         + " — check whether a measured value shipped")
     elif not team.exists():
-        warns.append(f"[{name}] 팀 설정 없음 ({team.name}) — 내장 기본값으로 동작")
+        warns.append(f"[{name}] no team config ({team.name}) — running on bundled defaults")
 
-    # 스크립트에도 고유값이 샌다. SKILL.md 만 보다가 주석에 팀 폰트 이름이
-    # 남은 채 배포된 적이 있다 — 검사 범위가 문서에만 걸려 있었기 때문이다.
+    # Team values leak into the scripts too. Watching SKILL.md alone once shipped a team font
+    # name left in a comment — because the check only covered the documents.
     if (common / "scripts").is_dir():
         for f in sorted((common / "scripts").rglob("*")):
             if not f.is_file() or f.suffix not in (".js", ".py", ".sh"):
@@ -139,16 +140,16 @@ def check_plugin(name, root, yaml):
             t = f.read_text(errors="ignore")
             for w in TEAM_STRINGS:
                 if w in t:
-                    fails.append(f"[{name}] {f.name}: 고유값 '{w}'")
+                    fails.append(f"[{name}] {f.name}: team value '{w}'")
 
-    # 스크립트 문법
+    # Script syntax
     chk = common / "scripts" / "lib" / "check.sh"
     if chk.exists():
-        # `bash <path>` 로 부른다 — 직접 실행하면 실행 권한에 기대게 되는데,
-        # GitHub Contents API 로 배포된 파일에는 실행 비트가 안 따라온다(설치본에서 확인).
+        # Call it as `bash <path>` — running it directly relies on the executable bit,
+        # which a file shipped through the GitHub Contents API does not carry (confirmed on an install).
         r = subprocess.run(["bash", str(chk)], capture_output=True, text=True)
         if r.returncode != 0:
-            fails.append(f"[{name}] check.sh 실패:\n" + r.stdout + r.stderr)
+            fails.append(f"[{name}] check.sh failed:\n" + r.stdout + r.stderr)
 
     cfg_ref = re.compile(r"`([a-z_]+(?:\.[a-z_]+)+)`")
     skill_ref = re.compile(rf"/{name}:([a-z-]+)")
@@ -160,80 +161,80 @@ def check_plugin(name, root, yaml):
 
         m = re.search(r"^---\n(.*?)\n---", s, re.S)
         if not m:
-            fails.append(f"[{name}:{sk}] frontmatter 없음")
+            fails.append(f"[{name}:{sk}] no frontmatter")
         else:
             fm = m.group(1)
             got = re.search(r"^name:\s*(\S+)", fm, re.M)
             if not got or got.group(1) != sk:
-                fails.append(f"[{name}:{sk}] frontmatter name 이 디렉터리와 불일치 ({got.group(1) if got else '없음'})")
+                fails.append(f"[{name}:{sk}] frontmatter name does not match the directory ({got.group(1) if got else 'missing'})")
             if "description:" not in fm:
-                fails.append(f"[{name}:{sk}] description 없음")
+                fails.append(f"[{name}:{sk}] no description")
 
         for ref in set(cfg_ref.findall(s)):
-            if ref.split(".")[0] not in schema:   # 설정 경로가 아닌 코드 표현은 건너뛴다
+            if ref.split(".")[0] not in schema:   # skip code expressions that are not config paths
                 continue
             if ref not in known:
-                fails.append(f"[{name}:{sk}] `{ref}` 가 스키마에 없음")
+                fails.append(f"[{name}:{sk}] `{ref}` is not in the schema")
 
         for ref in set(skill_ref.findall(s)):
             if ref != sk and not (skills / ref / "SKILL.md").exists():
-                fails.append(f"[{name}:{sk}] → /{name}:{ref} 가 없음")
+                fails.append(f"[{name}:{sk}] → /{name}:{ref} does not exist")
 
-        # 스크립트 경로는 플러그인 루트 변수를 써야 한다 — 절대경로는 설치 위치가 바뀌면 깨진다
+        # Script paths must use the plugin root variable — an absolute path breaks when the install location changes
         if "~/.claude/skills/" in s:
-            fails.append(f"[{name}:{sk}] 절대경로가 남아 있음 (${{CLAUDE_PLUGIN_ROOT}} 로 바꿀 것)")
+            fails.append(f"[{name}:{sk}] an absolute path is left in (replace with ${{CLAUDE_PLUGIN_ROOT}})")
 
         for w in TEAM_STRINGS:
             if w in s:
-                fails.append(f"[{name}:{sk}] 고유값 '{w}'")
+                fails.append(f"[{name}:{sk}] team value '{w}'")
 
-    # 스킬 이름 참조는 SKILL.md 밖에서도 샌다. 예시 설정의 주석이 개명 전 이름을
-    # 그대로 달고 배포된 적이 있다 — 검사가 SKILL.md 만 보고 있었기 때문이다.
+    # Skill-name references leak outside SKILL.md too. A comment in the example config once shipped
+    # still carrying a pre-rename name — because the check was only looking at SKILL.md.
     for f in (example, root / "README.md"):
         if not f.exists():
             continue
         t = f.read_text()
         for w in IDENTITY_STRINGS:
             if w in t:
-                fails.append(f"[{name}] {f.name}: 식별자 '{w}' — 배포본이 남의 회사를 가리킨다")
+                fails.append(f"[{name}] {f.name}: identifier '{w}' — the shipped copy points at someone else's company")
         for ref in sorted(set(skill_ref.findall(t))):
             if not (skills / ref / "SKILL.md").exists():
-                fails.append(f"[{name}] {f.name} → /{name}:{ref} 가 없음")
+                fails.append(f"[{name}] {f.name} → /{name}:{ref} does not exist")
         for ref in sorted(set(legacy_ref.findall(t))):
-            if ref == "conventions":              # figma-conventions.yaml 은 설정 파일명
+            if ref == "conventions":              # figma-conventions.yaml is a config filename
                 continue
-            fails.append(f"[{name}] {f.name}: 옛이름 'figma-{ref}'")
+            fails.append(f"[{name}] {f.name}: old name 'figma-{ref}'")
 
-    counts.append(f"{name} {len(names)}스킬·{len(known)}키")
+    counts.append(f"{name} {len(names)} skills / {len(known)} keys")
 
 
 def main():
     try:
         import yaml
     except ImportError:
-        sys.exit("PyYAML 필요")
+        sys.exit("PyYAML required")
 
     if not MARKET.exists():
-        sys.exit(f"마켓플레이스 없음: {MARKET}")
+        sys.exit(f"marketplace not found: {MARKET}")
     market = json.loads(MARKET.read_text())
     entries = market.get("plugins", [])
     if not entries:
-        sys.exit("marketplace.json 에 plugins 항목이 없음")
+        sys.exit("marketplace.json has no plugins entry")
 
     roots = {}
     for e in entries:
         name, src = e.get("name"), e.get("source")
         if not isinstance(src, str):
-            warns.append(f"[{name}] source 가 로컬 경로가 아님 — 건너뜀")
+            warns.append(f"[{name}] source is not a local path — skipped")
             continue
         root = (REPO / src).resolve()
         if not root.is_dir():
-            fails.append(f"[{name}] source 경로 없음: {src}")
+            fails.append(f"[{name}] source path does not exist: {src}")
             continue
         roots[name] = root
         check_plugin(name, root, yaml)
 
-    # 사본으로 도는 파일이 갈렸는가
+    # Have the shared copies diverged
     for rel in SHARED:
         seen = {}
         for name, root in roots.items():
@@ -242,7 +243,7 @@ def main():
                 seen.setdefault(f.read_bytes(), []).append(name)
         if len(seen) > 1:
             groups = " vs ".join("+".join(v) for v in seen.values())
-            fails.append(f"[공유] {rel} 사본이 갈렸다: {groups}")
+            fails.append(f"[shared] copies of {rel} have diverged: {groups}")
 
     print("=" * 60)
     for x in warns:
@@ -250,7 +251,7 @@ def main():
     for x in fails:
         print("FAIL ", x)
     print("=" * 60)
-    print("플러그인 " + " · ".join(counts) + f" · 위반 {len(fails)}건 · 경고 {len(warns)}건")
+    print("plugins " + " · ".join(counts) + f" · {len(fails)} violations · {len(warns)} warnings")
     print("PASS" if not fails else "FAIL")
     return 1 if fails else 0
 

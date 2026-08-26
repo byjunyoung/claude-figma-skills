@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""설정 해석기 — 설정 파일을 찾아 깊은 병합하고 JSON 한 줄로 낸다.
+"""Config resolver — finds the config files, deep-merges them, emits one line of JSON.
 
-플러그인 사이에서 사본으로 도는 파일이다. 한쪽만 고치면 verify 가 잡는다.
+This file lives as a copy in each plugin. Change one and not the other and verify catches it.
 
-Figma 플러그인 샌드박스는 파일시스템이 없다. 그래서 설정 해석은 호스트에서 하고,
-결과 JSON 을 `const CFG = {...};` 형태로 감사 스크립트 앞에 붙여 use_figma 에 넣는다.
+The Figma plugin sandbox has no filesystem. So the config is resolved on the host and the
+resulting JSON is prepended to the audit script as `const CFG = {...};` before it goes to use_figma.
 
-사용
+Usage
     python3 resolve-config.py [fileKey]      → JSON (stdout)
-    python3 resolve-config.py --js [fileKey] → `const CFG = {...};` 한 줄
-    python3 resolve-config.py --where        → 어느 파일을 썼는지만
-    python3 resolve-config.py --name pm-conventions.yaml   → 찾을 파일명을 바꾼다
+    python3 resolve-config.py --js [fileKey] → one `const CFG = {...};` line
+    python3 resolve-config.py --where        → which files were used, nothing else
+    python3 resolve-config.py --name pm-conventions.yaml   → change the filename to look for
 
-겹쳐 읽는다 (아래가 위를 덮는다). 부분만 적은 설정도 그대로 동작한다 —
-빠뜨린 키는 기본값이 채우고, 적은 키만 덮인다.
-    1. ../conventions.example.yaml           내장 기본값 (바닥)
-    2. ~/.claude/<name>                      사용자 공통
-    3. ./<name>                              프로젝트별 (가장 셈)
+The layers merge (later covers earlier). A config holding only some keys works as it is —
+missing keys are filled by the defaults, and only what is written gets covered.
+    1. ../conventions.example.yaml           bundled defaults (the floor)
+    2. ~/.claude/<name>                      the user's shared config
+    3. ./<name>                              per project (strongest)
 
-키를 지워서 검사를 끄지 않는다 — 끄려면 null 을 적는다. 지우면 기본값이 살아난다.
+Deleting a key does not switch a check off — write null for that. Deleting restores the default.
 """
 import json, os, sys
 
@@ -27,7 +27,7 @@ DEFAULT_NAME = "figma-conventions.yaml"
 
 
 def candidates(name):
-    """바닥부터 순서대로. 뒤가 앞을 덮는다."""
+    """From the floor upward. Later covers earlier."""
     return [
         os.path.normpath(os.path.join(HERE, "..", "..", "conventions.example.yaml")),
         os.path.expanduser(os.path.join("~/.claude", name)),
@@ -39,13 +39,13 @@ def load(path):
     try:
         import yaml
     except ImportError:
-        sys.exit("PyYAML 없음 — `pip3 install pyyaml` 또는 같은 이름의 .json 을 두세요")
+        sys.exit("PyYAML missing — run `pip3 install pyyaml`, or put a .json of the same name in place")
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
 def merge(base, over):
-    """over 가 base 를 덮는다. dict 는 깊게, 나머지는 통째로."""
+    """over covers base. Dicts merge deeply, everything else wholesale."""
     out = dict(base)
     for k, v in (over or {}).items():
         out[k] = merge(base[k], v) if isinstance(v, dict) and isinstance(base.get(k), dict) else v
@@ -60,15 +60,15 @@ def resolve(file_key=None, name=DEFAULT_NAME):
             cfg = merge(cfg, load(p))
             used.append(p)
     if not used:
-        sys.exit("설정 파일을 못 찾았습니다: " + " / ".join(cands))
-    src = used[-1]              # 가장 센 층. 어느 설정으로 돌았는지 보고에 쓴다
+        sys.exit("No config file found: " + " / ".join(cands))
+    src = used[-1]              # the strongest layer. Reported so it is clear which config it ran on
 
     files = cfg.pop("files", None) or {}
     if file_key and file_key in files:
         cfg = merge(cfg, {k: v for k, v in files[file_key].items() if k != "label"})
         cfg.setdefault("meta", {})["file_label"] = files[file_key].get("label", file_key)
     elif file_key:
-        cfg.setdefault("meta", {})["file_label"] = None      # 파일별 관례 미등록
+        cfg.setdefault("meta", {})["file_label"] = None      # no per-file convention registered
     cfg.setdefault("meta", {})["source"] = src
     cfg["meta"]["layers"] = used
     return cfg, src
@@ -82,7 +82,7 @@ def main():
     if "--name" in argv:
         i = argv.index("--name")
         if i + 1 >= len(argv):
-            sys.exit("--name 뒤에 파일명이 필요합니다")
+            sys.exit("--name needs a filename after it")
         name = argv[i + 1]
         del argv[i:i + 2]
     args = [a for a in argv if not a.startswith("--")]

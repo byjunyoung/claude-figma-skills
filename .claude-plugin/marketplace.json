@@ -1,17 +1,17 @@
 {
   "name": "byjunyoung",
   "owner": {
-    "name": "김준영",
+    "name": "Junyoung Kim",
     "url": "https://www.linkedin.com/in/byjunyoung/"
   },
   "metadata": {
-    "description": "Figma 파일 운영과 기획 문서 작성 스킬"
+    "description": "Skills for operating Figma files and writing product specs"
   },
   "plugins": [
     {
       "name": "fig",
       "source": "./plugins/fig",
-      "description": "이미 그려진 Figma 파일을 정리·검증·동기화하는 스킬 묶음. 준비(prep) · 흐름 화살표(arrows) · 읽기 전용 검증 게이트(lint) · 정본 동기화(sync) · 코드 반영(code) · QA(qa) · 발표 덱(deck) 등 13개.",
+      "description": "A bundle for tidying, auditing and syncing Figma files that are already drawn. Preparation (prep), flow arrows (arrows), a read-only audit gate (lint), canonical sync (sync), applying to code (code), QA (qa), presentation decks (deck) and more — 13 in all.",
       "category": "design",
       "tags": [
         "figma",
@@ -24,7 +24,7 @@
     {
       "name": "pm",
       "source": "./plugins/pm",
-      "description": "기획 문서를 양식에 맞춰 쓰고 검증하는 스킬 묶음. 자료 수집 → 권장답안 → 모호어·빈 정의 검증 → 발행. 저장 대상(마크다운·git·Notion)은 설정이 정한다.",
+      "description": "A bundle for writing product specs against a format and verifying them. Gather material -> recommended answers -> catch vague wording and empty definitions -> publish. Where it is stored (markdown, git, Notion) is decided by config.",
       "category": "productivity",
       "tags": [
         "prd",
