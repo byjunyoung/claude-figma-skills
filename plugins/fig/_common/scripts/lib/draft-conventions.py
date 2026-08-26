@@ -195,7 +195,19 @@ def main():
     L.append("")
     L.append("design_system:\n  library: auto\n  token_prefixes: []\n  match_threshold_channel: 8\n")
     L.append("sync:")
-    L.append("  pair_patterns:\n    to_be: 'to.?be|개선|after'\n    as_is: 'as.?is|현행|before'")
+    # AS-IS / TO-BE section names are written in whatever language the team works in.
+    # Widen the alternation only when this file actually contains non-ASCII names —
+    # otherwise a team that never sees those words gets them baked into their config.
+    names = [s_["name"] for s_ in S] + [p_.get("page", "") for p_ in probes]
+    # Letters only — an em-dash or a curly quote is non-ASCII but not another language.
+    if any(ord(ch) > 127 and ch.isalpha() for n in names for ch in n):
+        L.append("  pair_patterns:   # non-ASCII names observed — widen these to your own wording")
+        L.append("    to_be: 'to.?be|개선|after'")
+        L.append("    as_is: 'as.?is|현행|before'")
+    else:
+        L.append("  pair_patterns:   # add your team's wording if it is not English")
+        L.append("    to_be: 'to.?be|after'")
+        L.append("    as_is: 'as.?is|before'")
     L.append("  text_diff_max_len: 40\n  version_page_pattern: null\n")
     L.append("task_tracker:\n  type: none\n  ref: null\n  ui_section_heading: null")
     L.append('  annotation_category: "Changed"\n  scope_tags: []\n')
