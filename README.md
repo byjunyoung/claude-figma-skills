@@ -1,15 +1,23 @@
-# fig
+# fig · pm
 
 **한국어** · [English](README.en.md)
 
-Claude Code에서 Figma 파일을 정리·검증·동기화하는 스킬 묶음.
+Claude Code에서 디자인 파일과 기획 문서를 다루는 스킬 묶음 둘. 한 저장소에 있고 설치는 따로 갑니다.
+
+| 플러그인 | 무엇을 | 스킬 |
+|---|---|---|
+| **fig** | 이미 그려진 Figma 파일을 정리·검증·동기화 | 13 |
+| **pm** | 기획 문서를 양식에 맞춰 쓰고 검증 | 1 |
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
+claude plugin install pm@byjunyoung      # 기획 문서까지 쓸 때
 ```
 
-[어떤 자리에 서는 도구인가](#어떤-자리에-서는-도구인가) · [누가 쓰면 좋은가](#누가-쓰면-좋은가) · [무엇을 해결하나](#무엇을-해결하나) · [어떻게 쓰나](#어떻게-쓰나) · [스킬 열세 개](#스킬-열세-개) · [설치](#설치) · [설정](#설정) · [설계 원칙](#설계-원칙)
+아래는 대부분 `fig` 이야기입니다. `pm`은 [따로 정리해 뒀습니다](#pm--기획-문서).
+
+[어떤 자리에 서는 도구인가](#어떤-자리에-서는-도구인가) · [누가 쓰면 좋은가](#누가-쓰면-좋은가) · [무엇을 해결하나](#무엇을-해결하나) · [어떻게 쓰나](#어떻게-쓰나) · [스킬 열세 개](#스킬-열세-개) · [설치](#설치) · [설정](#설정) · [설계 원칙](#설계-원칙) · [pm](#pm--기획-문서)
 
 ---
 
@@ -176,17 +184,42 @@ flowchart TD
 
 ---
 
+## pm — 기획 문서
+
+요구사항 문서(PRD)를 양식에 맞춰 쓰고, 쓰기 전에 검증하는 별도 플러그인입니다. `/pm:prd` 하나로 시작합니다.
+
+**저장 대상을 안 가립니다.** 골격은 어디에 쓰든 같고, `prd.target`이 발행 방식만 가릅니다.
+
+```
+markdown   로컬 파일. 기본값 — 다른 도구가 필요 없다
+git        마크다운으로 쓰고 브랜치·PR 까지
+notion     Notion 페이지. prd.notion 절을 채워야 동작
+```
+
+지키는 것이 셋입니다.
+
+**모호함을 남기지 않습니다.** 판정·집계의 단위, 필터·정렬의 대상, '대표' 선정 기준, 상태 전환의 정의 — 이 넷이 비면 기능이 성립하지 않으니 값으로 채웁니다. 자료로 정할 수 있는데 TBD로 둔 칸이 하나라도 있으면 검증을 통과시키지 않습니다.
+
+**기획 문서를 개발 문서로 만들지 않습니다.** `forbidden_terms`에 적힌 말이 본문에 있으면 반려합니다. "무엇(요구)"까지만 쓰고 "어떻게(구현)"는 개발에 위임하거나 TBD로 둡니다.
+
+**쓰기 전에 멈춥니다.** 검증은 읽기 전용이고, 발행은 미리보기 → "go" 뒤에만, 그것도 뼈대 → 사용자 그룹 → 기능 항목으로 쪼개서 합니다.
+
+설정은 `pm-conventions.yaml`입니다. `fig`와 같은 방식으로 겹쳐 읽습니다.
+
+---
+
 ## 설치
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
+claude plugin install pm@byjunyoung
 ```
 
-갱신은 `claude plugin marketplace update byjunyoung` 한 줄입니다.
+갱신은 `claude plugin marketplace update byjunyoung` 한 줄이고, 두 플러그인에 함께 적용됩니다.
 
 - **필요한 것** — Claude Code, Figma MCP 플러그인(`plugin:figma`), `python3` + PyYAML, `node`
-- **설치 확인** — `claude plugin list`에 `fig@byjunyoung`이 보이면 됩니다
+- **설치 확인** — `claude plugin list`에 `fig@byjunyoung`·`pm@byjunyoung`이 보이면 됩니다
 - **설치 뒤** — 대상 파일에서 `/fig:setup`을 먼저 돌려 설정을 만듭니다
 
 ## 설정

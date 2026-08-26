@@ -1,15 +1,23 @@
-# fig
+# fig · pm
 
 [한국어](README.md) · **English**
 
-A Claude Code skill bundle for organizing, auditing, and syncing Figma files.
+Two Claude Code skill bundles — one for design files, one for product docs. They share a repo and install separately.
+
+| Plugin | What it does | Skills |
+|---|---|---|
+| **fig** | Organize, audit, and sync Figma files that already exist | 13 |
+| **pm** | Write and verify product requirement docs against a format | 1 |
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
+claude plugin install pm@byjunyoung      # if you also write specs
 ```
 
-[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles)
+Most of what follows is about `fig`. `pm` has [its own section](#pm--product-docs).
+
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Install](#install) · [Configuration](#configuration) · [Design principles](#design-principles) · [pm](#pm--product-docs)
 
 ---
 
@@ -176,17 +184,42 @@ The component audit works without any written convention. It derives the usage d
 
 ---
 
+## pm — product docs
+
+A separate plugin for writing requirement docs against a format and verifying them before they ship. One skill so far: `/pm:prd`.
+
+**It doesn't care where the doc lives.** The structure is the same everywhere; `prd.target` only changes how it's published.
+
+```
+markdown   local files. the default — no other tooling required
+git        writes markdown, then branch and PR
+notion     Notion pages. requires the prd.notion section
+```
+
+Three things it holds to.
+
+**No leftover vagueness.** The unit a decision is made in, what a filter or sort acts on, how a "primary" item is chosen, what a state transition means — a feature doesn't hold together without these, so they get concrete values. If any field could have been settled from the material and was left as TBD, verification fails.
+
+**A product doc is not an engineering doc.** Anything in `forbidden_terms` appearing in the body is rejected. It writes *what* is required and leaves *how* to engineering or to a TBD.
+
+**It stops before writing.** Verification is read-only, publishing happens only after a preview and an explicit go, and even then in stages — skeleton, then user groups, then feature entries.
+
+Configuration lives in `pm-conventions.yaml`, layered the same way as `fig`.
+
+---
+
 ## Install
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-figma-skills
 claude plugin install fig@byjunyoung
+claude plugin install pm@byjunyoung
 ```
 
-To update: `claude plugin marketplace update byjunyoung`.
+To update both: `claude plugin marketplace update byjunyoung`.
 
 - **Requires** — Claude Code, the Figma MCP plugin (`plugin:figma`), `python3` with PyYAML, `node`
-- **Verify** — `fig@byjunyoung` shows up in `claude plugin list`
+- **Verify** — `fig@byjunyoung` and `pm@byjunyoung` show up in `claude plugin list`
 - **Then** — run `/fig:setup` in your target file to create a config
 
 ## Configuration
