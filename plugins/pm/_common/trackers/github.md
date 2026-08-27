@@ -17,11 +17,24 @@ gh project item-list {extras.project_number} --owner {extras.project_owner} \
 # open / closed is a property of the issue, not the board column — read it separately
 gh issue view {n} --repo {repo} --json state,body --jq '{state, body}'
 
+# EVERY issue for a project — this is the exhaustive read, and --paginate is why
+gh api -X GET "repos/{repo}/issues" -f labels="{project label}" -f state=all \
+  -f per_page=100 --paginate --jq '.[] | {number, title, state, url: .html_url}'
+
 # candidate parents for a project
 gh issue list --repo {repo} --label "{project label}" --state open \
   --json number,title,url \
   --jq '.[] | select(.title | test("\\[{parent_kind}\\]"; "i"))'
 ```
+
+**`gh issue list --limit N` truncates the same way, and what it drops is the half you
+need.** It returns newest-first, so a limit below the real count silently discards the
+*oldest* issues — which are the closed ones. On one project `--limit 300` returned exactly
+300 rows: open issues were complete at 113, while closed came back as 187 against a true
+427. Every `resurrected` and `duplicate` verdict rests on closed issues, so a limited
+listing does not merely under-report, it under-reports precisely where the diagnosis
+lives. Use the `--paginate` call above for any read a verdict depends on, and keep
+`gh issue list` for eyeballing.
 
 **`item-list` truncates silently, and a big board cannot be listed at all.** The default
 `--limit` is 30. Raising it does not solve the problem, it moves it: on one real board
