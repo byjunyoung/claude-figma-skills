@@ -146,6 +146,14 @@ Create it with the assembled title, body, labels and assignee.
 - Add it to the board named in `task.mirror_extras`, capturing the returned item id
 - Set the board's custom fields from `task.mirror_extras` — project field, dates
 - Dates go **on the task only**. A parent's schedule is managed separately and is never touched here
+- **Seat it in the right column.** Where `task.status_map` has an entry for the record's current
+  status, set the board's status field to it. Without an entry, leave the board's own default
+  alone rather than guessing a column
+
+Seating is not ownership. `task.field_owner.status` still says which side wins afterwards — with
+it `mirror`, this is the only time this skill touches the status, and every later move belongs to
+whoever runs the board. The reason to seat it at all is that a task whose spec is already written
+lands in the backlog column otherwise, and the mirror's readers act on that.
 
 Anything under `task.mirror_extras` is read verbatim. This skill does not interpret it, which is what lets a tracker it has never seen still work.
 
