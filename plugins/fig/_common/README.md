@@ -61,7 +61,15 @@ the skills it points at actually exist · no team-specific values are left in.
 The team-value check runs **one pattern at a time.** Joining several with `|` tangles the escaping and
 silently returns zero — one case actually slipped through that way.
 
-## Two pitfalls
+## Three pitfalls
+
+**Section-relative coordinates** — a section child's `x`/`y` are measured from the section's own
+origin, not from the page. Writing a page-absolute value onto a frame you have just appended to a
+section places it at *section origin + that value*, which is off by the section's own offset. The
+helpers here already do the subtraction — `placeholder()` takes `relX, relY`, and absorption
+subtracts `s.x`/`s.y` unless the frame is already a child — but **an ad-hoc `use_figma` script does
+not**, and this is the most repeated way a frame ends up outside its section, which `/fig:lint` then
+reports as out of bounds.
 
 **The syntax gate** — `use_figma` wraps a script in an async function to run it, so top-level
 `await` and `return` are both legal. `node --check` rejects `await` when it reads the file as CommonJS
