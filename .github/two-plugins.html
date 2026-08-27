@@ -1,0 +1,57 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+ .loop{display:flex;align-items:stretch;gap:18px;margin-bottom:40px}
+ .step{flex:1;border:1px solid #E7EAEE;border-radius:13px;padding:22px 22px 20px;position:relative}
+ .step.pm{background:#FAFBFF;border-color:#DCE3F2}
+ .step.fig{background:#FCFAFF;border-color:#E6DCF2}
+ .step .who{font-size:16px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;margin-bottom:11px}
+ .pm .who{color:#5B6FA8} .fig .who{color:#8163AE}
+ .step .cmd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:21px;font-weight:600;color:#1F2430}
+ .step .d{font-size:19px;line-height:1.45;color:#6B7480;margin-top:9px}
+ .sep{align-self:center;font-size:26px;color:#C3C9D2;flex:none}
+ .shared{border:2px solid #1F2430;border-radius:13px;padding:26px 30px}
+ .shared h2{font-size:24px;font-weight:600;margin-bottom:6px}
+ .shared .h2s{font-size:20px;color:#6B7480;margin-bottom:22px}
+ table{width:100%;border-collapse:collapse}
+ th{font-size:17px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#9AA3AF;
+    text-align:left;padding:0 0 12px}
+ td{font-size:21px;padding:13px 0;border-top:1px solid #EDEFF3;vertical-align:middle}
+ td.obj{font-weight:600;width:23%}
+ td.c{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;color:#39404B;width:22%}
+ td.br{color:#6B7480;font-size:19px;line-height:1.4;width:33%}
+ th:nth-child(1){width:23%} th:nth-child(2){width:22%} th:nth-child(3){width:22%} th:nth-child(4){width:33%}
+</style>
+<div class="wrap">
+<h1>The two plugins never call each other</h1>
+<div class="sub">They share two objects, each named twice. Install both and you point each pair at the same place — that is the whole contract.</div>
+
+<div class="loop">
+  <div class="step pm"><div class="who">pm</div><div class="cmd">task-draft</div>
+    <div class="d">the context table — what was asked, by whom, and what nobody has decided</div></div>
+  <div class="sep">→</div>
+  <div class="step pm"><div class="who">pm</div><div class="cmd">prd</div>
+    <div class="d">the spec — what has to be true once this is built</div></div>
+  <div class="sep">→</div>
+  <div class="step fig"><div class="who">fig</div><div class="cmd">prep · arrows · lint · diff</div>
+    <div class="d">draw it, audit it, hand it off</div></div>
+  <div class="sep">→</div>
+  <div class="step pm"><div class="who">pm</div><div class="cmd">task-publish</div>
+    <div class="d">the ticket engineering picks up</div></div>
+  <div class="sep">→</div>
+  <div class="step fig"><div class="who">fig</div><div class="cmd">qa · sync</div>
+    <div class="d">judge what shipped against that same spec, then bring canonical current</div></div>
+</div>
+
+<div class="shared">
+  <h2>Two objects, two names each</h2>
+  <div class="h2s">Leave either unset and the skill still runs — you lose the linkage, not the skill.</div>
+  <table>
+    <tr><th>the object</th><th>fig calls it</th><th>pm calls it</th><th>what you lose</th></tr>
+    <tr><td class="obj">the requirements doc</td><td class="c">qa.baseline.prd</td><td class="c">prd.target</td>
+        <td class="br">a defect report with no rule to cite</td></tr>
+    <tr><td class="obj">the task record</td><td class="c">task_tracker.ref</td><td class="c">task.record.ref</td>
+        <td class="br">a comparison table with nowhere to go</td></tr>
+  </table>
+</div>
+<div class="foot"><b>Neither plugin needs the other.</b> Install <code>fig</code> alone and it audits design files. Install <code>pm</code> alone and it writes specs and files tasks. The pairing is what makes a defect say <i>this breaks rule X in document Y</i>.</div>
+</div>
