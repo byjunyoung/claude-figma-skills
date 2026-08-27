@@ -1,10 +1,10 @@
-<img src=".github/social-preview.png" alt="fig · pm — Claude Code skills for everything around drawing a screen in Figma" width="100%">
+<img src=".github/social-preview.png" alt="fig · pm — Claude Code skills for product work, not code work" width="100%">
 
 # fig · pm
 
 [한국어](README.ko.md) · **English**
 
-Two Claude Code skill bundles — one for design files, one for product docs. They share a repo and install separately.
+Most Claude Code skills are aimed at the codebase. These two are aimed at the work beside it — the Figma file you draw in, and the spec you write next to it. One repo, installed separately.
 
 | Plugin | What it does | Skills |
 |---|---|---|
@@ -34,6 +34,8 @@ This bundle is the second half. Before you draw, it lays out the section skeleto
 Drawing is the official plugins' job. What happens around the drawing is this bundle's.
 
 ## Who it's for
+
+Designers, and whoever writes the spec next to them.
 
 Teams where one file is edited by several people over a long time. It doesn't matter whether you're drawing new screens or revising old ones.
 
