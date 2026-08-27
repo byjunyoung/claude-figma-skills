@@ -283,6 +283,24 @@ notion     Notion 페이지. prd.notion 절을 채워야 동작
 
 `pm`은 Figma 쪽이 하나도 필요 없습니다. 기획 문서만 쓴다면 그것만 깔면 됩니다.
 
+### 스킬별로 필요한 것
+
+`fig`는 기본적으로 `plugin:figma` 하나로 돕니다. 아래 스킬만 더 필요합니다.
+
+| 스킬 | 추가로 필요한 것 |
+|---|---|
+| `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — 실제 브라우저를 띄웁니다 |
+| `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — 설정이 Notion 페이지를 가리킬 때만 |
+| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — `task_tracker.type` / `task.mirror.type`이 `github`일 때만 |
+| `/fig:qa` `/pm:task-draft` | **Slack** — 요청 출처가 Slack 스레드일 때만 |
+| `/pm:prd` | **Notion** — `prd.target`이 `notion`일 때만 |
+
+커넥터 줄은 조건부입니다. 설정을 `none`이나 마크다운으로 두면 스킬은 그대로 돌고 결과만 다른 곳에 씁니다. Chrome 줄은 조건부가 아닙니다 — 저 셋은 브라우저를 엽니다.
+
+**스킬은 받지 않은 도구를 부르지 못합니다.** 커넥터가 없으면 요란하게 실패하는 게 아니라 그냥 닿지 못합니다. 첫 실행이 아무것도 안 한 것처럼 보이는 가장 흔한 이유입니다.
+
+**커넥터 이름은 claude.ai 기준입니다.** Notion·Slack·GitHub 도구가 `mcp__claude_ai_Notion__*` 같은 이름으로 걸려 있습니다. Notion을 직접 띄운 MCP 서버로 붙였다면 이름이 달라 스킬이 못 찾습니다.
+
 ### 1. 설치
 
 ```bash
