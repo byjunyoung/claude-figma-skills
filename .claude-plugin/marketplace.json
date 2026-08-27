@@ -11,7 +11,7 @@
     {
       "name": "fig",
       "source": "./plugins/fig",
-      "description": "A bundle for tidying, auditing and syncing Figma files that are already drawn. Preparation (prep), flow arrows (arrows), a read-only audit gate (lint), canonical sync (sync), applying to code (code), QA (qa), presentation decks (deck) and more — 13 in all.",
+      "description": "A bundle for the half of Figma work that isn't drawing the screen itself. Before you draw, it lays out the sections and stubs the states you're missing so the gaps become your to-draw list; after, it wires the flow, audits the file, and syncs the canonical page once engineering ships. prep, arrows, lint, sync, code, qa, deck and more — 13 in all.",
       "category": "design",
       "tags": [
         "figma",
