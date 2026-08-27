@@ -1,4 +1,4 @@
-<img src=".github/social-preview.png" alt="fig · pm — Claude Code plugins that keep a shared Figma file in order" width="100%">
+<img src=".github/social-preview.png" alt="fig · pm — Claude Code skills for everything around drawing a screen in Figma" width="100%">
 
 # fig · pm
 
@@ -8,7 +8,7 @@ Two Claude Code skill bundles — one for design files, one for product docs. Th
 
 | Plugin | What it does | Skills |
 |---|---|---|
-| **fig** | Organize, audit, and sync Figma files that already exist | 13 |
+| **fig** | Everything around drawing a screen — the to-draw list before, the audit and sync after | 13 |
 | **pm** | Write and verify product specs, then draft, file and reconcile the tasks | 5 |
 
 ```bash
@@ -25,11 +25,11 @@ Neither needs the other. Most of what follows is about `fig`; `pm` has [its own 
 
 ## Where it fits
 
-Figma tooling splits into two halves: the half that draws screens, and the half that keeps drawn files in order.
+Figma tooling splits into two halves: the half that draws what's inside a screen, and the half that handles everything around it.
 
 Figma's official plugins (`figma-use`, `figma-generate-design`, `figma-generate-library`) are the first half. Give them code or a description and they produce screens and components.
 
-This bundle is the second half. It works on files that already exist — checking whether names follow the convention, whether screens sit where they belong, whether flow arrows actually connect, whether changes shipped to engineering made it back into the canonical page. It runs on top of the official plugins, so you use both.
+This bundle is the second half. Before you draw, it lays out the section skeleton and stubs the states that are missing, so the gap list is what you draw next. After, it checks whether names follow the convention, whether screens sit where they belong, whether flow arrows actually connect, whether changes shipped to engineering made it back into the canonical page. It runs on top of the official plugins, so you use both.
 
 Drawing is the official plugins' job. What happens around the drawing is this bundle's.
 

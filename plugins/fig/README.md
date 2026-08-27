@@ -1,6 +1,6 @@
 # fig
 
-A bundle for tidying, auditing and syncing Figma files that are already drawn. Not the side that makes screens, but the side that manages a file several people share.
+A bundle for the half of Figma work that isn't drawing the screen itself. It builds your to-draw list before you start, and keeps a file several people share in order afterwards.
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
