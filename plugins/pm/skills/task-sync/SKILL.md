@@ -39,12 +39,14 @@ Ask, or take it from the argument.
 
 Read both sides in full where the tools allow it.
 
-- **The mirror** — list every task and parent with title, status, milestone and url. Confirm open or closed separately where the board's status and the ticket's state can disagree
+- **The mirror** — list every task and parent with title, status, milestone and url. Confirm open or closed separately where the board's status and the ticket's state can disagree. **A board listing can truncate without saying so** — compare the row count against the limit you asked for, and treat equal counts as a partial read
 - **The record side** — query the task list for title, project, group, priority, status, assignee, and the link property
 
 **Where an exhaustive query is not available**, fall back to search plus fetch: enumerate candidates with several differently-worded queries, dedupe, fetch each, and **keep only the rows whose parent really is the task list** — a search will happily return a sub-page or a row from another database. For a large list, fan the fetches out to sub-agents that each return compact JSON, so the main context stays clear.
 
-**Then say what that cost you.** A relevance-ranked search has no "that was all" signal, so rows that matched none of the queries are simply missing, with nothing to indicate it. Misses are structural. Wrongly *creating* or *closing* something is not, because duplicate detection reads the mirror exhaustively and every write waits for approval. So:
+**Then say what that cost you.** A relevance-ranked search has no "that was all" signal, so rows that matched none of the queries are simply missing, with nothing to indicate it. Misses are structural.
+
+Wrongly *creating* or *closing* something is normally not, because duplicate detection reads the mirror and every write waits for approval — **but that protection is only as good as the mirror read.** Where the mirror listing truncated, a ticket that exists but was not returned reads as `unfiled`, and the proposal is to create the duplicate. So a partial read on the mirror side downgrades every `unfiled` finding to a candidate: confirm each one against the mirror directly before it goes in the proposal. So:
 
 - **The coverage line in the result is mandatory** — how the read was done, and whether it was exhaustive
 - **Where full reconciliation actually matters**, ask for an export of the task list and re-run against the file

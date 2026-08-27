@@ -11,7 +11,8 @@ the warning is there because it was hit.
 
 ```bash
 # every task and parent on the board, with title, status, milestone and url
-gh project item-list {extras.project_number} --owner {extras.project_owner} --format json
+gh project item-list {extras.project_number} --owner {extras.project_owner} \
+  --format json --limit {above the board's item count}
 
 # open / closed is a property of the issue, not the board column — read it separately
 gh issue view {n} --repo {repo} --json state,body --jq '{state, body}'
@@ -20,6 +21,27 @@ gh issue view {n} --repo {repo} --json state,body --jq '{state, body}'
 gh issue list --repo {repo} --label "{project label}" --state open \
   --json number,title,url \
   --jq '.[] | select(.title | test("\\[{parent_kind}\\]"; "i"))'
+```
+
+**`item-list` truncates silently, and a big board cannot be listed at all.** The default
+`--limit` is 30. Raising it does not solve the problem, it moves it: on one real board
+`--limit 400` returned exactly 400 rows — the newest item was not among them — and
+`--limit 2000` did not return inside two minutes. A truncated read is worse than a failed
+one, because `/pm:task-sync` reads the missing rows as *unfiled* and offers to create
+tickets that already exist.
+
+So: **compare the returned count against the limit you asked for. Equal means truncated —
+say so in the coverage line rather than treating the read as exhaustive.** When you only need
+to confirm one item you already have the id for, address it directly instead of listing:
+
+```bash
+# one board item, by the id `item-add` returned
+gh api graphql -f query='{ node(id: "{item id}") { ... on ProjectV2Item {
+  content { ... on Issue { number title } }
+  fieldValues(first: 25) { nodes {
+    ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2SingleSelectField { name } } }
+    ... on ProjectV2ItemFieldDateValue        { date field { ... on ProjectV2Field { name } } }
+  } } } } }'
 ```
 
 ## Creating a task
@@ -31,6 +53,20 @@ gh issue create --repo {repo} \
   --label "{default_labels},{priority label},{project label}" \
   --assignee "{mapped username}"
 ```
+
+**A 5xx from `issue create` does not mean the issue was not created.** One real run got
+`503 Service Unavailable ... connection termination` and the issue was already there — the
+error came after the write. Retrying on the error would have filed it twice. Before any retry,
+search for the title you just sent:
+
+```bash
+gh issue list --repo {repo} --state open --limit 5 \
+  --search "{a distinctive phrase from the title} in:title" --json number,title,createdAt
+```
+
+Retry only when that comes back empty. The same caution applies to every write below: on a
+network-level error, read the current state before acting on the assumption that nothing
+happened.
 
 **Never pass `--milestone` on a task** where `task.hierarchy.milestone_on` is `parent`.
 The parent owns the milestone; a task carrying one is the policy violation `/pm:task-sync`

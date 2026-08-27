@@ -64,11 +64,18 @@ Project, group, priority, assignee and dates come from the record and are not as
 
 Only where `task.hierarchy.parent_kind` is set. With it `null`, tasks are a flat list — skip to step 4.
 
-Search the mirror for an existing parent matching this task's project and group.
+Search the mirror for open parents **of this task's project**, and read their titles to find
+the one this task belongs under.
 
-- **One found** → use it, and say so
+Do not filter the candidates by group. The group is a hint, not a key: a team that adopted a
+`[{parent_kind}] [{group}] ...` title convention partway through has older parents without the
+bracket, and those are exactly the long-running ones a new task most often belongs to. Filtering
+on the group hides them, and the run then concludes there is no parent and offers to create a
+duplicate of one that already exists.
+
+- **One obvious match** → use it, and say which, so a wrong read is visible
 - **None** → ask: create one / name an existing one / stop. Creating one is its own preview → go
-- **Several** → let the user pick
+- **Several plausible** → let the user pick. Do not break the tie yourself
 
 A newly created parent is titled by `task.hierarchy.parent_title` and carries whatever `task.mirror_extras` specifies for its type and board placement. Where the project uses milestones, the milestone is set **on the parent** — see step 7.
 
