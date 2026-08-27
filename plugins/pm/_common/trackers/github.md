@@ -70,16 +70,25 @@ gh issue create --repo {repo} \
 **A 5xx from `issue create` does not mean the issue was not created.** One real run got
 `503 Service Unavailable ... connection termination` and the issue was already there — the
 error came after the write. Retrying on the error would have filed it twice. Before any retry,
-search for the title you just sent:
+list the newest issues and match the **exact** title you sent:
 
 ```bash
-gh issue list --repo {repo} --state open --limit 5 \
-  --search "{a distinctive phrase from the title} in:title" --json number,title,createdAt
+gh issue list --repo {repo} --state all --limit 20 \
+  --json number,title,createdAt --jq '.[] | select(.title == "{the exact title}")'
 ```
 
-Retry only when that comes back empty. The same caution applies to every write below: on a
-network-level error, read the current state before acting on the assumption that nothing
-happened.
+**Do not reach for `--search` here.** It lies in two directions, and one run hit both. A
+partial title matches something else — a search on a fragment returned an unrelated ticket
+from another project, which was then reported as the one just created. And the search index
+lags: an issue confirmed to exist by number came back as zero results a moment after it was
+made. **An empty search is not evidence of absence.** The listing above goes at the issues
+endpoint directly and has neither problem.
+
+Creating several in one pass, confirm each by number before starting the next, and do not
+trust a loop's own bookkeeping about which title went where.
+
+The same caution applies to every write below: on a network-level error, read the current
+state before acting on the assumption that nothing happened.
 
 **Never pass `--milestone` on a task** where `task.hierarchy.milestone_on` is `parent`.
 The parent owns the milestone; a task carrying one is the policy violation `/pm:task-sync`
