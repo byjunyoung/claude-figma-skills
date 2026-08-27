@@ -283,6 +283,24 @@ And the next request starts it again, against a canonical page that is now curre
 
 `pm` needs none of the Figma side. If you only write specs, install it alone.
 
+### What each skill needs
+
+Everything under `fig` runs on `plugin:figma`. These skills want something more.
+
+| Skill | Also needs |
+|---|---|
+| `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — they drive a real browser |
+| `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — only where a config key points at a Notion page |
+| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github` |
+| `/fig:qa` `/pm:task-draft` | **Slack** — only where the request source is a Slack thread |
+| `/pm:prd` | **Notion** — only where `prd.target` is `notion` |
+
+The connector rows are conditional: point the config at `none` or at markdown and the skill still runs, it just writes somewhere else. The Chrome rows are not — those three open a browser.
+
+**A skill cannot call a tool it was never given.** If a connector is missing, the skill does not fail loudly; it simply cannot reach it. That is the most common reason a first run looks like it did nothing.
+
+**Connector names are the claude.ai ones.** The Notion, Slack and GitHub tools are named `mcp__claude_ai_Notion__*` and so on. If you connect Notion through your own MCP server instead, the names differ and the skill will not match them.
+
 ### 1. Install
 
 ```bash
