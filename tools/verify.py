@@ -34,6 +34,9 @@ FREE_KEY_MAPS = (
 
 SHARED = ["_common/scripts/lib/resolve-config.py"]
 
+fails, warns, counts = [], [], []
+
+
 # Team-value check. **One pattern at a time** — joining several with | tangles the escaping
 # and silently returns zero (one case was actually missed that way).
 #
@@ -41,13 +44,29 @@ SHARED = ["_common/scripts/lib/resolve-config.py"]
 #   · SKILL.md carries judgement only, so no value belongs in it → check all of them
 #   · conventions defaults and READMEs exist to carry values. But anything pointing at someone
 #     else's company — a brand colour, a product name, a document id — must not ship → check identifiers only
-TEAM_STRINGS = ["REDACTED", "REDACTED", "1560", "REDACTED", "[UI]", "[Update]",
-                "REDACTED", "REDACTED", "REDACTED", "매 실행 시 fetch",
-                "REDACTED", "Pretendard", "townhall"]
-IDENTITY_STRINGS = ["REDACTED", "REDACTED", "REDACTED", "REDACTED", "REDACTED", "REDACTED",
-                    "REDACTED"]
+#
+# The strings themselves name a company, so they are not written in this file: a checker that
+# carries them is the leak it exists to prevent. They live in tools/team-strings.local.txt, which
+# is gitignored — one per line, `!` prefix for an identifier. See team-strings.example.txt.
+# Without that file the check is skipped and says so, rather than passing quietly.
+def load_team_strings():
+    p = Path(__file__).resolve().parent / "team-strings.local.txt"
+    if not p.exists():
+        warns.append("no tools/team-strings.local.txt — the team-value check is skipped")
+        return [], []
+    team, ident = [], []
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("!"):
+            line = line[1:].strip()
+            ident.append(line)
+        team.append(line)
+    return team, ident
 
-fails, warns, counts = [], [], []
+
+TEAM_STRINGS, IDENTITY_STRINGS = load_team_strings()
 
 
 # Only **spatial numbers measured in a specific file**. One test decides it — would shipping this

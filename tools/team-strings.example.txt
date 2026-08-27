@@ -1,0 +1,12 @@
+# Values that belong to your team, which must never ship inside a plugin.
+# Copy this file to team-strings.local.txt (gitignored) and fill it in.
+#
+# One string per line. A `!` prefix also marks it as an identifier — something that
+# names a company (a brand colour, a product name, a document id). Identifiers are
+# checked in the config defaults and READMEs too, where ordinary team values are allowed.
+#
+# !4A7DF0          your brand colour
+# !Acme            a product name
+# !acmecorp        a company domain
+# !3f9c1b7d2e40    a document id
+# YourTypeface     a font only your team licenses
