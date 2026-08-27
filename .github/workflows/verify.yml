@@ -1,0 +1,22 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: pip install pyyaml
+      - name: Repository consistency
+        run: python3 tools/verify.py
+      - name: Figma sandbox script syntax
+        run: bash plugins/fig/_common/scripts/lib/check.sh
+      - name: Arrow geometry fixtures
+        run: node --test tools/test/audit-flow.test.js
