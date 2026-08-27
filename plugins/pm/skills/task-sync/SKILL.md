@@ -64,6 +64,7 @@ The calls for each side are in `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md
 | Parent | Task orphaned, multi-parented, or under the wrong one | Offer the right parent — **never change it silently** |
 | Broken link | The link property points at a dead or wrong ticket | Re-infer the pair from title and content, then correct the link |
 | Resurrected | Ticket closed but record still open | Reconcile to closed. **Do not recreate** |
+| Ahead of the mirror | Record terminal, ticket still open | **Report, propose nothing.** Where `field_owner.status` is `mirror`, this is what a finished spec waiting on engineering looks like — the normal state, not a drift. Only raise it when the ticket has been open long enough to look forgotten |
 | Record deleted | Ticket exists, record gone | Ask. Work may be in progress, so never auto-close |
 | Field mismatch | The owning side disagrees with the other | Correct toward `task.field_owner` |
 | Policy | Milestone on the wrong level, or missing where required | Correct per `task.hierarchy` |
