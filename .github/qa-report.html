@@ -1,0 +1,53 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+ .two{display:flex;gap:30px;align-items:stretch}
+ .c{flex:1;border:1px solid #E7EAEE;border-radius:13px;overflow:hidden;display:flex;flex-direction:column}
+ .hd{padding:18px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #EDEFF3}
+ .bad .hd{background:#FDF3F3} .amb .hd{background:#FAFBFC}
+ .pill{font-size:15px;font-weight:700;letter-spacing:.06em;padding:4px 11px;border-radius:6px}
+ .bad .pill{background:#D9534F;color:#fff} .amb .pill{background:#DDE2EA;color:#5C6470}
+ .hd .ti{font-size:21px;font-weight:600}
+ .bd{padding:22px 24px 24px;flex:1}
+ .r{display:flex;gap:14px;padding:11px 0;border-top:1px solid #F1F3F6;font-size:20px;line-height:1.45}
+ .r:first-child{border-top:none;padding-top:0}
+ .r .n{width:112px;flex:none;color:#8A929E;font-size:18px;padding-top:2px}
+ .r .v{flex:1;color:#39404B}
+ .cite{margin-top:16px;padding:14px 16px;background:#F7F9FA;border-radius:9px;
+       font-size:19px;line-height:1.5;color:#4A525E}
+ .cite b{color:#1F2430}
+ .amb .cite{background:#FAFBFC;color:#6B7480}
+ .principle{margin:0 0 36px;padding:22px 26px;border-left:4px solid #1F2430;background:#FAFBFC;
+            border-radius:0 9px 9px 0;font-size:23px;line-height:1.55;color:#39404B}
+ .principle b{color:#1F2430}
+</style>
+<div class="wrap">
+<h1>No verdict without a baseline</h1>
+<div class="sub"><code>/fig:qa</code> compares what shipped against the plan of record. A finding has to read <i>this breaks rule X in document Y</i> — otherwise it is not a defect yet.</div>
+
+<div class="principle"><b>“This looks wrong” is not a finding.</b> Engineering cannot act on taste, and a report full of it stops being read. So anything without a rule behind it is filed separately, as a question rather than a defect.</div>
+
+<div class="two">
+  <div class="c bad">
+    <div class="hd"><span class="pill">DEFECT</span><span class="ti">Empty cart still allows checkout</span></div>
+    <div class="bd">
+      <div class="r"><div class="n">Steps</div><div class="v">Open the cart with no items → press Pay</div></div>
+      <div class="r"><div class="n">Expected</div><div class="v">Pay is disabled while the cart is empty</div></div>
+      <div class="r"><div class="n">Actual</div><div class="v">Pay is enabled; the next screen loads with a total of 0</div></div>
+      <div class="r"><div class="n">Evidence</div><div class="v">dev · 2026-08-27 · screenshot, request log</div></div>
+      <div class="cite"><b>Baseline</b> — Spec, “Cart · states and cases”, row <i>Empty</i>: <i>“primary action disabled”</i></div>
+    </div>
+  </div>
+
+  <div class="c amb">
+    <div class="hd"><span class="pill">NEEDS CHECKING</span><span class="ti">Toast covers the confirm button</span></div>
+    <div class="bd">
+      <div class="r"><div class="n">Steps</div><div class="v">Add an item quickly twice → the toast appears bottom-centre</div></div>
+      <div class="r"><div class="n">Observed</div><div class="v">While it is up, the confirm button cannot be pressed for ~2s</div></div>
+      <div class="r"><div class="n">Baseline</div><div class="v">none — no rule covers toast placement</div></div>
+      <div class="r"><div class="n">Evidence</div><div class="v">dev · 2026-08-27 · screen recording</div></div>
+      <div class="cite">Filed as a question, not a defect. <b>Someone has to decide the rule first</b> — and until they do, the design and the build do not disagree, because neither was told.</div>
+    </div>
+  </div>
+</div>
+<div class="foot"><b>Where the design and the document disagree, it asks which is current</b> rather than picking one. A report that guessed would send engineering to change the side that was already right.</div>
+</div>

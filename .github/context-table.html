@@ -1,0 +1,60 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+ .cols{display:flex;gap:34px;align-items:flex-start}
+ .src{width:430px;flex:none}
+ .out{flex:1;min-width:0}
+ .colcap{margin-bottom:16px}
+ .colcap .t{font-size:23px;font-weight:600}
+ .colcap .d{font-size:19px;color:#8A929E;margin-top:4px}
+ .thread{border:1px solid #E7EAEE;border-radius:13px;padding:20px 22px;background:#FAFBFC}
+ .msg{display:flex;gap:11px;padding:11px 0;border-top:1px solid #EDEFF3}
+ .msg:first-child{border-top:none;padding-top:0}
+ .av{width:30px;height:30px;border-radius:8px;flex:none;background:#DDE2EA;
+     font-size:14px;font-weight:600;color:#6B7480;display:flex;align-items:center;justify-content:center}
+ .msg .b{font-size:19px;line-height:1.45;color:#39404B}
+ .msg .b i{color:#8A929E;font-style:normal;font-size:17px;display:block;margin-bottom:2px}
+ table{width:100%;border-collapse:collapse;border:1px solid #E7EAEE;border-radius:13px;overflow:hidden}
+ td{padding:15px 20px;border-top:1px solid #EDEFF3;font-size:20px;line-height:1.45;vertical-align:top}
+ tr:first-child td{border-top:none}
+ td.h{width:230px;font-weight:600;background:#FAFBFC;color:#39404B}
+ .tag{display:inline-block;font-size:15px;font-weight:600;letter-spacing:.04em;padding:2px 9px;
+      border-radius:5px;margin-right:8px;vertical-align:2px}
+ .t-f{background:#E8F0E9;color:#3F7048}
+ .t-a{background:#FBF0E2;color:#9A6B22}
+ .t-t{background:#F0EDF7;color:#6A55A0}
+ .legend{display:flex;gap:26px;margin-top:20px;font-size:19px;color:#6B7480;align-items:center}
+</style>
+<div class="wrap">
+<h1>A request thread is not a task. Sorting it into rows is.</h1>
+<div class="sub"><code>/pm:task-draft</code> reads the source and files each statement into a named row — keeping what is a fact, what is your inference, and what nobody has decided apart instead of blending them into prose.</div>
+
+<div class="cols">
+  <div class="src">
+    <div class="colcap"><div class="t">the source</div><div class="d">a chat thread, a page, a spoken agreement</div></div>
+    <div class="thread">
+      <div class="msg"><div class="av">RT</div><div class="b"><i>Retail</i>App signups are flat everywhere except one store. Kiosk customers have no way in.</div></div>
+      <div class="msg"><div class="av">RT</div><div class="b"><i>Retail</i>Can we put a reward step in the kiosk flow? And a QR on the receipt.</div></div>
+      <div class="msg"><div class="av">EN</div><div class="b"><i>Engineering</i>Which identifier would the reward attach to? Phone number is the only thing we hold today.</div></div>
+      <div class="msg"><div class="av">RT</div><div class="b"><i>Retail</i>Target is 25%. Not decided when the prompt shows.</div></div>
+    </div>
+  </div>
+
+  <div class="out">
+    <div class="colcap"><div class="t">the context table</div><div class="d">written onto the task record</div></div>
+    <table>
+      <tr><td class="h">Request source</td><td><span class="tag t-f">FACT</span>Retail team meeting, 2026-08-18</td></tr>
+      <tr><td class="h">Initial request</td><td><span class="tag t-f">FACT</span>Reward step in the kiosk flow, and an install QR on the receipt</td></tr>
+      <tr><td class="h">Background (AS-IS)</td><td><span class="tag t-f">FACT</span>App signup target 25%, met in one store only. Kiosk customers have no entry point</td></tr>
+      <tr><td class="h">Goal (TO-BE)</td><td><span class="tag t-a">ASSUMED</span>order → reward → signup as one continuous path<br><span style="color:#8A929E;font-size:18px">nobody said “one path” — it is the reading that makes the two asks one task</span></td></tr>
+      <tr><td class="h">Scope In</td><td><span class="tag t-f">FACT</span>Kiosk reward prompt · receipt QR</td></tr>
+      <tr><td class="h">Undecided</td><td><span class="tag t-t">TBD</span>which identifier the reward attaches to<br><span class="tag t-t">TBD</span>when the prompt appears</td></tr>
+    </table>
+    <div class="legend">
+      <span><span class="tag t-f">FACT</span>said in the source</span>
+      <span><span class="tag t-a">ASSUMED</span>your reading of it</span>
+      <span><span class="tag t-t">TBD</span>nobody has decided</span>
+    </div>
+  </div>
+</div>
+<div class="foot"><b>The rows that stay empty are the interview you still owe someone.</b> A blank <i>Goal</i> is not a formatting gap — it means nobody has said what finished looks like, and that is worth knowing before the spec is written.</div>
+</div>

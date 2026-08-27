@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+ .rows{display:flex;flex-direction:column;gap:14px}
+ .row{display:flex;align-items:stretch;gap:0}
+ .name{width:330px;flex:none;padding:20px 24px;border:1px solid #E7EAEE;border-right:none;
+       border-radius:13px 0 0 13px;background:#FAFBFC}
+ .name .t{font-size:22px;font-weight:600}
+ .name .d{font-size:17px;color:#8A929E;margin-top:4px}
+ .keys{flex:1;padding:20px 24px;border:1px solid #E7EAEE;border-radius:0 13px 13px 0;
+       display:flex;flex-direction:column;gap:9px;justify-content:center}
+ .kv{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;color:#39404B}
+ .kv .v{color:#1F2430;font-weight:600}
+ .kv.gone{color:#C3C9D2}
+ .kv.gone .v{color:#C3C9D2;font-weight:400;text-decoration:line-through}
+ .arrowrow{display:flex;justify-content:center;padding:6px 0 2px}
+ .arrowrow span{font-size:22px;color:#B6BCC6}
+ .out{margin-top:34px;border:2px solid #1F2430;border-radius:13px;padding:22px 24px;
+      display:flex;align-items:stretch;gap:0}
+ .out .name2{width:306px;flex:none}
+ .out .name2 .t{font-size:22px;font-weight:600}
+ .out .name2 .d{font-size:17px;color:#8A929E;margin-top:4px}
+ .out .keys2{flex:1;display:flex;flex-direction:column;gap:9px}
+ .from{font-size:17px;color:#8A929E;margin-left:14px}
+</style>
+<div class="wrap">
+<h1>Configuration is three files deep-merged, not one file copied</h1>
+<div class="sub">Bundled defaults are the floor. Your shared config covers them, a project config covers that. You write only the keys you need — and a key you never mention keeps working.</div>
+
+<div class="rows">
+  <div class="row">
+    <div class="name"><div class="t">the plugin</div><div class="d">bundled defaults · the floor</div></div>
+    <div class="keys">
+      <div class="kv">naming.state_suffix: <span class="v">"[state]"</span></div>
+      <div class="kv">spacing.section_gap: <span class="v">80</span></div>
+      <div class="kv">qa.baseline.prd: <span class="v">null</span></div>
+    </div>
+  </div>
+  <div class="arrowrow"><span>▼&nbsp;&nbsp;covered by</span></div>
+  <div class="row">
+    <div class="name"><div class="t">~/.claude/</div><div class="d">your team, every project</div></div>
+    <div class="keys">
+      <div class="kv">spacing.section_gap: <span class="v">120</span></div>
+      <div class="kv dim" style="font-family:-apple-system,Arial;font-size:19px">nothing else written</div>
+    </div>
+  </div>
+  <div class="arrowrow"><span>▼&nbsp;&nbsp;covered by</span></div>
+  <div class="row">
+    <div class="name"><div class="t">./</div><div class="d">this project only · strongest</div></div>
+    <div class="keys">
+      <div class="kv">qa.baseline.prd: <span class="v">"36131847…"</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="out">
+  <div class="name2"><div class="t">what the skill reads</div><div class="d">resolve-config.py</div></div>
+  <div class="keys2">
+    <div class="kv">naming.state_suffix: <span class="v">"[state]"</span><span class="from">never written by you — the default still holds</span></div>
+    <div class="kv">spacing.section_gap: <span class="v">120</span><span class="from">your team's value won</span></div>
+    <div class="kv">qa.baseline.prd: <span class="v">"36131847…"</span><span class="from">the project's value won</span></div>
+  </div>
+</div>
+
+<div class="foot"><b>null is not the same as deleting a key.</b> Writing <code>null</code> means “skip this check”. Deleting the line brings the layer above back — which is usually not what you meant.</div>
+</div>

@@ -86,6 +86,8 @@ Three rhythms: the cycle of drawing and handing off one feature, the per-release
 
 `prep` comes first because it builds the to-draw list. A list screen needs an empty state; a form needs a validation-failure state. Stub those as dashed placeholders and the gaps become visible. The point is that they surface before engineering asks.
 
+<img src=".github/prep-stubs.png" alt="Three finished screens above five dashed placeholder frames, each named for the state it stands for" width="100%">
+
 `lint` is the gate you have to pass. It never writes to the file, so running it repeatedly is safe.
 
 ### Per release — bringing the canonical page current
@@ -121,6 +123,8 @@ Neither touches the file. Run one when you inherit a file someone else has been 
 `deck` moves one source document into a presentation flow and builds a Figma Slides deck. It uses the team template's coordinates, colors and type as-is — when a content shape isn't in the catalog it never invents a layout, it fits the nearest archetype by trimming content or splitting the slide. `/fig:deck-setup` measures those values into local assets, which stay out of the published plugin since template backgrounds carry company wordmarks.
 
 `qa` audits what actually shipped against the spec. The rule is that a finding reads "this breaks rule X in document Y", never "this looks off" — anything without a baseline is filed as needs-checking rather than a defect.
+
+<img src=".github/qa-report.png" alt="Two findings side by side: a defect citing the spec row it breaks, and an observation with no baseline filed as a question" width="100%">
 
 `code` separates what the design owns (numbers, colors, copy, states) from what the code owns (file structure, naming, state management), so neither overwrites the other.
 
@@ -184,6 +188,8 @@ flowchart TD
 | Flow | Arrows cutting through unrelated screens · arrowheads pointing at empty space · screens on no flow at all · labels covering an arrowhead or another line |
 | Components | Settings that tagged along in a duplicate, leaving an empty slot rendered |
 
+<img src=".github/lint-catches.png" alt="A tidy-looking section with three numbered violations marked: an arrow crossing an unrelated screen, an arrowhead in empty space, and a screen on no flow" width="100%">
+
 Arrowhead direction isn't catchable by distance alone. An arrow can sit 12px away and still point into empty space if its last segment runs parallel to the target edge. So the audit checks perpendicularity separately.
 
 The component audit works without any written convention. It derives the usage distribution from how other screens in the same file use that component, and compares against it.
@@ -213,6 +219,8 @@ A separate plugin covering the document and the work that comes out of it.
 ```
 
 `task-draft` comes before `prd` because the context table is what tells you whether there is enough here to write a spec at all. The rows that stay empty are the interview you still owe someone.
+
+<img src=".github/context-table.png" alt="A request thread on the left, sorted into named context rows on the right, with fact, assumed and TBD labelled apart" width="100%">
 
 `task-publish` takes one task and `task-sync` takes the list, because the two fail differently. One task fails by being filed wrong. A list fails by drifting — unfiled, duplicated, wrong parent, resurrected. Diagnosing drift means reading both sides first, which is why `sync` shows you the diagnosis and waits rather than writing.
 
@@ -253,16 +261,7 @@ Neither link is required. Leave `qa.baseline.prd` at `null` and `/fig:qa` files 
 
 Drawn out, one feature goes round like this.
 
-```
-a request arrives
-   └─▶ pm:task-draft      the context table — what was asked, by whom, and what nobody has decided
-        └─▶ pm:prd        the spec — what has to be true once this is built
-             └─▶ fig      prep · draw · arrows · lint · diff, then hand off
-                  └─▶ pm:task-publish    the ticket engineering picks up
-                       └─▶ it ships
-                            ├─▶ fig:qa     judged against that same spec
-                            └─▶ fig:sync   the canonical page brought up to what shipped
-```
+<img src=".github/two-plugins.png" alt="The loop from request to shipped, alternating between pm and fig, with the two shared config values named underneath" width="100%">
 
 And the next request starts it again, against a canonical page that is now current.
 
@@ -316,13 +315,7 @@ That's setup done. [How you use it](#how-you-use-it) covers the loop from here.
 
 Conventions live in one file, `figma-conventions.yaml`, not in the skill docs. Screen naming, the state list, spacing values, section style, arrow style, sections excluded from audit, and tolerances are all there.
 
-```
-plugin defaults                       base layer
-      ↓ overridden by
-~/.claude/figma-conventions.yaml      your shared config
-      ↓ overridden by
-./figma-conventions.yaml              per project (wins)
-```
+<img src=".github/config-layers.png" alt="Three config layers stacked, with one key resolving from each layer and the merged result underneath" width="100%">
 
 The full schema lives in [`conventions.example.yaml`](plugins/fig/_common/conventions.example.yaml) — 14 sections, 112 keys, each commented with what it governs, so you can copy it and edit in place. It looks like this:
 
