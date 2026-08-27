@@ -72,11 +72,12 @@ Read `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<mirror.type>.md`, then run the id 
 
 ### 4. Pair the two sides
 
-`label_map` and `assignee_map` join names across systems, and neither system knows about the other.
+`label_map`, `assignee_map` and `status_map` join names across systems, and neither system knows about the other.
 
 - **Propose pairs by name similarity, then confirm them.** A record project called `Store App` and a label called `project: Store` are almost certainly the same thing — almost. Show the proposed pairing and let it be corrected in one pass
 - **A record value with no counterpart stays unmapped**, and unmapped means "not mirrored". That is a legitimate state, and it is what makes `/pm:task-publish` stop cleanly rather than invent a label
 - **Never invent a label to complete a pair.** A missing ticket is easy to spot later; a ticket under a wrong label is not
+- **`status_map` will not fall out of name similarity — ask it.** A record's statuses describe how far the planning side has got; a board's columns describe whose turn it is. `Not started` and `Backlog` may line up, but the two in the middle rarely do, and a wrong guess seats finished specs in the backlog column where the engineering side reads them as untouched. Show the two lists side by side and ask which column each status should file into, saying that a status left unpaired keeps the board's own default
 
 ### 5. Interview what no schema answers
 

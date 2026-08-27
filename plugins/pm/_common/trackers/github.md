@@ -122,6 +122,15 @@ gh api graphql -f query='
     value: { singleSelectOptionId: "{extras.project_field_options[label]}" }
   }) { projectV2Item { id } } }'
 
+# the status column — only where task.status_map has an entry for the record's status
+gh api graphql -f query='
+  mutation { updateProjectV2ItemFieldValue(input: {
+    projectId: "{extras.project_node_id}",
+    itemId:    "{item id}",
+    fieldId:   "{extras.status_field_id}",
+    value: { singleSelectOptionId: "{extras.status_field_options[status_map[record status]]}" }
+  }) { projectV2Item { id } } }'
+
 # the date fields — task only. A parent's schedule is managed elsewhere
 gh project item-edit --project-id {extras.project_node_id} --id {item id} \
   --field-id {extras.start_date_field} --date {YYYY-MM-DD}

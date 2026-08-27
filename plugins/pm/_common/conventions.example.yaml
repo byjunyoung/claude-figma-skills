@@ -137,7 +137,10 @@ task:
     projects: []                 # select options; empty means ask each time
     default_assignee: null       # id of whoever owns a task by default
 
-  # Record status -> mirror status. Only the ones that differ need writing.
+  # Record status -> the mirror column a task is seated in when it is first filed.
+  # Only the statuses a task can be filed *in* need an entry; a status with none leaves
+  # the mirror's own default alone. This also tells /pm:task-sync which column counts as
+  # the backlog. Seating is not ownership — field_owner.status still decides who wins later.
   status_map: {}
 
   # --- How a task sits under something bigger in the mirror ----------------------
@@ -180,6 +183,12 @@ task:
   # --- Whatever your tracker needs and no other does -----------------------------
   # Board ids, custom field ids, issue-type ids. Written once, read back verbatim.
   # Nothing here is interpreted, so a tracker this plugin has never seen still works.
+  # A github board, for example, needs these — every one of them is an id no screen
+  # shows you, which is why /pm:setup queries them for you:
+  #   project_number, project_owner, project_node_id
+  #   project_field_id, project_field_options: {label: option id}
+  #   status_field_id,  status_field_options:  {column name: option id}
+  #   start_date_field, end_date_field, epic_issue_type
   mirror_extras: {}
 
   notion:
