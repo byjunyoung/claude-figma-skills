@@ -61,7 +61,14 @@ Wrongly *creating* or *closing* something is normally not, because duplicate det
 
 Match each record to its ticket by the link property. Never match on the ticket body.
 
-The calls for each side are in `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md` — read the two matching `task.record.type` and `task.mirror.type` before scanning. They also carry what each tool cannot do, which is what the coverage line reports.
+The calls for each side are in its adapter — read both before scanning. They also carry what each tool cannot do, which is what the coverage line reports.
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.record.type}
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.mirror.type}
+```
+
+It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls.
 
 ### 2. Diagnose — a rule broken is a drift
 

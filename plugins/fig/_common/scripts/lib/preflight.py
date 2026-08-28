@@ -52,22 +52,29 @@ CONNECTORS = {
     ],
 }
 
-# A config value that makes a connector required. Read from the resolved config, so a machine
-# that has never run setup has nothing required here — and is told so, rather than PASSing as
-# if that meant something.
-REQUIRED_BY_CONFIG = {
+# A tool the config names is a required connector, whatever the tool. The trigger is a value
+# somebody wrote — a ref, a type, a channel id — and the name comes from the resolved type, so a
+# default type still counts once a ref was written against it, and a default alone never does.
+# A machine that has never run setup has nothing required here, and is told so rather than
+# PASSing as if that meant something.
+#   (keys the user must have written, the type key, type values that need no connector)
+NAMED_TOOLS = {
     "fig": [
-        ("task_tracker.type", "notion", "Notion"),
-        ("task_tracker.type", "github", "GitHub"),
-        ("guide_source.type", "notion", "Notion"),
+        (("task_tracker.ref", "task_tracker.type"), "task_tracker.type", {"none"}),
+        (("guide_source.ref", "guide_source.type"), "guide_source.type", {"none", "file", "url"}),
     ],
     "pm": [
-        ("task.record.type", "notion", "Notion"),
-        ("task.mirror.type", "notion", "Notion"),
-        ("task.mirror.type", "github", "GitHub"),
-        ("prd.target", "notion", "Notion"),
+        (("task.record.ref", "task.record.type"), "task.record.type", {"none", "markdown"}),
+        (("task.mirror.ref", "task.mirror.type"), "task.mirror.type", {"none"}),
+        (("prd.target", "prd.notion.template", "prd.notion.task_db",
+          "prd.notion.inline_db.users", "prd.notion.inline_db.features"), "prd.target", {"markdown", "git"}),
+        (("log.sources.chat_channels", "log.sources.notes_channel"), "sources.chat_type", {"none"}),
+        (("log.sources.calendar",), "sources.calendar_type", {"none"}),
     ],
 }
+# How a type reads in `claude mcp list`. Anything else is matched on the type name itself,
+# which is how a connector this file has never heard of still gets a row.
+CONNECTOR_NAME = {"notion": "Notion", "github": "GitHub", "slack": "Slack", "google": "Google Calendar"}
 
 # Where the tracker is GitHub, the tracker adapter runs on the gh CLI, not on the connector.
 # This is the config key holding the repo the check tries to open.
@@ -76,7 +83,7 @@ TRACKER_REF = {"fig": "task_tracker.ref", "pm": "task.mirror.ref"}
 CHROME_SKILLS = {"fig": "/fig:proto, /fig:code and /fig:qa drive a real browser", "pm": None}
 CONFIG_NAME = {"fig": "figma-conventions.yaml", "pm": "pm-conventions.yaml"}[PLUGIN]
 
-rows, missing, required, because = [], [], set(), []
+rows, missing, required, because = [], [], {}, []      # required: lower-case name → display name
 
 
 def arg_after(flag):
@@ -111,42 +118,58 @@ def run(cmd, timeout=20):
 
 
 def load_config():
-    """The user's layers merged — without the bundled floor — or None where none exists.
+    """(the user's layers merged without the bundled floor, the fully resolved config), or
+    (None, None) where no user layer exists.
 
-    The floor is left out on purpose. Its record type is notion, and a machine whose only
+    The floor is kept apart on purpose. Its record type is notion, and a machine whose only
     config is a profile name must not read as "Notion required": a requirement comes from a
-    value somebody wrote, never from a default nobody chose."""
+    value somebody wrote, never from a default nobody chose. The resolved config is still
+    needed — for the name of the tool once a ref was written against a default type."""
     spec = importlib.util.spec_from_file_location("resolve_config", os.path.join(HERE, "resolve-config.py"))
     try:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-        cfg, found = {}, False
+        user, found = {}, False
         for p in mod.candidates(CONFIG_NAME)[1:]:
             if os.path.exists(p):
-                cfg, found = mod.merge(cfg, mod.load(p)), True
+                user, found = mod.merge(user, mod.load(p)), True
+        full, _ = mod.resolve(None, CONFIG_NAME)
     except (SystemExit, Exception):        # no PyYAML, no file — the host rows say which
-        return None
-    return cfg if found else None
+        return None, None
+    return (user, full) if found else (None, None)
+
+
+def written(cfg, key):
+    return dig(cfg, key) not in (None, "", [], {})
+
+
+def require(name, why):
+    required[name.lower()] = name
+    because.append(why)
 
 
 def settle_requirements():
     for name in (arg_after("--require") or "").split(","):
         if name.strip():
-            required.add(name.strip().lower())
-            because.append(f"--require {name.strip()}")
-    cfg = load_config()
-    if cfg is None:
+            require(name.strip(), f"--require {name.strip()}")
+    user, full = load_config()
+    if user is None:
         because.append("no config yet — nothing beyond the host is required until setup names a tool")
         return None
     named = False
-    for path, value, name in REQUIRED_BY_CONFIG[PLUGIN]:
-        if dig(cfg, path) == value:
-            required.add(name.lower())
-            because.append(f"{path}: {value}")
-            named = True
+    for triggers, type_key, quiet in NAMED_TOOLS[PLUGIN]:
+        if not any(written(user, k) for k in triggers):
+            continue
+        if triggers[0].startswith("log.") and not dig(full, "log.enabled"):
+            continue                       # channels named in a log that is switched off
+        typ = str(dig(full, type_key) or "none").lower()
+        if typ in quiet:
+            continue
+        require(CONNECTOR_NAME.get(typ, typ.capitalize()), f"{type_key}: {typ}")
+        named = True
     if not named:
         because.append("the config names no connector — nothing beyond the host is required")
-    return cfg
+    return full
 
 
 def is_required(name):
@@ -177,7 +200,10 @@ def connector_checks():
         return
 
     lines = listing.splitlines()
-    for name, hard, why in CONNECTORS[PLUGIN]:
+    checks = list(CONNECTORS[PLUGIN])
+    listed = {n.lower() for n, _, _ in checks}
+    checks += [(disp, False, "named by the config") for low, disp in required.items() if low not in listed]
+    for name, hard, why in checks:
         need = hard or is_required(name)
         hit = next((ln for ln in lines if name.lower() in ln.lower()), None)
         if hit and "Connected" in hit:

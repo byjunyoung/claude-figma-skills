@@ -296,16 +296,19 @@ notion     Notion 페이지. prd.notion 절을 채워야 동작
 | `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — 실제 브라우저를 띄웁니다 |
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — 설정이 Notion 페이지를 가리킬 때만 |
 | `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — `task_tracker.type` / `task.mirror.type`이 `github`일 때만. 로그인이 둘입니다 — 커넥터 하나, 트래커 어댑터가 도는 `gh` CLI 하나. 사전 점검이 둘 다 보고 `gh`가 어느 계정인지 이름으로 알려줍니다 |
-| `/fig:qa` `/pm:task-draft` | **Slack** — 요청 출처가 Slack 스레드일 때만 |
+| `/fig:qa` `/pm:task-draft` | **채팅 도구** — 요청 출처가 스레드일 때만. `sources.chat_type`이 지목하고, Slack이 딸려 옵니다 |
+| `/pm:log` | **캘린더와 채팅 도구** — 둘 다 선택. `sources.calendar_type`·`sources.chat_type`이 지목하고, Google Calendar·Slack이 딸려 옵니다. `none`이면 건너뛰고 일지가 그렇게 말합니다. 무인으로 돌리려면 내 컴퓨터의 스케줄러 |
 | `/pm:prd` | **Notion** — `prd.target`이 `notion`일 때만 |
 
 커넥터 줄은 조건부입니다. 설정을 `none`이나 마크다운으로 두면 스킬은 그대로 돌고 결과만 다른 곳에 씁니다. Chrome 줄은 조건부가 아닙니다 — 저 셋은 브라우저를 엽니다.
+
+어댑터가 딸려 오는 도구는 Notion·GitHub·Slack입니다. 설정이 다른 도구를 지목해도 위 줄들은 같은 뜻으로 읽힙니다.
 
 **설정이 도구를 지목하는 순간 선택이 아니게 됩니다.** 같은 점검이 설정을 읽습니다. 트래커가 `github`이면 GitHub이 필수가 되고, `prd.target: notion`이면 Notion이 필수가 되며, 이후 실행에서 거기 닿지 못하면 빈손으로 돌아오는 대신 그 이름을 대고 멈춥니다. 설정이 아직 없는 컴퓨터에선 호스트 말고는 아무것도 필수일 수 없고 — 요약 줄이 그렇게 말합니다 — `/pm:setup`이 방금 받은 답으로 점검을 한 번 더 돌립니다.
 
 **스킬은 받지 않은 도구를 부르지 못합니다.** 커넥터가 없으면 요란하게 실패하는 게 아니라 그냥 닿지 못합니다. 첫 실행이 아무것도 안 한 것처럼 보이는 가장 흔한 이유입니다.
 
-**커넥터 이름은 claude.ai 기준입니다.** Notion·Slack·GitHub 도구가 `mcp__claude_ai_Notion__*` 같은 이름으로 걸려 있습니다. Notion을 직접 띄운 MCP 서버로 붙였다면 이름이 달라 스킬이 못 찾습니다.
+**내장 어댑터의 커넥터 이름은 claude.ai 기준입니다.** Notion·Slack·GitHub 호출이 `mcp__claude_ai_Notion__*` 같은 이름을 씁니다. 이 플러그인이 본 적 없는 도구 — Linear, Jira, Confluence, Teams, 직접 띄운 MCP 서버 뒤의 Notion — 라고 막다른 길은 아닙니다. 설정에 그 타입을 적으면 `/pm:setup`이 그 컴퓨터에 실제로 붙은 도구를 읽어 어댑터 초안을 플러그인 바깥 `pm-adapters/`에 쓰고, 검증 못 한 답에는 표시를 남깁니다. 어댑터가 답해야 할 것은 [`trackers/README.md`](plugins/pm/_common/trackers/README.md)와 [`sources/README.md`](plugins/pm/_common/sources/README.md)에 있습니다.
 
 ### 1. 설치
 
@@ -348,6 +351,11 @@ claude plugin install pm@byjunyoung      # 기획 문서도 쓴다면
 한쪽에서 `side: record`, 다른 쪽에서 `side: mirror`로 돌리면 됩니다. 각 실행은 같은 파일의 자기
 절반만 씁니다. **답할 수 없는 건 `null`입니다.** 파일이 그 옆에 질문을 주석으로 남겨 두어, 답할
 수 있는 사람이 찾아 채웁니다.
+
+아무것도 없는 상태 — 문서 도구도 트래커도 — 도 답이 됩니다. 다른 도구가 하나도 필요 없는 마크다운
+저장소 하나(기획서·일감·일지)를 깔아 주고, 트래커는 나중에 `side: mirror`로 붙입니다. 본 적 없는
+도구 — Linear, Jira, Teams — 도 막다른 길이 아닙니다. 설정에 이름을 적으면 붙어 있는 도구를 읽어
+어댑터를 초안합니다.
 
 **deck.** `/fig:deck-setup`이 팀 슬라이드 템플릿을 재서 `~/.claude/deck-assets`로 옮깁니다.
 플러그인에는 템플릿 값이 하나도 안 들어 있습니다. 덱 배경에 회사 워드마크가 박혀 있어 배포할 수
@@ -394,6 +402,7 @@ arrows:
 - **부분만 적어도 됩니다** — 세 층을 겹쳐 읽습니다. 안 적은 키는 기본값이 채우고, 적은 키만 덮입니다
 - **`null`의 의미** — 추정하지 않았다는 뜻이고, 해당 검사를 건너뜁니다. 검사를 끄려면 키를 지우지 말고 `null`을 적으세요 — 지우면 기본값이 살아납니다
 - **스킬이 없으면 못 도는 키** — `resolve-config.py --need task.record.ref`로 요구합니다. 거기서 `null`이면 아무것도 없이 도는 대신 키 이름을 찍고 끝납니다. 트래커 문제가 아니라 설정 구멍이고, setup 스킬이 써 줍니다
+- **어댑터** — 도구 하나의 호출은 파일 하나에 삽니다. `trackers/<type>.md` 또는 `sources/<type>.md`이고, 설정에 적은 타입이 그걸 고릅니다. 직접 만든 건 플러그인 바깥 `adapters.dirs`에 둡니다. 파일 없는 타입이면 스킬이 멈추고, `/pm:setup`이 그 컴퓨터에 붙은 도구를 읽어 초안을 씁니다
 - **파일별 설정** — 정본·아카이브 페이지 구분처럼 파일마다 다른 항목은 `files.<fileKey>`에 적습니다
 
 초안이 나오면 `/fig:lint`를 한 번 돌려 오탐률로 검증합니다. 위반이 전건에 가까우면 파일이 잘못된 게 아니라 설정이 틀린 것입니다.
@@ -441,6 +450,9 @@ GitHub은 로그인이 둘입니다. 커넥터가 하나, 트래커 어댑터가
 **`resolve-config.py --need`가 키 이름을 찍고 끝납니다.**
 그 키가 모든 레이어에서 `null`이고, 스킬은 그것 없이 돌 수 없습니다. 트래커 문제가 아니라 설정 구멍입니다 — `/pm:setup`이 써 주거나 직접 적으세요. 빈 맵이나 빈 리스트는 값이라 여기서 안 멈춥니다. 없거나 null인 것만 멈춥니다.
 
+**`adapter.py`가 3으로 끝납니다 — 그 타입의 어댑터가 없습니다.**
+설정이 아무도 호출을 적어 두지 않은 도구를 지목했습니다. `/pm:setup`이 이 컴퓨터에 실제로 붙은 도구를 읽어 플러그인 바깥 `pm-adapters/`에 초안을 씁니다. 답해야 할 질문은 `trackers/README.md`·`sources/README.md`에 있습니다. 그 전까지 스킬은 호출을 지어내는 대신 멈춥니다 — 도구 API를 기억으로 쳐 넣는 게 티켓이 엉뚱한 데 박히는 경로입니다.
+
 **컨펌 없이 뭔가 써졌습니다.**
 외부 쓰기는 Figma 노드든 기획 페이지든 브랜치든 전부 미리보기 → "go"를 거칩니다. 그게 없이 실행됐다면 버그이니 [알려주세요](https://github.com/byjunyoung/claude-product-skills/issues).
 
@@ -484,8 +496,9 @@ plugins/
       task-sync  log  log-review          각 SKILL.md
     _common/
       conventions.example.yaml           설정 스키마 + 내장 기본값
-      trackers/                          트래커마다 한 파일 — notion, github, markdown
-      scripts/lib/                       설정 해석·사전 점검 (fig 것의 사본, 동일하게 유지)
+      trackers/                          트래커마다 한 파일 — notion, github, markdown. 계약과 템플릿
+      sources/                           채팅·캘린더마다 한 파일 — slack, google-calendar. 계약과 템플릿
+      scripts/lib/                       설정 해석·사전 점검 (fig 것의 사본, 동일하게 유지)·어댑터 찾기
 tools/
   verify.py                    정합성 검사 (저장소 도구, 설치본에는 안 실림)
   test/                        픽스처 — 화살표 수치, 설정 해석

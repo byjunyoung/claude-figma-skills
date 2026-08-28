@@ -1,5 +1,8 @@
 # fig
 
+## 3.6.0 — 2026-08-29
+- Preflight (shared with pm) requires whatever tool `task_tracker.type` or `guide_source.type` names, not only the ones it knew
+
 ## 3.5.0 — 2026-08-29
 - The six skills that write to Figma — `prep`, `arrows`, `diff`, `sync`, `tokens`, `deck` — check the seat with `whoami` before the first write, and stop on a View seat instead of failing halfway
 - Preflight (shared with pm) reads the config, treats a tracker it names as required, and checks the `gh` CLI where that tracker is GitHub

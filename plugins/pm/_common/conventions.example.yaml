@@ -96,6 +96,19 @@ sources:
   repo:   true                   # code and design documents
   docs:   true                   # document tools such as Notion
   chat:   true                   # chat history
+  # Which tool each of these is. The calls live in sources/<type>.md — slack and
+  # google ship; any other name needs an adapter you draft (see adapters below).
+  chat_type:     slack           # the chat tool /pm:task-draft and /pm:log read. none skips chat
+  calendar_type: google          # the calendar /pm:log reads. none skips it
+
+# --- Adapters ------------------------------------------------------------------
+# The calls for one tool live in one file, named by the type the config uses —
+# trackers/<type>.md for a task tracker, sources/<type>.md for chat or a calendar.
+# The bundled ones ship inside the plugin. Yours live outside it, so an update does
+# not overwrite them; later dirs cover earlier, like the config layers. /pm:setup
+# drafts one for a tool it has never seen, from the tools connected on this machine.
+adapters:
+  dirs: ["~/.claude/pm-adapters", "./pm-adapters"]
 
 # --- Tasks (/pm:task-draft, /pm:task-publish, /pm:task-sync) --------------------
 # A task can live in one place or two. Teams that plan in one tool and build in

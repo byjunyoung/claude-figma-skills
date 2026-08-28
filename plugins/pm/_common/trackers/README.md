@@ -1,0 +1,75 @@
+# Tracker adapters — what one file has to answer
+
+The skills here do not know any tracker. They know a **record** (where a task is planned) and
+a **mirror** (where engineering tracks it), and they read the calls for each from one file:
+`trackers/<type>.md`, where `<type>` is the word the config uses in `task.record.type` or
+`task.mirror.type`. Notion, GitHub and markdown ship. Anything else is a file somebody writes —
+and `/pm:setup` writes the first draft from the tools actually connected on the machine.
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type linear
+```
+
+That prints the file to read. Bundled files sit here; yours live in `adapters.dirs` (by
+default `~/.claude/pm-adapters/trackers/` and `./pm-adapters/trackers/`), outside the plugin
+so an update does not overwrite them. Later dirs cover earlier, so a file of yours named
+`notion.md` replaces the bundled one. **Exit 3 means no adapter exists for that type**, and
+every skill stops on it rather than improvising the calls.
+
+## The rule the bundled files keep
+
+**Every call in an adapter was run, and every warning was hit.** The GitHub file says a 503
+does not mean the issue was not created because that happened; the Notion file says search is
+not a listing because rows went missing that way. An adapter written from documentation alone
+has none of that, which is why this plugin does not ship one for a tool nobody here has used.
+When you draft one, the same rule applies: the first version carries the calls that worked
+today, and "Things that bite" grows as they bite.
+
+## What the file has to answer
+
+A skill reads the whole file before its first call, then looks for the answer it needs. The
+headings are yours; the questions are not. A question the tool cannot answer is answered with
+*how it cannot* — that sentence is what the coverage line in a report is built from.
+
+### As the record — `task.record.type`
+
+| Question | Who asks | What the answer carries |
+|---|---|---|
+| **The schema** — property names and types, the options of every select, the user list | `/pm:setup` | The call, and which property could hold the mirror's url |
+| **The list** — every record with title, project, group, priority, status, assignee, and the link property | `/pm:task-sync`, `/pm:log` | The call, and whether it is **exhaustive**. Where it is a search, say so and say what a search misses |
+| **One record** — its properties and its body | `/pm:task-draft`, `/pm:task-publish` | The call. Which part of the body is the context table |
+| **What moved on a day** — rows last edited on a date, split by assignee | `/pm:log` | Filter on last-edited, never created. How the day filter is applied, and whether it is exact |
+| **A new record** — with the properties the interview settled and the context table as its body | `/pm:task-draft` | The call. Whether a database template is applied on create — usually not, which is what `task.notion.body_template` and its equivalents are for |
+| **Writing the link property** | `/pm:task-publish` | The call. This is the one property matching runs on, so say how to verify it landed |
+| **Appending a change summary** — one dated line after what is already there | `/pm:task-publish`, `/fig:diff` | Append, never replace. How to catch the end of the existing text |
+| **A user directory** — id to display name | `/pm:log` | The call, so a name is looked up rather than guessed |
+
+### As the mirror — `task.mirror.type`
+
+| Question | Who asks | What the answer carries |
+|---|---|---|
+| **Every ticket** — title, state, labels, parent, milestone, url, **open or closed** | `/pm:task-sync` | The exhaustive read, and where a listing truncates silently. Closed tickets are where every `duplicate` and `resurrected` verdict lives, so a limit that drops the oldest drops the diagnosis |
+| **Labels, board fields and their option ids, issue types, collaborators, milestones** | `/pm:setup` | The queries. These are the ids no screen shows, and the reason setup exists |
+| **Creating a ticket** — title, body, labels, assignee | `/pm:task-publish` | The call. What a network error after the write looks like, and how to confirm by exact title before retrying |
+| **Creating a parent** and attaching a ticket under it | `/pm:task-publish` | The calls, where the tracker has a hierarchy. Where it does not, say so and `task.hierarchy.parent_kind` stays `null` |
+| **Seating on a board** — the project field, the status column, the dates | `/pm:task-publish` | Which id each write takes; they are rarely the same id |
+| **Milestones** — list open ones, create one, set it on the parent | `/pm:task-publish` | Only where `task.hierarchy.milestone_projects` names a project |
+| **Updating a ticket's body** | `/pm:task-publish`, `/fig:diff` | Read before overwrite. Keep the row that links back to the record |
+
+### Always
+
+**Things that bite** — one line per thing, each because it happened. A read straight after a
+write that returns the old snapshot. A success return on an edit that matched nothing. Text
+typed by hand that corrupts. This section is the adapter's value; an empty one is a draft.
+
+## How `/pm:setup` drafts one
+
+Given a type with no file, setup does not ask you to write it. It reads `claude mcp list` for
+the connector, lists the tools that connector exposes, reads their descriptions, and probes
+the read-only ones — schema, list, one record — against the real workspace. Each question above
+is answered with the call that actually returned, pasted as it was run. Questions that need a
+write are answered with the tool that would do it, marked *unverified* until the first publish
+runs. The draft is previewed, then written to the last dir in `adapters.dirs` as
+`trackers/<type>.md`, and the report says which answers are verified and which are not.
+
+Start from [`_template.md`](_template.md) when writing one by hand.

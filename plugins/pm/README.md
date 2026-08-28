@@ -27,6 +27,14 @@ git        written as markdown, then a branch and a PR
 notion     a Notion page. Requires the prd.notion section filled in
 ```
 
+## Tools it has never seen
+
+The calls for one tool live in one file — `_common/trackers/<type>.md` for a tracker, `_common/sources/<type>.md` for chat or a calendar — and the type written in the config picks it. Notion, GitHub, markdown, Slack and Google Calendar ship. Name anything else and `/pm:setup` drafts its adapter from the tools connected on your machine, into `pm-adapters/` outside the plugin, marking what it could not verify. The questions an adapter answers are in [`trackers/README.md`](_common/trackers/README.md) and [`sources/README.md`](_common/sources/README.md).
+
+## Starting from nothing
+
+"Nothing yet" is an answer `/pm:setup` takes. It lays out one markdown repository — `docs/prd/`, `tasks/`, `logs/`, `highlights/` — that needs no other tool, with git as the audit trail. A tracker attaches later as the mirror, on whichever machine can see it, with the record untouched.
+
 ## The log side
 
 Two of these skills are not about the spec at all. They keep a daily record of your own work, from the same tracker the task skills already read.

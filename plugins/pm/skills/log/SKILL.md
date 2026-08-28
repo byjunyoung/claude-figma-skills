@@ -40,7 +40,13 @@ date +%Y-%m-%d
 
 ## 2. Learn the tracker's shape
 
-**The calls live per tracker, not in this document** — `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md` for `task.record.type`. Read the file that matches before querying anything. A `type` of `none` means there is no tracker: skip section 3 and say so in the summary.
+**The calls live per tracker, not in this document.** Read the record's adapter before querying anything; a `type` of `none` means there is no tracker — skip section 3 and say so in the summary.
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.record.type}
+```
+
+It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls, and do not fall back to a tracker the config did not name.
 
 Whatever the tracker, read its **current** schema or field names immediately before querying, and use what it has now — the title, status, assignee, project, grouping, priority, due-date and progress equivalents, and the exact spellings a query needs. Names drift and differ per workspace. A name pinned in a document or in config returns nothing, and nothing looks exactly like a quiet day.
 
@@ -65,8 +71,8 @@ Resolve assignee ids to names through `log.people`. An id that is not there is l
 
 ## 4. Collect the day around it
 
-- **Calendar** — `log.sources.calendar`, the day in local time, ordered by start. Drop working-location, birthday and out-of-office entries. Each event becomes time, title, and one or two key attendees.
-- **Chat** — `log.sources.chat_channels` for the day, plus messages the user sent or was mentioned in. Keep decisions, questions and answers, feedback, shared material, and open threads. Drop chatter, bots and reactions.
+- **Calendar** — `log.sources.calendar`, the day in local time, ordered by start. Drop working-location, birthday and out-of-office entries. Each event becomes time, title, and one or two key attendees. The calls are in the adapter for `sources.calendar_type` (`adapter.py --kind sources`); `none` skips the calendar and says so.
+- **Chat** — `log.sources.chat_channels` for the day, plus messages the user sent or was mentioned in. Keep decisions, questions and answers, feedback, shared material, and open threads. Drop chatter, bots and reactions. The calls are in the adapter for `sources.chat_type`; `none` skips chat and says so, and exit 3 means the tool has no adapter yet — skip the section, and name that in the summary rather than reading a tool the config did not name.
 
 From the same pass, pull out two things that are cheap now and unrecoverable later.
 
