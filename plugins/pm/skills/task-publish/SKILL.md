@@ -159,7 +159,14 @@ lands in the backlog column otherwise, and the mirror's readers act on that.
 
 Anything under `task.mirror_extras` is read verbatim. This skill does not interpret it, which is what lets a tracker it has never seen still work.
 
-**The calls themselves live per tracker**, not in this document — `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md`. Two copies of a command means one gets fixed. Read the file matching `task.mirror.type` before this step, and the one matching `task.record.type` before step 8.
+**The calls themselves live per tracker**, not in this document. Two copies of a command means one gets fixed. Read the mirror's adapter before this step and the record's before step 8:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.mirror.type}
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.record.type}
+```
+
+It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls.
 
 ### 8. Write back into the record
 

@@ -311,17 +311,19 @@ Everything under `fig` runs on `plugin:figma`. These skills want something more.
 | `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — they drive a real browser |
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — only where a config key points at a Notion page |
 | `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github`. Two logins are involved: the connector, and the `gh` CLI the tracker adapter runs on. Preflight checks both, and names the account `gh` is on |
-| `/fig:qa` `/pm:task-draft` | **Slack** — only where the request source is a Slack thread |
-| `/pm:log` | **A calendar and a chat workspace** — both optional. Named as `null` they are skipped and the log says so. A scheduler on your own machine, if you want it unattended |
+| `/fig:qa` `/pm:task-draft` | **A chat tool** — only where the request source is a thread. `sources.chat_type` names it; Slack ships |
+| `/pm:log` | **A calendar and a chat tool** — both optional, named by `sources.calendar_type` and `sources.chat_type`; Google Calendar and Slack ship. Named as `none` they are skipped and the log says so. A scheduler on your own machine, if you want it unattended |
 | `/pm:prd` | **Notion** — only where `prd.target` is `notion` |
 
 The connector rows are conditional: point the config at `none` or at markdown and the skill still runs, it just writes somewhere else. The Chrome rows are not — those three open a browser.
+
+Notion, GitHub and Slack are the tools that ship with adapters; the rows read the same for any other tool the config names.
 
 **Once a config names a tool, it stops being optional.** The same check reads the config: a tracker set to `github` makes GitHub required, `prd.target: notion` makes Notion required, and a later run that cannot reach one stops on its name instead of coming back thin. On a machine with no config yet nothing beyond the host can be required — the summary says so, and `/pm:setup` re-runs the check with the answers it has just been given.
 
 **A skill cannot call a tool it was never given.** If a connector is missing, the skill does not fail loudly; it simply cannot reach it. That is the most common reason a first run looks like it did nothing.
 
-**Connector names are the claude.ai ones.** The Notion, Slack and GitHub tools are named `mcp__claude_ai_Notion__*` and so on. If you connect Notion through your own MCP server instead, the names differ and the skill will not match them.
+**Connector names are the claude.ai ones in the bundled adapters.** The Notion, Slack and GitHub calls name tools as `mcp__claude_ai_Notion__*` and so on. A tool this plugin has never seen — Linear, Jira, Confluence, Teams, a Notion behind your own MCP server — is not a dead end: write its type in the config and `/pm:setup` drafts an adapter from the tools actually connected on your machine, into `pm-adapters/` outside the plugin, marking what it could not verify. What an adapter has to answer is in [`trackers/README.md`](plugins/pm/_common/trackers/README.md) and [`sources/README.md`](plugins/pm/_common/sources/README.md).
 
 ### 1. Install
 
@@ -364,6 +366,11 @@ Where the doc tool and the tracker are reachable from different machines — the
 home, the tracker only on the office account — run it with `side: record` on one and
 `side: mirror` on the other; each writes only its half of the same file. **Anything you cannot
 answer is `null`**, and the file keeps the question beside it as a comment for whoever can.
+
+Starting with nothing at all — no doc tool, no tracker — is an answer it takes: it lays out one
+markdown repository (specs, tasks, logs) that needs no other tool, and a tracker attaches later
+with `side: mirror`. And a tool it has never seen — Linear, Jira, Teams — is not a dead end:
+name it in the config and it drafts the adapter from what is connected.
 
 **deck.** `/fig:deck-setup` measures your team's slide template into `~/.claude/deck-assets`.
 The plugin ships no template values at all, because deck backgrounds carry company wordmarks
@@ -410,6 +417,7 @@ arrows:
 - **Partial configs are fine** — the three layers are merged, so keys you omit fall back to defaults and only what you write is overridden
 - **What `null` means** — the value wasn't inferred, so that check is skipped. To disable a check, write `null` rather than deleting the key — deleting it brings the default back
 - **Keys a skill cannot run without** — it asks for them with `resolve-config.py --need task.record.ref`, and a `null` there exits naming the key instead of running on nothing. That is a config gap, not a tracker problem; the setup skill writes it
+- **Adapters** — the calls for one tool live in one file, `trackers/<type>.md` or `sources/<type>.md`, and the type written in the config picks it. Yours go in `adapters.dirs`, outside the plugin. A type with no file stops the skill; `/pm:setup` drafts one from the tools connected on your machine
 - **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
 
 Once you have a draft, run `/fig:lint` once and judge it by the false-positive rate. If nearly everything is flagged, the config is wrong, not the file.
@@ -457,6 +465,9 @@ The account behind `plugin:figma` holds a View seat on that plan, and `whoami` s
 **`resolve-config.py --need` exits with a key name.**
 That key is `null` in every layer, and the skill cannot run without it. It is a config gap rather than a tracker problem — `/pm:setup` writes it, or write it by hand. An empty map or list is a value and does not stop here; only a missing or null one does.
 
+**`adapter.py` exits 3 — no adapter for that type.**
+The config names a tool nobody has written the calls for. `/pm:setup` drafts one from the tools actually connected on this machine, into `pm-adapters/` outside the plugin; the questions it has to answer are in `trackers/README.md` and `sources/README.md`. Until then the skill stops rather than improvising the calls — a call typed from memory of a tool's API is how a ticket lands in the wrong place.
+
 **A skill wrote something you didn't expect.**
 Every external write — Figma nodes, a spec page, a branch — goes through a preview and an explicit go. If one happened without that, it's a bug worth [reporting](https://github.com/byjunyoung/claude-product-skills/issues).
 
@@ -500,8 +511,9 @@ plugins/
       task-sync  log  log-review          one SKILL.md each
     _common/
       conventions.example.yaml           config schema + bundled defaults
-      trackers/                          one file per tracker — notion, github, markdown
-      scripts/lib/                       config resolution, preflight (copies of fig's, held identical)
+      trackers/                          one file per tracker — notion, github, markdown; the contract and a template
+      sources/                           one file per chat or calendar — slack, google-calendar; contract and template
+      scripts/lib/                       config resolution, preflight (copies of fig's, held identical), adapter lookup
 tools/
   verify.py                    consistency check (repo tool, not shipped)
   test/                        fixtures — arrow geometry, config resolution

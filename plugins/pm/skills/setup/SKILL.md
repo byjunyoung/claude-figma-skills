@@ -60,6 +60,8 @@ Ask once, grouped: where tasks are planned, and where engineering tracks them.
 
 **"They are the same place" is a real answer.** Then `mirror.type` is `none`, `/pm:task-sync` has nothing to reconcile, and half the config below does not apply. Do not talk anyone into a second tracker.
 
+**"Nothing yet" is a real answer too** — no doc tool, no tracker. Go to 1b; it lays out a start that needs no tool and comes back here when one arrives. And **a tool this plugin has never seen is not a wrong answer** — write its type as the team calls it, and 3b drafts the adapter.
+
 **Then run the preflight again with what was named**, so its verdict means something:
 
 ```bash
@@ -74,9 +76,36 @@ on the machine that can reach the other. Do not interview around a side that can
 a value typed from memory in place of a schema read is exactly the config this skill exists to
 prevent.
 
+### 1b. Start from nothing
+
+One markdown repository holds all of it, and every other tool attaches later without moving anything:
+
+```
+<repo>/
+  pm-conventions.yaml    record: markdown ./tasks · mirror: none · prd: markdown · log: ./logs
+  docs/prd/              one file per product — prd.markdown.dir, split by product
+  tasks/                 one file per task, its front matter the properties — trackers/markdown.md
+  logs/YYYY/MM/          one file per day — /pm:log
+  highlights/            /pm:log-review's accumulating document
+  pm-adapters/           adapters drafted for tools attached later
+  README.md              what lives where, and the loop: draft → publish → sync
+```
+
+Why this and not a tool: it needs nothing installed, git is the audit trail (`/pm:log` reads what moved from it), and a tracker joins later as the mirror — `side: mirror` on the machine that can see it — with the record untouched.
+
+Ask two things: where the repository is (an existing directory, or one to create), and whether to `git init` where it is not one. Then interview only what markdown cannot supply — `task.properties.projects` (the products, one file each under `docs/prd/`), `task.context_rows` (the defaults, in `meta.language`), `task.properties.priority` (the defaults unless the team says otherwise). Everything else takes the bundled default and is written into the file with its comment.
+
+Preview the tree, the config and the README, then write. Nothing here is an external write, but it is somebody's working directory: create only what is listed, and inside a directory that already has content of its own, say which files are new. Skip steps 2–5 — there is no schema to read and no pair to make — and go to 6 with the record side only. In step 7 the proof is `resolve-config.py --need task.record.ref` passing, and one task file created from the skeleton in `trackers/markdown.md` reading back through the list call.
+
 ### 2. Read the record side's schema
 
-Read the tracker's own schema documentation first: `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<record.type>.md`.
+Read the tracker's own adapter first — the calls, and what the tool cannot do:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {record.type}
+```
+
+Exit 3 means no adapter exists for that type: go to 3b, draft one from what is connected here, and come back.
 
 | Read | Fills |
 |---|---|
@@ -92,7 +121,13 @@ Read the tracker's own schema documentation first: `${CLAUDE_PLUGIN_ROOT}/_commo
 
 ### 3. Read the mirror's schema
 
-Read `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<mirror.type>.md`, then run the id queries at the end of it.
+Read the mirror's adapter, then run the id queries it carries:
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {mirror.type}
+```
+
+Exit 3 means no adapter exists for that type — 3b, then back here.
 
 | Read | Fills |
 |---|---|
@@ -107,6 +142,19 @@ Read `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<mirror.type>.md`, then run the id 
 **These queries are the reason this skill exists.** Board field ids and single-select option ids are not visible in any user interface, and a person configuring by hand simply cannot find them.
 
 Three things have to line up for them, and only the first shows in any error message: the account `gh` is logged in to can see the repo — a personal account against a company org gets a 404 that reads as if the repo did not exist; that account is a member of the org; and its token carries `read:project`, without which the repo answers and the board queries come back empty. The preflight row for `gh` names the account and the scopes. Read it before reading a 404 as a missing repo.
+
+### 3b. A tool with no adapter — draft one here
+
+Exit 3 from `adapter.py` on either side means the type names a tool this plugin has never seen. That is not a dead end, and not a reason to type calls from memory. The contract is `${CLAUDE_PLUGIN_ROOT}/_common/trackers/README.md` (chat and calendar: `sources/README.md`); the draft is built from what is actually connected:
+
+1. **Find the connector** in the preflight table — the row named by the type. Absent means stop: an adapter cannot be drafted for a tool this machine cannot reach
+2. **List the tools it exposes** and read their descriptions. The names are what the adapter will carry, exactly as this machine has them
+3. **Probe the read-only ones against the real workspace** — the schema, the list, one record — and keep the call that returned, pasted as run. Whether the list is exhaustive or a search is answered by what the call actually does, not by what its name suggests
+4. **Answer the write questions with the tool that would do it, marked `(unverified)`.** The first `/pm:task-publish` run verifies them and removes the mark
+5. **"Things that bite" starts with one line — `nothing recovered yet`.** It is filled by what bites
+6. **Preview, then write** to the last dir in `adapters.dirs` — `{dir}/trackers/<type>.md` or `{dir}/sources/<type>.md` — never inside the plugin, which an update overwrites. Then go back to the step that stopped
+
+The report lists every answer marked unverified. A config whose adapter is half verified is usable; one whose adapter was guessed is not, and the mark is what tells them apart.
 
 ### 4. Pair the two sides
 
@@ -152,7 +200,7 @@ task:
 
 **A `null` is not a gap to be filled later by guessing.** It says the schema did not settle it, so the check or the step is skipped until a person writes a value.
 
-**With a `side`, read the existing file first** and rewrite only the keys that side owns. Record: `task.record`, `task.properties`, `task.context_rows`, `task.link_property`, `task.notion`. Mirror: `task.mirror`, `task.mirror_extras`, `task.ticket`, `task.hierarchy`. The maps that join the two — `task.label_map`, `task.assignee_map`, `task.status_map` — belong to whichever run can see both sides, and are left alone otherwise. Everything else in the file stays byte for byte, comments included.
+**With a `side`, read the existing file first** and rewrite only the keys that side owns. Record: `task.record`, `task.properties`, `task.context_rows`, `task.link_property`, `task.notion`. Mirror: `task.mirror`, `task.mirror_extras`, `task.ticket`, `task.hierarchy`. The maps that join the two — `task.label_map`, `task.assignee_map`, `task.status_map` — belong to whichever run can see both sides, and are left alone otherwise. Everything else in the file stays byte for byte, comments included. An adapter drafted in 3b is written where 3b says, never into this file.
 
 ### 7. Prove it before handing it over
 
@@ -176,3 +224,5 @@ With one side unreachable the pair cannot be checked. Say `not checked` in the r
 - Whether the step-7 pairing check passed, against which task — or `not checked`, and why
 - Which side this run wrote, and what was left for another machine
 - Where the mirror is GitHub, the account `gh` was on — so a later 404 can be read against it
+- Adapters drafted in 3b — where each was written, and which of its answers are still `(unverified)`
+- For a start from nothing: the tree that was created, and that the record side read back
