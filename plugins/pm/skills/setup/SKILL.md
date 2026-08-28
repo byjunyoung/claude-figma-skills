@@ -33,6 +33,48 @@ The `pm` skills read every value from `pm-conventions.yaml`. This is where that 
 
 Anything omitted is asked for at the start, together, in one round.
 
+## How it runs — the ladder
+
+Eight steps, and the person sees them before the first question. Show this ladder at the
+start, and at every transition say which step is beginning and whether it reads or writes:
+
+```
+① Check this machine         read-only · seconds
+② Where your work lives      two questions, in plain words
+③ Read your tools' schemas   read-only · says what it found
+④ Pair names across tools    one table to confirm
+⑤ Ask what no schema knows   one at a time · a recommendation · "leave it blank" always offered
+⑥ Write the file             preview → go · one local file
+⑦ Prove it                   one existing task, or the file reading back
+⑧ First result               paste one message → a context table · nothing written
+```
+
+**Open with what this produces, before asking anything.** One paragraph: after this, a
+request pasted from chat becomes a task with your tool's own rows (`/pm:task-draft`), a task
+becomes a ticket where engineering looks (`/pm:task-publish`), and the two stay reconciled
+(`/pm:task-sync`). Five to ten minutes with tools connected, a couple with nothing. Nothing is
+written into your tools; the only thing written is one local file, and it is shown first.
+
+## Talking to the person
+
+The file speaks in keys. The questions do not.
+
+| The key | Ask it as | Always offered |
+|---|---|---|
+| `task.record` | Where do you first write a task down? — a Notion database, GitHub issues, a folder of markdown files, somewhere else, nothing yet | nothing yet · a tool this plugin has never seen |
+| `task.mirror` | Where does engineering watch progress? — the same place, a GitHub repo, somewhere else | the same place |
+| `task.link_property` | Which field on a task should hold the ticket's link? — the url fields the schema has | none exists — it has to be created first |
+| `task.status_map` | When a spec is finished, which board column should its ticket sit in? | leave it blank — whoever runs the board fills it |
+| `task.field_owner` | When the two sides disagree on a title or an assignee, which one is right? | leave it blank — it is reported and left alone |
+| `task.hierarchy.parent_kind` | Are tasks grouped under something bigger — an epic, a project? | none — a flat list |
+| `task.context_rows` | The rows your team asks about a task — these defaults, or your own words | the defaults |
+
+Three rules —
+
+- **One question per turn in ⑤. ② is the only grouped round**, and it is two questions
+- **Every question carries options, a recommendation grounded in what ③ saw, and "leave it blank"** — a blank is `null`, written with the question beside it, and it is a complete answer, not a failure to answer
+- **Say what is being read before reading it, and what was found after.** A step that takes seconds in silence reads as a hang
+
 ## Procedure
 
 ### 0. Preflight — can this machine run it at all (required)
@@ -45,9 +87,10 @@ python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/preflight.py
 given, and it does not fail loudly when one is absent — the run simply comes back thin, and
 that reads as the skill having found nothing. This is the one step that says so out loud.
 
-Report the table as it returns, then judge it:
+Read the person the verdict and the fix lines in their words — the table underneath is detail for a second look. Then judge it:
 
 - **FAIL** — stop and hand over the fix lines. Nothing below this works without them
+- **Worth knowing** lines are not blockers — one sentence each, then move on
 - **absent** on an optional connector — fine as it is. Say so, because a config key pointed
   there in a later step will not reach it
 - **Nothing beyond the host can fail yet.** Whether GitHub matters depends on an answer step 1
@@ -56,7 +99,7 @@ Report the table as it returns, then judge it:
 
 ### 1. Settle the two sides
 
-Ask once, grouped: where tasks are planned, and where engineering tracks them.
+Ask once, grouped, in the words of the table above: where a task is first written down, and where engineering watches progress. **Options, not a blank line** — people recognise their tool from a list and cannot name its "type".
 
 **"They are the same place" is a real answer.** Then `mirror.type` is `none`, `/pm:task-sync` has nothing to reconcile, and half the config below does not apply. Do not talk anyone into a second tracker.
 
@@ -167,7 +210,7 @@ The report lists every answer marked unverified. A config whose adapter is half 
 
 ### 5. Interview what no schema answers
 
-Grouped, with a recommendation on each, and recommendations grounded in what step 3 actually saw.
+One at a time, most consequential first, each with a recommendation grounded in what step 3 actually saw. Show the whole list first so the scale is clear — the same shape `/fig:setup` uses.
 
 **Every question here has a "do not know" answer, and it is `null`.** Say so before asking. Someone new to a team cannot say which column a finished spec should sit in or which side owns the assignee field — that is knowledge about how the team works, not about the tools, and the person who has it runs the board. A `null` is written with the question beside it as a comment, so whoever can answer finds it in the file rather than in a chat history. Never fill it with the recommendation just because a recommendation was offered.
 
@@ -179,7 +222,7 @@ Grouped, with a recommendation on each, and recommendations grounded in what ste
 
 ### 6. Write the draft
 
-Write to `out`, every inferred value carrying its evidence as a line comment, in the same form `/fig:setup` uses.
+Preview in three groups — what the schema settled, what the person answered, what stayed blank — and get the go. Then write to `out`, every inferred value carrying its evidence as a line comment, in the same form `/fig:setup` uses.
 
 ```yaml
 task:
@@ -216,7 +259,30 @@ Then take one existing task that is already filed on both sides and check that t
 
 With one side unreachable the pair cannot be checked. Say `not checked` in the report rather than checking the half that can be read and calling it a pass.
 
+### 8. First result — one message, one table, nothing written
+
+**Do not end on a file.** Ask for one request the person has to hand — a chat message, a
+sentence someone said in a meeting, pasted or linked — and run `/pm:task-draft`'s reading and
+sorting on it, stopping at the preview: the context table in `task.context_rows`, a row filled
+for each thing the source actually said and `TBD` where it did not. Nothing is written, which
+is what makes it safe to run before the config has been used once.
+
+Where there is nothing to hand, use what step 7 read: show one existing task's context table
+as the tool has it. The point is the same — the person sees their own words in the shape the
+skills will use.
+
+Then close with the commands that follow, in the order they are used:
+
+    /pm:task-draft <message or link>     a request → a task with this table
+    /pm:task-publish <task url>          a task → a ticket where engineering looks
+    /pm:task-sync                        both sides reconciled — any time
+
+With `mirror.type: none` the last two do not apply — say so, and name `/pm:log` instead.
+
 ## Report
+
+Lead with three lines a person can act on — what you have now, what stayed blank and who can
+fill it, what to run next. The lists below are the detail.
 
 - Which keys came from a schema, and which were interviewed
 - Which were left `null`, and what each one blocks

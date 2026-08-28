@@ -1,5 +1,9 @@
 # fig
 
+## 3.7.0 — 2026-08-29
+- `/fig:setup` runs as an onboarding: it opens with what it produces, shows a six-step ladder and names each step, asks in the person's words, offers "leave it blank" on every question, and closes on the first lint as the first result with the commands that follow. `/fig:deck-setup` opens the same way
+- Preflight (shared with pm) leads with a verdict in words and the lines to fix; the table is detail underneath
+
 ## 3.6.0 — 2026-08-29
 - Preflight (shared with pm) requires whatever tool `task_tracker.type` or `guide_source.type` names, not only the ones it knew
 

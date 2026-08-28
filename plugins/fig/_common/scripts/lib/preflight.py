@@ -213,6 +213,8 @@ def connector_checks():
             # the error is what says which — a 400 on the auth header is an empty token variable,
             # not a revoked login
             tail = re.sub(r".*Failed to connect\s*[—-]*\s*", "", hit).strip()[:90]
+            if "Authorization header" in tail:
+                tail += " → usually an empty token variable: launch from a shell where it is exported"
             row("connector", name, "missing" if need else "failed",
                 f"configured but not answering — {tail}" if tail else "configured but not answering")
         elif need:
@@ -287,19 +289,68 @@ def other_checks():
         f"expected before setup — /{PLUGIN}:setup writes it")
 
 
-def report():
-    print(RULE)
-    for kind, name, state, note in rows:
-        if QUIET and state in ("ok", "absent"):
-            continue
-        line = f"{kind:<10}{name:<38}{state:<9}"
-        print(f"{line} {note}".rstrip())
-    print(RULE)
-    if because:
-        print("required by  " + " · ".join(because))
+FIX = {
+    # A row's state, in words a person can act on. The note on the row carries the specifics.
+    "missing":   "required here and not reachable",
+    "failed":    "connected, but not answering",
+    "attention": "works — read the note",
+    "absent":    "not connected. optional until a config names it",
+    "unknown":   "cannot be seen from the shell",
+}
 
-    absent = sum(1 for r in rows if r[2] == "absent")
-    tail = f" · {absent} optional connector{'s' if absent != 1 else ''} not connected" if absent else ""
+
+def report():
+    """The verdict first, in words. Then what to do. The table last, as detail.
+
+    A person setting up for the first time reads the top line and the fix lines; the table is
+    for the second look. Printing the table first made every first run start with a wall of
+    state words nobody had seen before."""
+    fixes = [r for r in rows if r[2] == "missing"]
+    notes = [r for r in rows if r[2] in ("failed", "attention")]
+    blind = [r for r in rows if r[2] == "unknown"]
+    absent = [r for r in rows if r[2] == "absent"]
+    no_config = any(b.startswith("no config yet") for b in because)
+
+    if fixes:
+        print(f"Not ready — {len(fixes)} thing{'s' if len(fixes) != 1 else ''} to fix before /{PLUGIN}:setup can read your tools.")
+    elif no_config:
+        print(f"Ready for /{PLUGIN}:setup. Nothing is required yet — the tools you name there become required from then on.")
+    else:
+        named = [b for b in because if not b.startswith("the config") and not b.startswith("--require")]
+        print(f"Ready for /{PLUGIN}:setup. " + ("Everything the config names answers." if named else "The config names no tool, so nothing beyond this machine is required."))
+
+    if fixes:
+        print()
+        print("Fix first")
+        for kind, name, state, note in fixes:
+            print(f"  · {name} — {note or FIX[state]}")
+    if notes:
+        print()
+        print("Worth knowing")
+        for kind, name, state, note in notes:
+            print(f"  · {name} — {note or FIX[state]}")
+    if blind and not QUIET:
+        print()
+        for kind, name, state, note in blind:
+            print(f"  · {name} — {note}")
+    if absent and not QUIET:
+        print()
+        print("Not connected, and not needed yet: " + ", ".join(n for _, n, _, _ in absent)
+              + ". A config that names one makes it required, and this check will say so.")
+
+    if not QUIET:
+        print()
+        print("── details " + "─" * 49)
+        for kind, name, state, note in rows:
+            line = f"{kind:<10}{name:<38}{state:<9}"
+            print(f"{line} {note}".rstrip())
+        print("─" * 60)
+        print("ok answers · absent not connected · failed connected but not answering · missing required and unreachable · attention read the note")
+        if because:
+            print("required by  " + " · ".join(because))
+
+    # The last line stays machine-readable. Skills and scripts read PASS / FAIL from it.
+    tail = f" · {len(absent)} optional connector{'s' if len(absent) != 1 else ''} not connected" if absent else ""
     if missing:
         print(f"{len(missing)} missing — {', '.join(missing)}{tail} · FAIL")
         return 1
