@@ -1,7 +1,7 @@
 ---
 name: log
 description: Writes one day's work log as a file — what moved in the tracker, what was on the calendar, what was decided, what other people said about your work, and links to the evidence. Built to run unattended on a schedule, so it never asks and never invents; a source it cannot reach is reported as missing rather than filled in. It also looks back a few days and fills the gaps an earlier run left. Turning these files into accomplishment statements is /pm:log-review. Triggers - explicit invocation only - "/pm:log", "write the log for today", "fill in the days that were missed", "일지 써줘", "업무 일지 작성", "빠진 날 채워줘".
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-query-data-sources, mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Slack__slack_read_channel, mcp__claude_ai_Slack__slack_search_public_and_private, mcp__claude_ai_Google_Calendar__list_events, mcp__plugin_github_github__issue_read
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-query-data-sources, mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Notion__notion-get-users, mcp__claude_ai_Slack__slack_read_channel, mcp__claude_ai_Slack__slack_read_thread, mcp__claude_ai_Slack__slack_search_public_and_private, mcp__claude_ai_Google_Calendar__list_events, mcp__plugin_github_github__issue_read
 ---
 
 # log — one day, one file
@@ -57,7 +57,7 @@ Carry each row's **stable url** alongside its title. Titles get rewritten; urls 
 
 Where the previous entry for the same url shows a different status, note the transition rather than the state alone — `in progress → done` says something `done` does not. Rows that reached a terminal status today go into the front matter's `completed` list as title and url.
 
-Resolve assignee ids to names through `log.people`. An id that is not there is looked up once against the tracker and used as found. Never guess a name from an id.
+Resolve assignee ids to names through `log.people`. An id that is not there is looked up once against the tracker's user directory and used as found. Never guess a name from an id, and never infer one from an adjacent mapping — say the id was unresolved instead.
 
 ## 4. Collect the day around it
 
