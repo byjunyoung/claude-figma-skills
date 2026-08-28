@@ -10,6 +10,8 @@ allowed-tools: Read, Write, Bash, AskUserQuestion, Skill, mcp__plugin_figma_figm
 
 **The premise**: never invent a value. Where an observation is ambiguous, leave it empty rather than fill it. An empty slot is read by `/fig:deck` as "that archetype does not exist", and it picks another. Mix up "not there" with "could not measure" and the deck quietly drifts away from the template.
 
+**Prerequisites**: always load `figma:figma-use` and `figma:figma-use-slides` before calling `use_figma`. Step 2 (measure) is **zero writes** — the script only `return`s a report.
+
 ## When to invoke
 
 - Using `/fig:deck` for the first time in a new environment, at a new company

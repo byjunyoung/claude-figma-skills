@@ -12,6 +12,8 @@ allowed-tools: AskUserQuestion, Bash, Read, Write, Edit, mcp__plugin_figma_figma
 
 **How far "approximation" goes — layout, colour, and spacing. Not assets.** Drawings, illustrations, icons, photographs — **anything that already exists in the design as an image is inlined from the original rather than redrawn in code** (step 3). A drawing imitated in code is always worse than the original, and above all **it ends up inventing behaviour the design never had** — the moment a still image gets redrawn as vectors and made to "move with the value", the prototype hands an engineer a spec that does not exist.
 
+**Prerequisites**: always load the `figma:figma-use` skill before calling `use_figma`. **Zero writes** — the Figma file is only read.
+
 ## When to invoke
 
 - "a working prototype", "make it actually pressable", "make input and validation work", "make it behave the way it is drawn in Figma"
