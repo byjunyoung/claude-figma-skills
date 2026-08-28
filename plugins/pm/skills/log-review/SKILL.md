@@ -16,7 +16,7 @@ Reads the daily files `/pm:log` wrote over a period and produces the thing those
 - **Numbers come from the user.** If no figure is given, the statement carries `log.review.unknown_metric` rather than a fabricated one. A vague number is worse than a missing one — it will be read back as fact in a room where it can be challenged.
 - **Quotes stay quotes.** Anything from the `What others said` section is carried across verbatim with its link. Never paraphrased into praise.
 - **Existing entries are not rewritten.** The highlights document accumulates. A rerun of the same period updates only what the user changes in the preview.
-- **One question at a time.** This is an interview, not a form.
+- **One item at a time, its three questions together.** Splitting them into three rounds turns a ten-item period into thirty exchanges and the review gets abandoned halfway. Ask about one item, get its three answers, move on.
 - **Preview → "go" before writing.** A human reads this document; it is not a scheduled write.
 
 ## Configuration
@@ -60,11 +60,11 @@ An entry with neither a url nor a title cannot be stitched at all. Keep those as
 
 Order the groups by what makes an item worth writing up: it reached an outcome, it ran across several days, it accumulated evidence, someone said something about it. Put single-day items with no evidence at the bottom.
 
-Show the ranked list and let the user strike what they do not want to write up. A period usually yields a handful worth keeping, not everything that moved.
+Show the ranked list and let the user strike what they do not want to write up. **Propose the top `log.review.max_items` and leave the rest listed but unasked** — a period usually yields a handful worth keeping, not everything that moved, and an interview that runs past a dozen items gets abandoned before the good ones are reached. The user can always ask for more.
 
-## 4. Interview, one item at a time
+## 4. Interview
 
-For each kept item, the files supply span, evidence and quotes. Ask only the three things they cannot supply. Offer the options as choices where the shape is known, and take a typed answer where it is not.
+For each kept item, the files supply span, evidence and quotes. Ask only the three things they cannot supply, and ask them **in one round per item** — role, measure and learning together, then move to the next item. Offer the options as choices where the shape is known, and take a typed answer where it is not.
 
 | Asked | Why it cannot be derived |
 |---|---|

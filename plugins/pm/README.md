@@ -1,6 +1,6 @@
 # pm
 
-A bundle for product specs and the tasks that come out of them. Write the spec, draft the task, file it, and keep both sides reconciled.
+A bundle for product specs and the tasks that come out of them. Write the spec, draft the task, file it, keep both sides reconciled — and keep a record of what you actually did.
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
@@ -26,6 +26,65 @@ markdown   local files. The default — no other tool required
 git        written as markdown, then a branch and a PR
 notion     a Notion page. Requires the prd.notion section filled in
 ```
+
+## The log side
+
+Two of these skills are not about the spec at all. They keep a daily record of your own work, from the same tracker the task skills already read.
+
+**They are split in two on purpose.** `/pm:log` runs unattended and records only facts and evidence — what moved, what was decided, what someone said about your work, the links that prove it happened. It never rates the importance of anything. `/pm:log-review` runs when you ask it, reads a period of those files, and interviews you for the three things a file cannot know: your role, what the result can be measured by, and what you learned.
+
+The split is the point. An unattended agent writing daily about the significance of its own work fills a log with sentences nobody can check six months later. Judgement is asked for, never assumed.
+
+```
+every workday   /pm:log          one file — facts, quotes, evidence
+now and then    /pm:log-review   a period of those files → accomplishment statements
+```
+
+**The first run is already useful.** A day's file is a written end-of-day summary — what moved, the meetings and what came out of them, the threads still open, what to pick up tomorrow. That it also accumulates into review material is the second benefit, not the first one you feel.
+
+### Running it on a schedule
+
+`/pm:log` is built to run with nobody watching. A wrapper and a calendar entry is the whole setup. Open only the tools it needs — `--dangerously-skip-permissions` is the wrong instrument for something that reaches your documents and your workspace.
+
+```bash
+#!/bin/bash
+set -uo pipefail
+cd "$HOME/path/to/your/log-repo" || exit 1
+
+claude -p "/pm:log" --permission-mode acceptEdits --output-format text \
+  --allowedTools "Read" "Write" "Edit" "Glob" "Grep" "Bash(date:*)" \
+    "mcp__claude_ai_Notion__notion-fetch" \
+    "mcp__claude_ai_Notion__notion-query-data-sources" \
+    "mcp__claude_ai_Notion__notion-search" \
+    "mcp__claude_ai_Notion__notion-get-users" \
+    "mcp__claude_ai_Slack__slack_read_channel" \
+    "mcp__claude_ai_Slack__slack_read_thread" \
+    "mcp__claude_ai_Slack__slack_search_public_and_private" \
+    "mcp__claude_ai_Google_Calendar__list_events"
+
+[ -n "$(git status --porcelain logs)" ] && git add logs \
+  && git commit -qm "log: $(date '+%Y-%m-%d')" && git push -q
+```
+
+Trim that tool list to the connectors you actually named in the config. **A tool the skill needs but the list omits is not an error you will see** — the run continues and the section comes out empty, so read the summary the first few times.
+
+On macOS use a launchd agent with `StartCalendarInterval`: unlike cron it runs a missed job when the machine next wakes, so a laptop asleep at the scheduled hour catches up instead of losing the day. Elsewhere, cron plus the backfill window covers the same ground — every run re-checks the last `log.backfill.business_days` days and fills what it missed.
+
+### Where meeting notes go
+
+`log.sources.notes_channel` is a channel only you write in — your own direct message to yourself works. Everything there is yours by definition, so nothing has to be tagged or prefixed while a meeting is underway. Anything an app posted there on your behalf is excluded by `log.sources.notes_exclude_apps`.
+
+The text is carried into the day's file rather than linked. Chat retention expires; a log that points at a message nobody can open years later has not recorded anything.
+
+### Coming from a Notion log
+
+`_common/scripts/import-notion-export.mjs` converts a Notion "Markdown & CSV" export of a daily-log database into one file per day. Three things it learned the hard way, on a real 354-page export:
+
+- Unzip with `ditto -x -k`, not `unzip` — the latter mangles non-ASCII filenames. The archive also contains a second archive.
+- The date comes from the property Notion writes **into the body**, not from the file name. Exported titles can be rendered relative to the export moment (`@yesterday`, `@Monday`).
+- Where the title carries an absolute date and the property disagrees, the title wins — and every disagreement is reported. On that export two pages had the wrong property, and trusting it would have buried two real days under empty templates.
+
+Nothing is dropped silently: undated pages, duplicates and unclaimed folders all land in `logs/_unresolved/` with a reason.
 
 ## Configuration
 

@@ -40,9 +40,11 @@ date +%Y-%m-%d
 
 ## 2. Learn the tracker's shape
 
-Fetch `task.record.ref` and read its schema. Take from it the actual names of the title, status, assignee, project, grouping, priority, due-date and progress properties, and the exact column spellings a query needs. Use those names for the rest of the run.
+**The calls live per tracker, not in this document** — `${CLAUDE_PLUGIN_ROOT}/_common/trackers/<type>.md` for `task.record.type`. Read the file that matches before querying anything. A `type` of `none` means there is no tracker: skip section 3 and say so in the summary.
 
-If the fetch fails, skip sections 3 and 4 and say so. Do not fall back to guessed names — a wrong column name returns nothing, and nothing looks exactly like a quiet day.
+Whatever the tracker, read its **current** schema or field names immediately before querying, and use what it has now — the title, status, assignee, project, grouping, priority, due-date and progress equivalents, and the exact spellings a query needs. Names drift and differ per workspace. A name pinned in a document or in config returns nothing, and nothing looks exactly like a quiet day.
+
+If that read fails, skip section 3 and say so. Do not fall back to guessed names.
 
 ## 3. Collect what moved
 
@@ -51,7 +53,9 @@ Query rows the day actually touched, split by whether they are yours.
 - **Mine** — assignee contains `log.me.tracker_user_id`, last-edited on the date.
 - **The team's** — assignee is anyone else or empty, last-edited on the date.
 
-Query on **last edited**, never on created. Work in progress was created weeks ago; a created-date filter returns a nearly empty day and looks like a correct answer.
+Query on **last edited or last updated**, never on created. Work in progress was created weeks ago; a created-date filter returns a nearly empty day and looks like a correct answer.
+
+How the day filter is applied is the tracker's business. A store that can be queried exhaustively takes it as a condition; one that can only be searched needs the filter applied after the fetch, and its adapter says so. **Where the exhaustive read is gated or missing, say so in the summary** — an under-covered day must never read as a quiet one.
 
 Carry each row's **stable url** alongside its title. Titles get rewritten; urls do not, and a later review stitches months of entries together by url. A row recorded without its url cannot be stitched.
 

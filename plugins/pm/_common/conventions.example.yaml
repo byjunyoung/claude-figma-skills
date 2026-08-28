@@ -230,6 +230,7 @@ log:
     out: "./highlights/{YYYY}.md"    # accumulating document. {YYYY} is the period's year
     sections: [Projects, Collaboration and mentoring, Design and documentation,
                What I learned, Feedback received, Company building]
+    max_items: 6               # how many to interview about. the rest are listed, not asked
     sentence: xyz              # xyz = accomplished X as measured by Y by doing Z
                                # plain = what was done and what changed
     unknown_metric: "metric unconfirmed"   # stands in where you had no figure to give

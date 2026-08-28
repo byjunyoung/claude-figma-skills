@@ -1,5 +1,10 @@
 # pm
 
+## 0.9.0 — 2026-08-28
+- `/pm:log` reads the tracker through its adapter like every other skill here, instead of assuming one
+- `/pm:log-review` asks an item's three questions in one round, and stops at `log.review.max_items`
+- The log side is documented — why it is split in two, how to schedule it, and how to import an existing Notion log
+
 ## 0.8.1 — 2026-08-28
 - `/pm:log-review` stitches by title where a period's files carry no urls, instead of returning every day as its own item
 

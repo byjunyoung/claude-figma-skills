@@ -209,6 +209,8 @@ A separate plugin covering the document and the work that comes out of it.
 | `/pm:task-draft` | Turn a request thread into a task's context table |
 | `/pm:task-publish` | File that task as a ticket in the engineering tracker |
 | `/pm:task-sync` | Reconcile the planning list against that tracker |
+| `/pm:log` | Record a day's work as a file, unattended, from the same tracker |
+| `/pm:log-review` | Turn a period of those files into accomplishment statements |
 
 ### The cycle — a request through to a filed ticket
 
@@ -243,6 +245,19 @@ Three things it holds to.
 **A product doc is not an engineering doc.** Anything in `forbidden_terms` appearing in the body is rejected. It writes *what* is required and leaves *how* to engineering or to a TBD.
 
 **It stops before writing.** Verification is read-only, publishing happens only after a preview and an explicit go, and even then in stages — skeleton, then user groups, then feature entries.
+
+### The log side — what you actually did
+
+Two of the skills are not about the spec. They keep a record of your own work, read from the same tracker.
+
+```
+every workday   /pm:log          one file a day — facts, quotes, evidence. unattended
+now and then    /pm:log-review   a period of those files → accomplishment statements
+```
+
+They are split on purpose. The daily run records only what happened and never rates it; the review asks you the three things a file cannot know — your role, what the result can be measured by, what you learned. An unattended agent writing daily about the significance of its own work fills a log with claims nobody can check later.
+
+The first run already pays: a day's file is a written end-of-day summary. That it accumulates into review material is the second benefit, not the first one you feel. `pm/README.md` carries the wrapper script, the scheduling note, and the importer for an existing Notion log.
 
 Configuration lives in `pm-conventions.yaml`, layered the same way as `fig`.
 
@@ -296,6 +311,7 @@ Everything under `fig` runs on `plugin:figma`. These skills want something more.
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — only where a config key points at a Notion page |
 | `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github` |
 | `/fig:qa` `/pm:task-draft` | **Slack** — only where the request source is a Slack thread |
+| `/pm:log` | **A calendar and a chat workspace** — both optional. Named as `null` they are skipped and the log says so. A scheduler on your own machine, if you want it unattended |
 | `/pm:prd` | **Notion** — only where `prd.target` is `notion` |
 
 The connector rows are conditional: point the config at `none` or at markdown and the skill still runs, it just writes somewhere else. The Chrome rows are not — those three open a browser.
