@@ -163,7 +163,7 @@ No inline self-check audit lives here. Holding the same check in two places mean
 
 - **Never PASS on an isolated screenshot.** `node.screenshot()` and single-node captures render a frame on its own and **cannot catch a parent or canvas-position error** — the frame looks perfectly fine by itself. The first pass is `/fig:lint`'s measurements; the second is **a screenshot of the whole section node**, not an isolated frame. When clone or move was involved, this is almost always where the accident shows
 - **Output the per-section handoff URLs** — `https://figma.com/design/{fileKey}/?node-id={section id with : replaced by -}`. This matches the "share section URLs for handoff, not individual frames" checklist
-- End the output with: the list of guessed labels needing confirmation, the list of TBD policies, and a suggestion to connect the flow with `/fig:arrows`
+- End the output with: the list of guessed labels needing confirmation, the list of TBD policies, and what comes next — the flow with `/fig:arrows`, and `/fig:handoff` once the screens are drawn
 
 ## Implementation — the tidy helper preamble
 

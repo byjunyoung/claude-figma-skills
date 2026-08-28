@@ -149,6 +149,15 @@ sync:
     as_is: 'as.?is|before|current'
   text_diff_max_len: 40                       # strings longer than this are not used as diff keys
   version_page_pattern: null                  # e.g. '^\[Update\] v[\d.]+'
+  named_version: "canonical sync {date} · {n} screens"   # title of the version saved after apply. null saves none
+
+# --- Handoff signals -----------------------------------------------------------
+# The signals Figma itself shows engineering, set at the end of the skills that earn them:
+# /fig:prep marks a section ready for dev once /fig:lint passes it; /fig:sync marks it
+# completed once the change is in canonical. Off, both are left alone.
+handoff:
+  dev_status: true                            # Dev Mode status on sections — READY_FOR_DEV after prep, COMPLETED after sync
+  ready_note: "prep · {date}"                 # the note carried on a READY_FOR_DEV status
 
 # --- Task tracker --------------------------------------------------------------
 # With none, /fig:diff stops at the Figma annotations and emits the table as markdown.

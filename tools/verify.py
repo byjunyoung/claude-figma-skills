@@ -260,6 +260,16 @@ def check_plugin(name, root, yaml):
                 if not any(tool in a for a in allowed):
                     fails.append(f"[{name}] {kind}/{f.name} names `{tool}`, which no skill's allowed-tools carries")
 
+    # A skill count written into prose is wrong the day a skill is added. The list of skills is
+    # the directory; prose says "the skills" or lists them, never a number
+    COUNT_WORDS = r"(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|twenty)"
+    for f in (root / "README.md", REPO / "README.md", REPO / "README.ko.md", MARKET):
+        if not f.exists():
+            continue
+        t = f.read_text()
+        for m in re.finditer(rf"\b{COUNT_WORDS} (skills|in all)\b|스킬 (\d+|한|두|세|네|다섯|여섯|일곱|여덟|아홉|열\S*) *개|(\d+) *개의? 스킬", t, re.I):
+            fails.append(f"[{name}] {f.name}: a skill count in prose — '{m.group(0)}' goes stale; list the skills or say 'the skills'")
+
     # Skill-name references leak outside SKILL.md too. A comment in the example config once shipped
     # still carrying a pre-rename name — because the check was only looking at SKILL.md.
     for f in (example, root / "README.md", REPO / "README.md", REPO / "README.ko.md"):

@@ -1,5 +1,10 @@
 # fig
 
+## 3.11.0 — 2026-08-29
+- `/fig:handoff` — the last step of the cycle. `/fig:lint` is the gate, the person picks which passing sections go, the skill marks them *Ready for dev* in Figma (the status engineering sees in Dev Mode), hands over the section links, and writes one line into the task doc where a tracker is configured. `/fig:sync` marks sections *Completed* after canonical apply and saves a named version. `handoff.dev_status` switches the statuses, `sync.named_version` names the version. The starter skeleton opens with a Cover page. Measured against Figma's file-organization and Dev Mode guides
+- The Figma writes for status and version are marked as not yet run on a live file — the seat where they were written could only view; the first run on an Edit seat verifies them
+- No skill count is written anywhere any more; `verify.py` fails on one, because it went stale every time a skill was added
+
 ## 3.10.0 — 2026-08-29
 - Preflight (shared with pm) speaks in plain words — verdict, then what to fix, then the table as detail. The README's troubleshooting is rewritten as what-you-see · what-it-means · what-to-do
 
