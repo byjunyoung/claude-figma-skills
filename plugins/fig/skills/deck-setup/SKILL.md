@@ -12,6 +12,8 @@ allowed-tools: Read, Write, Bash, AskUserQuestion, mcp__plugin_figma_figma__use_
 
 **Prerequisites**: always load `figma:figma-use` and `figma:figma-use-slides` before calling `use_figma`. Step 2 (measure) is **zero writes** — the script only `return`s a report.
 
+**Open with what this produces.** After this, `/fig:deck` builds slides from your own template's archetypes rather than a generic layout. Ten to fifteen minutes with the template to hand, and one thing is asked of you that MCP cannot do — applying the template. The template file itself is never touched. Name each step as it begins.
+
 ## When to invoke
 
 - Using `/fig:deck` for the first time in a new environment, at a new company

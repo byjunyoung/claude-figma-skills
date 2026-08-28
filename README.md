@@ -347,6 +347,13 @@ there if something required is absent, rather than running on and coming back th
 | `pm` | `/pm:setup` | your doc tool's and your tracker's schemas |
 | `fig`, and you will use `/fig:deck` | `/fig:deck-setup` | your team's slide template |
 
+**What the first run is like.** Each setup opens by saying what it will produce and how long it
+takes, shows its steps, and names each one as it begins — read-only until the one file it
+writes, which you see first. Questions come in your words, with options and a recommendation,
+and "leave it blank" is always one of them: a blank is `null`, written with the question beside
+it for whoever can answer. It ends on a first result rather than a file — `pm` drafts a context
+table from one message you paste, `fig` audits one page — and names the commands to run next.
+
 **fig.** Nothing is written to Figma — this step only reads. It counts how the file already
 names frames, spaces sections, and styles arrows, takes the dominant value as the convention,
 and **leaves anything it can't settle as `null` rather than guessing.** A thin sample or a split

@@ -12,6 +12,29 @@ It does not ask for the conventions, it **observes them in the file.** Section s
 
 **Prerequisites**: load `figma:figma-use` before calling `use_figma`. **Zero writes** — the Figma file is never touched. The only thing written is one local config file.
 
+## How it runs — the ladder
+
+Show this before the first call, and name each step as it begins:
+
+```
+① Check this machine                  read-only · seconds
+② Read the page landscape             read-only
+③ Probe three to five pages           read-only · says what it saw
+④ Ask what observation can't settle   one at a time · a recommendation · "leave it blank" always offered
+⑤ Write the file                      preview → go · one local file
+⑥ First result                        /fig:lint on one page, judged by its false-positive rate
+```
+
+**Open with what this produces.** After this, a page can be tidied and its missing states
+stubbed (`/fig:prep`), its flow arrows drawn and re-synced (`/fig:arrows`), and audited in one
+pass (`/fig:lint`) — against the conventions this file already keeps, not a template's. Five
+minutes on a tidy file. Nothing in Figma is touched; one local file is written, and shown first.
+
+**Questions in the person's words, not the key's.** "Which pages does engineering build from?"
+rather than `pages.strict`; "how far apart do you keep screens?" rather than `layout.frame_gap`.
+The key lands in the file; the phrasing does not. Say what is being read before reading it —
+a probe that takes seconds in silence reads as a hang.
+
 ## When to invoke
 
 - Opening these skills on a new company or a new file for the first time
@@ -103,13 +126,13 @@ Some things never come out of observation. Show the full list first so the scale
 | `component_audit.body_offset` | You have to open one screen and measure nav width and top bar height |
 | `task_tracker` · `design_system` | Facts that live outside the file |
 
-If it isn't known, leave `null`. **Do not invent a value to fill the blank.**
+If it isn't known, leave `null`. **Do not invent a value to fill the blank.** Offer "leave it blank" on every question, out loud — a blank is a complete answer, written with the question beside it.
 
 ### 5. Preview → go → write
 
 Show the full draft plus three groups — what observation filled, what the interview filled, and what stayed `null` — and get a go. If a config already exists, do not overwrite it; show **only the differences**.
 
-### 6. Verify — test the draft by its false-positive rate (required)
+### 6. First result — test the draft by its false-positive rate (required)
 
 **Do not write the config and stop.** Run `/fig:lint` against one representative page and read the result.
 
@@ -118,6 +141,13 @@ Show the full draft plus three groups — what observation filled, what the inte
 - When false positives are suspected, **open a sample of the reported violations and confirm by eye** that they really break the rule. If not, fix the pattern and run again
 
 Skipping this step hardens a wrong config, and every lint run after it drowns in false positives.
+
+This is the first result, so close on it: what the audit found on that page, in one line, and
+the commands that follow, in the order they are used —
+
+    /fig:lint <page>       audit any page against the file you just wrote
+    /fig:prep <page>       tidy names, place sections, stub the missing states
+    /fig:arrows <page>     draw the flow, re-sync it after frames move
 
 ## Constraints
 
