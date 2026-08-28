@@ -90,6 +90,7 @@ that reads as the skill having found nothing. This is the one step that says so 
 Read the person the verdict and the fix lines in their words — the table underneath is detail for a second look. Then judge it:
 
 - **FAIL** — stop and hand over the fix lines. Nothing below this works without them
+- **UNKNOWN** — the claude CLI is not on this machine, so the connectors could not be checked. Confirm them by hand before going on, or run this where the CLI is
 - **Worth knowing** lines are not blockers — one sentence each, then move on
 - **absent** on an optional connector — fine as it is. Say so, because a config key pointed
   there in a later step will not reach it

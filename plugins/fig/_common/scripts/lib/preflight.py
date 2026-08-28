@@ -217,14 +217,19 @@ def host_checks():
 def connector_checks():
     """`claude mcp list` runs a health check per server, so it is slow but authoritative."""
     listing, _ = run(["claude", "mcp", "list"], timeout=120)
-    if listing is None:
-        row("connector", "claude mcp list", "unknown", "the claude CLI did not answer — check connectors by hand")
-        return
-
-    lines = listing.splitlines()
     checks = list(CONNECTORS[PLUGIN])
     listed = {n.lower() for n, _, _ in checks}
     checks += [(disp, False, "named by the config") for low, disp in required.items() if low not in listed]
+
+    if listing is None:
+        # No claude CLI here — a CI runner, a bare shell. Every connector row is unknown, and a
+        # required one stays unknown rather than quietly reading as answered
+        row("connector", "claude mcp list", "unknown", "the claude CLI did not answer — check connectors by hand")
+        for name, hard, why in checks:
+            row("connector", name, "unknown", ("required — " if hard or is_required(name) else "") + "not checkable without the claude CLI")
+        return
+
+    lines = listing.splitlines()
     for name, hard, why in checks:
         need = hard or is_required(name)
         hit = next((ln for ln in lines if name.lower() in ln.lower()), None)
@@ -332,9 +337,13 @@ def report():
     blind = [r for r in rows if r[2] == "unknown"]
     absent = [r for r in rows if r[2] == "absent"]
     no_config = any(b.startswith("no config yet") for b in because)
+    unchecked = [r for r in blind if r[0] == "connector" and r[3].startswith("required")]
 
     if fixes:
         print(f"Not ready — {len(fixes)} thing{'s' if len(fixes) != 1 else ''} to fix before /{PLUGIN}:setup can read your tools.")
+    elif unchecked:
+        print(f"Cannot tell — the claude CLI did not answer, so {len(unchecked)} required connector{'s' if len(unchecked) != 1 else ''} "
+              f"({', '.join(n for _, n, _, _ in unchecked)}) could not be checked. Confirm by hand, or run this where the CLI is.")
     elif no_config:
         print(f"Ready for /{PLUGIN}:setup. Nothing is required yet — the tools you name there become required from then on.")
     else:
@@ -376,6 +385,9 @@ def report():
     if missing:
         print(f"{len(missing)} missing — {', '.join(missing)}{tail} · FAIL")
         return 1
+    if unchecked:
+        print(f"{len(unchecked)} required, unchecked — {', '.join(n for _, n, _, _ in unchecked)} · UNKNOWN")
+        return 2
     print(f"ready for /{PLUGIN}:setup{tail} · PASS")
     return 0
 
