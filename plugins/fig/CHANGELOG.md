@@ -1,5 +1,8 @@
 # fig
 
+## 3.10.0 — 2026-08-29
+- Preflight (shared with pm) speaks in plain words — verdict, then what to fix, then the table as detail. The README's troubleshooting is rewritten as what-you-see · what-it-means · what-to-do
+
 ## 3.9.0 — 2026-08-29
 - Preflight (shared with pm) reads a `connector:` line from a tracker adapter, so `task_tracker.type` can be any word a team uses
 

@@ -175,7 +175,7 @@ def settle_requirements():
             require(name.strip(), f"--require {name.strip()}")
     user, full = load_config()
     if user is None:
-        because.append("no config yet — nothing beyond the host is required until setup names a tool")
+        because.append("no settings yet — nothing is needed until setup names your tools")
         return None
     named = False
     for triggers, type_key, quiet, kind in NAMED_TOOLS[PLUGIN]:
@@ -190,7 +190,7 @@ def settle_requirements():
         require(name, f"{type_key}: {typ}" + (f" → {name}" if name.lower() != typ else ""))
         named = True
     if not named:
-        because.append("the config names no connector — nothing beyond the host is required")
+        because.append("your settings name no tool — nothing beyond this machine is needed")
     return full
 
 
@@ -205,13 +205,13 @@ def host_checks():
         import yaml
         row("host", f"PyYAML {getattr(yaml, '__version__', '?')}", "ok")
     except ImportError:
-        row("host", "PyYAML", "missing", "pip3 install pyyaml — config resolution needs it")
+        row("host", "PyYAML", "missing", "run `pip3 install pyyaml` — the settings file cannot be read without it")
 
     out, code = run(["node", "--version"], timeout=10)
     if code == 0:
         row("host", f"node {out.strip()}", "ok")
     else:
-        row("host", "node", "missing", "nodejs.org — the audit scripts are syntax-checked with it")
+        row("host", "node", "missing", "install it from nodejs.org — the Figma scripts are checked with it")
 
 
 def connector_checks():
@@ -224,9 +224,9 @@ def connector_checks():
     if listing is None:
         # No claude CLI here — a CI runner, a bare shell. Every connector row is unknown, and a
         # required one stays unknown rather than quietly reading as answered
-        row("connector", "claude mcp list", "unknown", "the claude CLI did not answer — check connectors by hand")
+        row("connector", "claude mcp list", "unknown", "the claude command is not on this machine, so connections cannot be checked here")
         for name, hard, why in checks:
-            row("connector", name, "unknown", ("required — " if hard or is_required(name) else "") + "not checkable without the claude CLI")
+            row("connector", name, "unknown", ("required — " if hard or is_required(name) else "") + "confirm it yourself, or run this where Claude Code is installed")
         return
 
     lines = listing.splitlines()
@@ -241,9 +241,9 @@ def connector_checks():
             # not a revoked login
             tail = re.sub(r".*Failed to connect\s*[—-]*\s*", "", hit).strip()[:90]
             if "Authorization header" in tail:
-                tail += " → usually an empty token variable: launch from a shell where it is exported"
+                tail = "the login token it sends is empty. Open Claude Code from the terminal where the token is set, and it comes back"
             row("connector", name, "missing" if need else "failed",
-                f"configured but not answering — {tail}" if tail else "configured but not answering")
+                f"connected, but not responding — {tail}" if tail else "connected, but not responding")
         elif need:
             row("connector", name, "missing", why)
         else:
@@ -257,7 +257,7 @@ def gh_checks(cfg):
     need = is_required("GitHub")
     out, code = run(["gh", "--version"], timeout=10)
     if code != 0:
-        row("cli", "gh", "missing" if need else "absent", "cli.github.com — the GitHub tracker adapter runs on it")
+        row("cli", "gh", "missing" if need else "absent", "install the GitHub command-line tool from cli.github.com — the GitHub side runs on it")
         return
     ver = (out.split() + ["?"])[2] if out.startswith("gh version") else "?"
 
@@ -272,7 +272,7 @@ def gh_checks(cfg):
             active = current
     account = active or account
     if not account:
-        row("cli", f"gh {ver}", "missing" if need else "attention", "not logged in — gh auth login")
+        row("cli", f"gh {ver}", "missing" if need else "attention", "not logged in — run `gh auth login`")
         return
 
     if not need:                               # one network call fewer where nothing needs GitHub
@@ -282,14 +282,13 @@ def gh_checks(cfg):
     hdr, _ = run(["gh", "api", "-i", "user"])
     m = re.search(r"^x-oauth-scopes:\s*(.*)$", hdr or "", re.I | re.M)
     scopes = m.group(1).strip() if m else ""
-    note, state = f"account {account}", "ok"
+    note, state = f"logged in as {account}", "ok"
     if scopes:
-        note += f" · scopes {scopes}"
         if "project" not in scopes:
-            note += " · no read:project — board ids need it: gh auth refresh -s read:project"
+            note += " · cannot read project boards yet — run `gh auth refresh -s read:project` once"
             state = "attention"                # the repo answers and the board comes back empty — worth a line in --quiet
     else:
-        note += " · scopes not reported by this token"
+        note += " · what this login may read is not reported"
     row("cli", f"gh {ver}", state, note)
 
     ref = dig(cfg, TRACKER_REF[PLUGIN]) if cfg else None
@@ -299,13 +298,13 @@ def gh_checks(cfg):
             row("tracker", ref, "ok", f"visible to {account}")
         else:
             row("tracker", ref, "missing",
-                f"not visible to {account} — the wrong active account (gh auth switch) or not a member of that org")
+                f"{account} cannot see this repository — switch to the account that can (`gh auth switch`), or ask for access")
 
 
 def other_checks():
     why = CHROME_SKILLS[PLUGIN]
     if why:
-        row("browser", "Claude in Chrome", "unknown", f"not visible from the shell — {why}")
+        row("browser", "Claude in Chrome", "unknown", f"cannot be checked from here — {why}")
 
     for path in (os.path.join(os.path.expanduser("~/.claude"), CONFIG_NAME),
                  os.path.join(os.getcwd(), CONFIG_NAME)):
@@ -313,16 +312,16 @@ def other_checks():
             row("config", path.replace(os.path.expanduser("~"), "~"), "ok")
             return
     row("config", f"~/.claude/{CONFIG_NAME}", "none yet",
-        f"expected before setup — /{PLUGIN}:setup writes it")
+        f"not written yet — /{PLUGIN}:setup creates it")
 
 
 FIX = {
     # A row's state, in words a person can act on. The note on the row carries the specifics.
-    "missing":   "required here and not reachable",
-    "failed":    "connected, but not answering",
+    "missing":   "needed here, and not reachable",
+    "failed":    "connected, but not responding",
     "attention": "works — read the note",
-    "absent":    "not connected. optional until a config names it",
-    "unknown":   "cannot be seen from the shell",
+    "absent":    "not connected. fine until your settings name it",
+    "unknown":   "cannot be checked from here",
 }
 
 
@@ -336,19 +335,19 @@ def report():
     notes = [r for r in rows if r[2] in ("failed", "attention")]
     blind = [r for r in rows if r[2] == "unknown"]
     absent = [r for r in rows if r[2] == "absent"]
-    no_config = any(b.startswith("no config yet") for b in because)
+    no_config = any(b.startswith("no settings yet") for b in because)
     unchecked = [r for r in blind if r[0] == "connector" and r[3].startswith("required")]
 
     if fixes:
         print(f"Not ready — {len(fixes)} thing{'s' if len(fixes) != 1 else ''} to fix before /{PLUGIN}:setup can read your tools.")
     elif unchecked:
-        print(f"Cannot tell — the claude CLI did not answer, so {len(unchecked)} required connector{'s' if len(unchecked) != 1 else ''} "
-              f"({', '.join(n for _, n, _, _ in unchecked)}) could not be checked. Confirm by hand, or run this where the CLI is.")
+        print(f"Cannot tell — the claude command is not on this machine, so {len(unchecked)} tool{'s' if len(unchecked) != 1 else ''} your settings need "
+              f"({', '.join(n for _, n, _, _ in unchecked)}) could not be checked. Confirm them yourself, or run this where Claude Code is installed.")
     elif no_config:
-        print(f"Ready for /{PLUGIN}:setup. Nothing is required yet — the tools you name there become required from then on.")
+        print(f"Ready for /{PLUGIN}:setup. Nothing is needed yet — the tools you name there become needed from then on.")
     else:
         named = [b for b in because if not b.startswith("the config") and not b.startswith("--require")]
-        print(f"Ready for /{PLUGIN}:setup. " + ("Everything the config names answers." if named else "The config names no tool, so nothing beyond this machine is required."))
+        print(f"Ready for /{PLUGIN}:setup. " + ("Every tool your settings name is connected." if named else "Your settings name no tool, so nothing beyond this machine is needed."))
 
     if fixes:
         print()
@@ -367,7 +366,7 @@ def report():
     if absent and not QUIET:
         print()
         print("Not connected, and not needed yet: " + ", ".join(n for _, n, _, _ in absent)
-              + ". A config that names one makes it required, and this check will say so.")
+              + ". Once your settings name one, it becomes needed and this check will say so.")
 
     if not QUIET:
         print()
@@ -376,9 +375,9 @@ def report():
             line = f"{kind:<10}{name:<38}{state:<9}"
             print(f"{line} {note}".rstrip())
         print("─" * 60)
-        print("ok answers · absent not connected · failed connected but not answering · missing required and unreachable · attention read the note")
+        print("ok = connected · absent = not connected, fine until your settings name it · failed = connected but not responding · missing = needed and unreachable · attention = works, read the note")
         if because:
-            print("required by  " + " · ".join(because))
+            print("needed because  " + " · ".join(because))
 
     # The last line stays machine-readable. Skills and scripts read PASS / FAIL from it.
     tail = f" · {len(absent)} optional connector{'s' if len(absent) != 1 else ''} not connected" if absent else ""
@@ -386,7 +385,7 @@ def report():
         print(f"{len(missing)} missing — {', '.join(missing)}{tail} · FAIL")
         return 1
     if unchecked:
-        print(f"{len(unchecked)} required, unchecked — {', '.join(n for _, n, _, _ in unchecked)} · UNKNOWN")
+        print(f"{len(unchecked)} needed, unchecked — {', '.join(n for _, n, _, _ in unchecked)} · UNKNOWN")
         return 2
     print(f"ready for /{PLUGIN}:setup{tail} · PASS")
     return 0

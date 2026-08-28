@@ -1,5 +1,8 @@
 # pm
 
+## 0.14.0 — 2026-08-29
+- Every sentence a person reads during a run is in plain words — the preflight verdicts and fix lines, what the scripts say when they stop ("is not supported yet", "is not set", "supported as the other side"), the README's troubleshooting as what-you-see · what-it-means · what-to-do, and a rule in every skill to say what a stop means rather than its code or path
+
 ## 0.13.0 — 2026-08-29
 - Preflight reads the `connector:` line of a type's adapter, so a type a team writes (`gsheet`) requires the connector it actually runs on (Google Drive) rather than a name nobody prints. Found by running `/pm:setup` 3b for real against a Google Sheet
 - Adapters declare `roles:` too, and `adapter.py --role` refuses a file for a side it does not serve with exit 4 — the schema allowed `record.type: github` and `mirror.type: notion`, and neither bundled file answered for that side

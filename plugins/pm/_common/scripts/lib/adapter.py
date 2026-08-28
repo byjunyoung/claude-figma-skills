@@ -90,14 +90,14 @@ def main():
     if found:
         roles = declared_roles(found[-1])
         if role and roles is not None and role not in roles:
-            print(f"the adapter for {kind}/{typ} answers as {', '.join(sorted(roles))}, not as {role} — {found[-1]}", file=sys.stderr)
-            print(f"/pm:setup 3b drafts the {role} side. Half an adapter does not serve the other half.", file=sys.stderr)
+            print(f"{typ} is supported as the {' and '.join(sorted(roles))} side, but this needs it as the {role} side — {found[-1]}", file=sys.stderr)
+            print(f"/pm:setup can add the {role} side from the tools connected on this machine. Support for one side does not cover the other.", file=sys.stderr)
             sys.exit(4)
         print(found[-1])
         return
     template = os.path.join(COMMON, kind, "_template.md")
-    print(f"no adapter for {kind}/{typ} — looked in: " + ", ".join(candidates), file=sys.stderr)
-    print(f"/pm:setup drafts one from the tools connected on this machine. The template is {template}", file=sys.stderr)
+    print(f"{typ} is not supported yet — nothing here describes how to work with it (looked for {kind}/{typ}.md in: " + ", ".join(candidates) + ")", file=sys.stderr)
+    print(f"/pm:setup can write that support from the tools connected on this machine. A template to start from: {template}", file=sys.stderr)
     sys.exit(3)
 
 
