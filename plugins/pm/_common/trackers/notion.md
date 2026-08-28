@@ -1,5 +1,8 @@
 # Notion as the record side
 
+connector: Notion
+roles: record
+
 For a `task.record.type` of `notion`. `{db}` is `task.record.ref` — a `collection://` url.
 
 ## Reading the list

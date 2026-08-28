@@ -145,10 +145,10 @@ Preview the tree, the config and the README, then write. Nothing here is an exte
 Read the tracker's own adapter first — the calls, and what the tool cannot do:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {record.type}
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {record.type} --role record
 ```
 
-Exit 3 means no adapter exists for that type: go to 3b, draft one from what is connected here, and come back.
+Exit 3 means no adapter exists for that type, exit 4 that the one there answers only as a mirror: go to 3b, draft one from what is connected here, and come back.
 
 | Read | Fills |
 |---|---|
@@ -167,10 +167,10 @@ Exit 3 means no adapter exists for that type: go to 3b, draft one from what is c
 Read the mirror's adapter, then run the id queries it carries:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {mirror.type}
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {mirror.type} --role mirror
 ```
 
-Exit 3 means no adapter exists for that type — 3b, then back here.
+Exit 3 means no adapter exists for that type, exit 4 that the one there answers only as a record — 3b, then back here.
 
 | Read | Fills |
 |---|---|
@@ -191,7 +191,7 @@ Three things have to line up for them, and only the first shows in any error mes
 Exit 3 from `adapter.py` on either side means the type names a tool this plugin has never seen. That is not a dead end, and not a reason to type calls from memory. The contract is `${CLAUDE_PLUGIN_ROOT}/_common/trackers/README.md` (chat and calendar: `sources/README.md`); the draft is built from what is actually connected:
 
 1. **Find the connector** in the preflight table — the row named by the type. Absent means stop: an adapter cannot be drafted for a tool this machine cannot reach
-2. **List the tools it exposes** and read their descriptions. The names are what the adapter will carry, exactly as this machine has them
+2. **List the tools it exposes** and read their descriptions. The names are what the adapter will carry, exactly as this machine has them. Put the connector's name on a `connector:` line near the top, and the sides the file answers for on a `roles:` line — preflight reads the first to know which connector this type requires, `adapter.py` the second to refuse the file for a side it does not serve
 3. **Probe the read-only ones against the real workspace** — the schema, the list, one record — and keep the call that returned, pasted as run. Whether the list is exhaustive or a search is answered by what the call actually does, not by what its name suggests
 4. **Answer the write questions with the tool that would do it, marked `(unverified)`.** The first `/pm:task-publish` run verifies them and removes the mark
 5. **"Things that bite" starts with one line — `nothing recovered yet`.** It is filled by what bites

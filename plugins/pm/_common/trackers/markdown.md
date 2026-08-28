@@ -1,5 +1,8 @@
 # Markdown as the record side
 
+connector: none
+roles: record
+
 For a `task.record.type` of `markdown`. `{dir}` is `task.record.ref` — a directory. One file
 per task, and the properties live in the file's front matter under the names the config uses.
 No other tool is involved, which is what makes this the tracker a team can start on today and

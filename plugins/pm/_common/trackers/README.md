@@ -16,6 +16,22 @@ so an update does not overwrite them. Later dirs cover earlier, so a file of you
 `notion.md` replaces the bundled one. **Exit 3 means no adapter exists for that type**, and
 every skill stops on it rather than improvising the calls.
 
+## The two lines the scripts read
+
+Near the top of the file:
+
+```
+connector: Google Drive        # the connector's name as `claude mcp list` prints it
+roles: record                  # the sides this file answers for — record, mirror, or both
+```
+
+`connector:` is how preflight knows which connector to require for a type — the word a team
+writes in the config (`gsheet`) and the connector's name are rarely the same. `roles:` is how
+`adapter.py --role` refuses to hand a mirror-only file to a skill reading the record side: the
+bundled GitHub file answers as a mirror, the Notion and markdown files as records, and a config
+that puts one on the other side gets exit 4 with that sentence rather than a skill improvising
+the missing half. `verify.py` fails a bundled adapter that lacks either line.
+
 ## The rule the bundled files keep
 
 **Every call in an adapter was run, and every warning was hit.** The GitHub file says a 503

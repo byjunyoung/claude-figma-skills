@@ -1,5 +1,8 @@
 # Slack as the chat source
 
+connector: Slack
+roles: chat
+
 For a `sources.chat_type` of `slack`. The channel and app ids the calls need come from
 `log.sources` — `chat_channels`, `notes_channel`, `notes_exclude_apps`. Your own user id is
 printed in the search tool's own description ("Current logged in user's user_id is U…"). The

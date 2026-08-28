@@ -218,9 +218,51 @@ def check_plugin(name, root, yaml):
             if w in s:
                 fails.append(f"[{name}:{sk}] team value '{w}'")
 
+    # Every ${CLAUDE_PLUGIN_ROOT}/… a document points at must exist. A renamed script and a
+    # skill still naming the old path fail only at run time, in someone else's install.
+    for f in sorted(list(skills.rglob("SKILL.md")) + list(common.rglob("*.md")) + [root / "README.md"]):
+        if not f.exists():
+            continue
+        for ref in sorted(set(re.findall(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)", f.read_text()))):
+            target = root / ref.rstrip("./")
+            if not target.exists():
+                fails.append(f"[{name}] {f.relative_to(root)} → ${{CLAUDE_PLUGIN_ROOT}}/{ref} does not exist")
+
+    # An adapter has to say which connector it runs on and which sides it answers for — preflight
+    # reads the first, adapter.py the second. The bundled ones are held to it; a person's own can
+    # omit both and is then taken to serve every side.
+    allowed = set()
+    for sk in names:
+        m = re.search(r"^allowed-tools:\s*(.*)$", (skills / sk / "SKILL.md").read_text(), re.M)
+        if m:
+            allowed.update(t.strip() for t in m.group(1).split(","))
+    ROLE_WORDS = {"trackers": {"record", "mirror"}, "sources": {"chat", "calendar"}}
+    for kind, words in ROLE_WORDS.items():
+        d = common / kind
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob("*.md")):
+            if f.name in ("README.md", "_template.md"):
+                continue
+            head = "\n".join(f.read_text().splitlines()[:12])
+            if not re.search(r"^connector:\s*\S", head, re.M):
+                fails.append(f"[{name}] {kind}/{f.name}: no `connector:` line — preflight cannot tell which connector this type needs")
+            rm = re.search(r"^roles:\s*(.+)$", head, re.M)
+            if not rm:
+                fails.append(f"[{name}] {kind}/{f.name}: no `roles:` line — adapter.py cannot tell which side it answers for")
+            else:
+                bad = {r.strip() for r in rm.group(1).split(",")} - words
+                if bad:
+                    fails.append(f"[{name}] {kind}/{f.name}: roles {sorted(bad)} — for {kind} they are {sorted(words)}")
+            # The tools an adapter names have to be ones some skill is allowed to call, or the
+            # first call prompts for permission and reads as the skill hanging
+            for tool in sorted(set(re.findall(r"\b(slack_[a-z_]+|notion-[a-z-]+|list_events|search_files|read_file_content|get_file_metadata)\b", f.read_text()))):
+                if not any(tool in a for a in allowed):
+                    fails.append(f"[{name}] {kind}/{f.name} names `{tool}`, which no skill's allowed-tools carries")
+
     # Skill-name references leak outside SKILL.md too. A comment in the example config once shipped
     # still carrying a pre-rename name — because the check was only looking at SKILL.md.
-    for f in (example, root / "README.md"):
+    for f in (example, root / "README.md", REPO / "README.md", REPO / "README.ko.md"):
         if not f.exists():
             continue
         t = f.read_text()
@@ -230,6 +272,8 @@ def check_plugin(name, root, yaml):
         for ref in sorted(set(skill_ref.findall(t))):
             if not (skills / ref / "SKILL.md").exists():
                 fails.append(f"[{name}] {f.name} → /{name}:{ref} does not exist")
+        if f.parent == REPO:
+            continue                              # the root READMEs name the official figma-* skills on purpose
         for ref in sorted(set(legacy_ref.findall(t))):
             if ref == "conventions":              # figma-conventions.yaml is a config filename
                 continue

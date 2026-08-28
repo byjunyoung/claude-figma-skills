@@ -26,3 +26,9 @@ jobs:
         run: python3 tools/test/adapter.test.py
       - name: Starter conventions fixtures
         run: python3 tools/test/starter-conventions.test.py
+      - name: Preflight fixtures
+        run: python3 tools/test/preflight.test.py
+      - name: Draft generator fixtures
+        run: python3 tools/test/draft-conventions.test.py
+      - name: Notion export importer fixtures
+        run: node --test plugins/pm/_common/scripts/import-notion-export.test.mjs

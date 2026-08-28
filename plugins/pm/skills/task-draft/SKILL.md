@@ -41,7 +41,7 @@ Fill and revise can happen in one run — empty cells get filled, and only the f
 
 Branch on the kind of link and read it. Do this first, without asking.
 
-- **A chat thread** — read the whole thread, parent and replies, so the shape of the discussion is visible, not just the last message. For a threaded platform, resolve the thread root before reading. Attached images and video count only as filenames and context. The calls for the tool the link belongs to are in its source adapter — `adapter.py --kind sources --type slack` for a Slack permalink, the type from the link's domain or `sources.chat_type`. Exit 3 means no adapter for that tool: stop and say so rather than improvising the read.
+- **A chat thread** — read the whole thread, parent and replies, so the shape of the discussion is visible, not just the last message. For a threaded platform, resolve the thread root before reading. Attached images and video count only as filenames and context. The calls for the tool the link belongs to are in its source adapter — `adapter.py --kind sources --type slack --role chat` for a Slack permalink, the type from the link's domain or `sources.chat_type`. Exit 3 means no adapter for that tool: stop and say so rather than improvising the read.
 - **A document page** — fetch the body.
 - **Anything else** (a design link, pasted text) — take what you were given as the evidence.
 
@@ -119,10 +119,10 @@ Create the record in `task.record`, writing properties and body in a single writ
 The calls are in the adapter for `task.record.type`:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.record.type}
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.record.type} --role record
 ```
 
-It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls.
+It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls. **Exit 4 means the adapter exists but answers for the other side** — a mirror-only file asked for the record, say. Stop the same way; 3b drafts the side that is missing.
 
 **Read the tracker's own schema immediately before writing** and match the option names it currently has. Never trust option values pinned in this document or in the config — they drift.
 

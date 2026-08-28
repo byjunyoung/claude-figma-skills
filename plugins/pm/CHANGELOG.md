@@ -1,5 +1,12 @@
 # pm
 
+## 0.13.0 — 2026-08-29
+- Preflight reads the `connector:` line of a type's adapter, so a type a team writes (`gsheet`) requires the connector it actually runs on (Google Drive) rather than a name nobody prints. Found by running `/pm:setup` 3b for real against a Google Sheet
+- Adapters declare `roles:` too, and `adapter.py --role` refuses a file for a side it does not serve with exit 4 — the schema allowed `record.type: github` and `mirror.type: notion`, and neither bundled file answered for that side
+- The adapter templates and contract carry both lines, and 3b writes them
+- `verify.py` now fails on a `${CLAUDE_PLUGIN_ROOT}` path that does not exist, a bundled adapter without `connector:` or `roles:`, an adapter naming a tool no skill may call, and a skill reference in the root README that does not exist. Every script under `_common` has a fixture or a syntax check in CI
+- Preflight, draft-generator and importer fixtures under `tools/test`, run in CI
+
 ## 0.12.0 — 2026-08-29
 - `/pm:setup` runs as an onboarding: it opens with what it produces and how long it takes, shows an eight-step ladder and names each step, asks in the person's words rather than the file's keys, offers "leave it blank" on every question, and ends on a first result — a context table drafted from one pasted message, nothing written — with the commands that follow
 - Preflight leads with a verdict in words and the lines to fix; the table is detail underneath. A 400 on the GitHub connector says what usually causes it
