@@ -263,7 +263,7 @@ def check_plugin(name, root, yaml):
     # A skill count written into prose is wrong the day a skill is added. The list of skills is
     # the directory; prose says "the skills" or lists them, never a number
     COUNT_WORDS = r"(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|twenty)"
-    for f in (root / "README.md", REPO / "README.md", REPO / "README.ko.md", MARKET):
+    for f in [root / "README.md", REPO / "README.md", REPO / "README.ko.md", MARKET] + sorted((REPO / ".github").glob("*.html")):
         if not f.exists():
             continue
         t = f.read_text()
