@@ -1,7 +1,7 @@
 ---
 name: deck
 description: Turns a document, a dataset, or a spoken brief into a Figma Slides deck. Reads the source, agrees an outline before writing anything, then builds slides from the team template's archetypes and audits overlap and wording before handing back. Research reports, plans, retrospectives, proposals — it does not care which. Template values come from the local assets /fig:deck-setup produced. Triggers - "/fig:deck", "make this into a deck", "turn this doc into slides", "슬라이드로 만들어줘", "발표 자료 만들어줘", "덱 만들어줘".
-allowed-tools: Read, Write, Bash, AskUserQuestion, Skill, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__create_new_file, mcp__plugin_figma_figma__upload_assets, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__whoami
+allowed-tools: Read, Write, Bash, AskUserQuestion, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__create_new_file, mcp__plugin_figma_figma__upload_assets, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__whoami
 ---
 
 # deck — building a presentation deck (Figma Slides)

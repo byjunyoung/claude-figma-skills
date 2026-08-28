@@ -1,7 +1,7 @@
 ---
 name: deck-setup
 description: Measures a team slide template into local deck assets — template-spec.md, template.js, and reference images. Canvas, type scale, colors, and the archetype catalog are read from actual nodes; anything the sample is too thin to settle is left empty rather than guessed. Run once before using /fig:deck in a new environment, or again after the template is revised. Triggers - "/fig:deck-setup", "extract the slide template", "set up the deck assets", "덱 템플릿 뽑아줘", "발표 템플릿 추출", "템플릿 다시 추출".
-allowed-tools: Read, Write, Bash, AskUserQuestion, Skill, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__create_new_file, mcp__plugin_figma_figma__get_screenshot
+allowed-tools: Read, Write, Bash, AskUserQuestion, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__create_new_file, mcp__plugin_figma_figma__get_screenshot
 ---
 
 # deck-setup — extracting a presentation template
