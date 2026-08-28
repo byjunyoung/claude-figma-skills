@@ -4,7 +4,7 @@
 - Adapters are open. The calls for a tool live in `trackers/<type>.md` or `sources/<type>.md`, the type in the config picks the file, and `adapter.py` finds it — bundled, or yours in `adapters.dirs` outside the plugin. A type with no file stops the skill on exit 3
 - What an adapter has to answer is written down — `trackers/README.md`, `sources/README.md` — with a template for each
 - `/pm:setup` drafts an adapter for a tool it has never seen from the tools connected on the machine, marking the answers it could not verify. It also takes "nothing yet" and lays out one markdown repository that needs no other tool
-- Chat and calendar are adapters too — `sources.chat_type`, `sources.calendar_type`; Slack and Google Calendar ship, recovered from what `/pm:log` and `/pm:task-draft` already did
+- Chat and calendar are adapters too — `sources.chat_type`, `sources.calendar_type`; Slack and Google Calendar ship, every call checked against the live tool's schema and run once
 - Preflight requires whatever tool the config names, not only the three it knew — a value somebody wrote, never a default alone
 
 ## 0.10.0 — 2026-08-29

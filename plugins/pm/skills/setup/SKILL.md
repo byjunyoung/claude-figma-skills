@@ -200,7 +200,7 @@ task:
 
 **A `null` is not a gap to be filled later by guessing.** It says the schema did not settle it, so the check or the step is skipped until a person writes a value.
 
-**With a `side`, read the existing file first** and rewrite only the keys that side owns. Record: `task.record`, `task.properties`, `task.context_rows`, `task.link_property`, `task.notion`. Mirror: `task.mirror`, `task.mirror_extras`, `task.ticket`, `task.hierarchy`. The maps that join the two — `task.label_map`, `task.assignee_map`, `task.status_map` — belong to whichever run can see both sides, and are left alone otherwise. Everything else in the file stays byte for byte, comments included. An adapter drafted in 3b is written where 3b says, never into this file.
+**With a `side`, read the existing file first** and rewrite only the keys that side owns. Record: `task.record`, `task.properties`, `task.context_rows`, `task.link_property`, `task.notion`. Mirror: `task.mirror`, `task.mirror_extras`, `task.ticket`, `task.hierarchy`. The maps that join the two — `task.label_map`, `task.assignee_map`, `task.status_map` — and `task.field_owner` belong to whichever run can see both sides, and are left alone otherwise. Everything else in the file stays byte for byte, comments included. An adapter drafted in 3b is written where 3b says, never into this file.
 
 ### 7. Prove it before handing it over
 

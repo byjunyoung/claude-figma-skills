@@ -116,10 +116,10 @@ adapters:
 # skill has nothing to reconcile, which is the correct answer rather than an error.
 task:
   record:                        # where the planning-side task lives
-    type: notion                 # notion | github | markdown | none
+    type: notion                 # any type with an adapter — notion, github and markdown ship. none = no tracker
     ref:  null                   # a collection:// url, an owner/repo, or a directory
   mirror:                        # the engineering-side copy, if there is one
-    type: none                   # github | notion | none
+    type: none                   # github and notion ship; any other type needs an adapter. none = one tracker
     ref:  null
 
   # The single source of truth for matching the two sides. Name the property on the
