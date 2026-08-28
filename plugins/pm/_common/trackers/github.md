@@ -1,5 +1,8 @@
 # GitHub as the mirror
 
+connector: GitHub
+roles: mirror
+
 The calls behind the abstract steps in `/pm:task-publish` and `/pm:task-sync`, for a mirror
 whose `task.mirror.type` is `github`. Every placeholder in braces comes from the config —
 `{repo}` is `task.mirror.ref`, and everything under `{extras.*}` is `task.mirror_extras`.

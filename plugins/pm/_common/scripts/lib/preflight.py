@@ -57,24 +57,27 @@ CONNECTORS = {
 # default type still counts once a ref was written against it, and a default alone never does.
 # A machine that has never run setup has nothing required here, and is told so rather than
 # PASSing as if that meant something.
-#   (keys the user must have written, the type key, type values that need no connector)
+#   (keys the user must have written, the type key, type values that need no connector, adapter kind)
 NAMED_TOOLS = {
     "fig": [
-        (("task_tracker.ref", "task_tracker.type"), "task_tracker.type", {"none"}),
-        (("guide_source.ref", "guide_source.type"), "guide_source.type", {"none", "file", "url"}),
+        (("task_tracker.ref", "task_tracker.type"), "task_tracker.type", {"none"}, "trackers"),
+        (("guide_source.ref", "guide_source.type"), "guide_source.type", {"none", "file", "url"}, None),
     ],
     "pm": [
-        (("task.record.ref", "task.record.type"), "task.record.type", {"none", "markdown"}),
-        (("task.mirror.ref", "task.mirror.type"), "task.mirror.type", {"none"}),
+        (("task.record.ref", "task.record.type"), "task.record.type", {"none", "markdown"}, "trackers"),
+        (("task.mirror.ref", "task.mirror.type"), "task.mirror.type", {"none"}, "trackers"),
         (("prd.target", "prd.notion.template", "prd.notion.task_db",
-          "prd.notion.inline_db.users", "prd.notion.inline_db.features"), "prd.target", {"markdown", "git"}),
-        (("log.sources.chat_channels", "log.sources.notes_channel"), "sources.chat_type", {"none"}),
-        (("log.sources.calendar",), "sources.calendar_type", {"none"}),
+          "prd.notion.inline_db.users", "prd.notion.inline_db.features"), "prd.target", {"markdown", "git"}, None),
+        (("log.sources.chat_channels", "log.sources.notes_channel"), "sources.chat_type", {"none"}, "sources"),
+        (("log.sources.calendar",), "sources.calendar_type", {"none"}, "sources"),
     ],
 }
-# How a type reads in `claude mcp list`. Anything else is matched on the type name itself,
-# which is how a connector this file has never heard of still gets a row.
+# How a type reads in `claude mcp list`. A type not here is looked up in its adapter file — the
+# `connector:` line near the top says what the connector is called, because the type a team
+# writes (gsheet) and the connector's name (Google Drive) are rarely the same word. Failing
+# both, the type name itself is matched, which is at least honest about what it looked for.
 CONNECTOR_NAME = {"notion": "Notion", "github": "GitHub", "slack": "Slack", "google": "Google Calendar"}
+COMMON = os.path.normpath(os.path.join(HERE, "..", ".."))
 
 # Where the tracker is GitHub, the tracker adapter runs on the gh CLI, not on the connector.
 # This is the config key holding the repo the check tries to open.
@@ -148,6 +151,24 @@ def require(name, why):
     because.append(why)
 
 
+def declared_connector(cfg, kind, typ):
+    """The `connector:` line of the adapter for this type, or None. Same lookup as adapter.py —
+    bundled first, then adapters.dirs, later covering earlier."""
+    if not kind:
+        return None
+    dirs = [COMMON] + [os.path.expanduser(d) for d in ((cfg or {}).get("adapters") or {}).get("dirs") or [] if isinstance(d, str)]
+    for d in reversed(dirs):
+        path = os.path.join(d, kind, f"{typ}.md")
+        if os.path.exists(path):
+            with open(path, encoding="utf-8", errors="ignore") as f:
+                for _ in range(12):
+                    m = re.match(r"^connector:\s*(.+?)\s*$", f.readline())
+                    if m:
+                        return m.group(1)
+            return None
+    return None
+
+
 def settle_requirements():
     for name in (arg_after("--require") or "").split(","):
         if name.strip():
@@ -157,7 +178,7 @@ def settle_requirements():
         because.append("no config yet — nothing beyond the host is required until setup names a tool")
         return None
     named = False
-    for triggers, type_key, quiet in NAMED_TOOLS[PLUGIN]:
+    for triggers, type_key, quiet, kind in NAMED_TOOLS[PLUGIN]:
         if not any(written(user, k) for k in triggers):
             continue
         if triggers[0].startswith("log.") and not dig(full, "log.enabled"):
@@ -165,7 +186,8 @@ def settle_requirements():
         typ = str(dig(full, type_key) or "none").lower()
         if typ in quiet:
             continue
-        require(CONNECTOR_NAME.get(typ, typ.capitalize()), f"{type_key}: {typ}")
+        name = CONNECTOR_NAME.get(typ) or declared_connector(full, kind, typ) or typ.capitalize()
+        require(name, f"{type_key}: {typ}" + (f" → {name}" if name.lower() != typ else ""))
         named = True
     if not named:
         because.append("the config names no connector — nothing beyond the host is required")

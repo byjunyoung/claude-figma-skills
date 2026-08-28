@@ -1,5 +1,8 @@
 # {Tool} as the record side / as the mirror
 
+connector: {the connector's name as `claude mcp list` prints it, e.g. Google Drive}
+roles: {record | mirror | record, mirror — the sides this file answers for}
+
 <!-- Keep the sections whose questions this tool answers. Delete the rest — a heading with
      nothing under it reads as an answer. Every call below should be one you ran; mark one
      you have not with (unverified) and remove the mark when it has run. -->

@@ -1,5 +1,8 @@
 # Google Calendar as the calendar
 
+connector: Google Calendar
+roles: calendar
+
 For a `sources.calendar_type` of `google`. The calendar id comes from `log.sources.calendar` —
 `primary` is the account's own. Run against a real calendar on 2026-08-29.
 

@@ -479,6 +479,9 @@ That key is `null` in every layer, and the skill cannot run without it. It is a 
 **`adapter.py` exits 3 — no adapter for that type.**
 The config names a tool nobody has written the calls for. `/pm:setup` drafts one from the tools actually connected on this machine, into `pm-adapters/` outside the plugin; the questions it has to answer are in `trackers/README.md` and `sources/README.md`. Until then the skill stops rather than improvising the calls — a call typed from memory of a tool's API is how a ticket lands in the wrong place.
 
+**`adapter.py` exits 4 — the adapter answers for the other side.**
+The file for that type exists, but its `roles:` line says which side it serves and the skill asked for the other — the bundled GitHub file is a mirror, the Notion and markdown files are records. A config that puts one on the wrong side stops here rather than running with half an adapter. `/pm:setup` 3b drafts the missing side.
+
 **A skill wrote something you didn't expect.**
 Every external write — Figma nodes, a spec page, a branch — goes through a preview and an explicit go. If one happened without that, it's a bug worth [reporting](https://github.com/byjunyoung/claude-product-skills/issues).
 

@@ -65,6 +65,21 @@ with tempfile.TemporaryDirectory() as tmp:
     r = run(proj, home, "--kind", "sources", "--type", "teams")
     check("adapters.dirs from config, ~ expanded", r.returncode == 0 and Path(r.stdout.strip()).resolve() == (home / "my-adapters" / "sources" / "teams.md").resolve(), r.stdout + r.stderr)
 
+    # --role: a bundled mirror file asked for the record side is refused with exit 4.
+    # The case above pointed adapters.dirs elsewhere; put the default back first
+    (proj / "pm-conventions.yaml").unlink()
+    r = run(proj, home, "--kind", "trackers", "--type", "github", "--role", "record")
+    check("github as record → exit 4", r.returncode == 4 and "answers as mirror" in r.stderr, f"rc={r.returncode} {r.stderr}")
+    r = run(proj, home, "--kind", "trackers", "--type", "github", "--role", "mirror")
+    check("github as mirror → found", r.returncode == 0 and r.stdout.strip().endswith("trackers/github.md"), r.stderr)
+    r = run(proj, home, "--kind", "sources", "--type", "slack", "--role", "calendar")
+    check("slack as calendar → exit 4", r.returncode == 4, f"rc={r.returncode}")
+    (proj / "pm-adapters" / "trackers" / "linear.md").write_text("# Linear\n")   # no roles line
+    r = run(proj, home, "--kind", "trackers", "--type", "linear", "--role", "mirror")
+    check("adapter without roles: → serves every side", r.returncode == 0, r.stderr)
+    r = run(proj, home, "--kind", "trackers", "--type", "github", "--role", "chat")
+    check("a role that is not a tracker role → refused", r.returncode not in (0, 4), f"rc={r.returncode}")
+
 print()
 if failures:
     print(f"{len(failures)} failed — " + ", ".join(failures)); sys.exit(1)

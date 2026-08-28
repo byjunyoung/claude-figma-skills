@@ -1,5 +1,8 @@
 # {Tool} as the chat source / as the calendar
 
+connector: {the connector's name as `claude mcp list` prints it}
+roles: {chat | calendar | chat, calendar}
+
 <!-- Keep the sections this tool answers. Every call should be one you ran; mark one you have
      not with (unverified). -->
 

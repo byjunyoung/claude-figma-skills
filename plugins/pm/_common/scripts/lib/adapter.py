@@ -12,17 +12,35 @@ Usage
     python3 adapter.py --kind sources  --type slack
     python3 adapter.py --kind trackers --type none       → prints "none", exit 0 — no adapter needed
     python3 adapter.py --kind trackers --type linear     → exit 3, stderr says where the template is
+    python3 adapter.py --kind trackers --type github --role record
+                                                          → exit 4: the file exists but answers as a mirror
     --name pm-conventions.yaml                             the config filename, as resolve-config takes it
 
 Exit 3 is the one a skill stops on. It means the type names a tool nobody has written the calls
 for. The fix is /pm:setup drafting them from the tools connected on this machine — never a
 skill improvising them from what it remembers of the tool's API.
+
+Exit 4 is the other stop. The file exists, but its `roles:` line does not include the side
+the skill is reading — a mirror-only adapter asked for a record's list, say. Half an adapter
+is not an adapter for the other half; 3b drafts the missing side.
 """
-import importlib.util, os, sys
+import importlib.util, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 COMMON = os.path.normpath(os.path.join(HERE, "..", ".."))
 KINDS = ("trackers", "sources")
+ROLES = {"trackers": ("record", "mirror"), "sources": ("chat", "calendar")}
+
+
+def declared_roles(path):
+    """The `roles:` line near the top, as a set. None where the file declares nothing — an
+    undeclared file is taken to serve every side, which is how a hand-written one keeps working."""
+    with open(path, encoding="utf-8", errors="ignore") as f:
+        for _ in range(12):
+            m = re.match(r"^roles:\s*(.+?)\s*$", f.readline())
+            if m:
+                return {r.strip().lower() for r in m.group(1).split(",") if r.strip()}
+    return None
 
 
 def take(argv, flag):
@@ -55,8 +73,11 @@ def main():
     kind = take(argv, "--kind")
     typ = (take(argv, "--type") or "").strip().lower()
     name = take(argv, "--name") or "pm-conventions.yaml"
+    role = (take(argv, "--role") or "").strip().lower()
     if kind not in KINDS:
         sys.exit("--kind is one of: " + ", ".join(KINDS))
+    if role and role not in ROLES[kind]:
+        sys.exit(f"--role for {kind} is one of: " + ", ".join(ROLES[kind]))
     if typ in ("", "none"):
         print("none")
         return
@@ -67,6 +88,11 @@ def main():
     candidates = [os.path.abspath(c) for c in candidates]
     found = [p for p in candidates if os.path.exists(p)]
     if found:
+        roles = declared_roles(found[-1])
+        if role and roles is not None and role not in roles:
+            print(f"the adapter for {kind}/{typ} answers as {', '.join(sorted(roles))}, not as {role} — {found[-1]}", file=sys.stderr)
+            print(f"/pm:setup 3b drafts the {role} side. Half an adapter does not serve the other half.", file=sys.stderr)
+            sys.exit(4)
         print(found[-1])
         return
     template = os.path.join(COMMON, kind, "_template.md")
