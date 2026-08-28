@@ -1,5 +1,9 @@
 # pm
 
+## 0.6.0 — 2026-08-28
+- `/pm:setup` opens with the same preflight
+- Getting started reaches `/pm:setup` without going through the fig path first
+
 ## 0.5.3 — 2026-08-28
 - `/pm:prd` declares the Notion tools it writes with
 

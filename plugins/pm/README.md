@@ -35,7 +35,7 @@ the plugin's bundled defaults        the floor
 ./pm-conventions.yaml                per project (strongest)
 ```
 
-Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`, and `/pm:setup` drafts it by reading your tools' schemas — including the board field and option ids that no interface shows you.
+Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`, and `/pm:setup` drafts it by reading your tools' schemas — including the board field and option ids that no interface shows you. It opens by checking this machine — `python3` with PyYAML, `node`, and which connectors actually answer — so anything missing is named up front.
 
 ## What this skill holds to
 

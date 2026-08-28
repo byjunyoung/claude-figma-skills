@@ -34,6 +34,22 @@ Anything omitted is asked for at the start, together, in one round.
 
 ## Procedure
 
+### 0. Preflight — can this machine run it at all (required)
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/preflight.py
+```
+
+**A missing connector does not announce itself.** A skill cannot call a tool it was never
+given, and it does not fail loudly when one is absent — the run simply comes back thin, and
+that reads as the skill having found nothing. This is the one step that says so out loud.
+
+Report the table as it returns, then judge it:
+
+- **FAIL** — stop and hand over the fix lines. Nothing below this works without them
+- **absent** on an optional connector — fine as it is. Say so, because a config key pointed
+  there in a later step will not reach it
+
 ### 1. Settle the two sides
 
 Ask once, grouped: where tasks are planned, and where engineering tracks them.

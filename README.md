@@ -283,6 +283,9 @@ And the next request starts it again, against a canonical page that is now curre
 
 `pm` needs none of the Figma side. If you only write specs, install it alone.
 
+**You don't have to check any of this by hand.** Step 2 tests every row of this table on
+your own machine and names whatever is missing.
+
 ### What each skill needs
 
 Everything under `fig` runs on `plugin:figma`. These skills want something more.
@@ -311,19 +314,38 @@ claude plugin install pm@byjunyoung      # only if you write specs
 
 `claude plugin list` should now show `fig@byjunyoung`. To update later: `claude plugin marketplace update byjunyoung`.
 
-### 2. Let it read your file
+### 2. Point it at your work
 
-```
-/fig:setup <your figma file URL>
-```
+Which entry point you take depends on what you installed. Each one **begins by checking this
+machine** — `python3` and PyYAML, `node`, and which connectors actually answer — and stops
+there if something required is absent, rather than running on and coming back thin.
 
-Nothing is written to Figma — this step only reads. It counts how the file already names frames, spaces sections, and styles arrows, takes the dominant value as the convention, and **leaves anything it can't settle as `null` rather than guessing.** A thin sample or a split vote produces a `null`, and it asks you about those rather than filling them in.
+| You installed | Run | What it reads |
+|---|---|---|
+| `fig` | `/fig:setup <your figma file URL>` | how your file already names frames, spaces sections and draws arrows |
+| `pm` | `/pm:setup` | your doc tool's and your tracker's schemas |
+| `fig`, and you will use `/fig:deck` | `/fig:deck-setup` | your team's slide template |
 
-The draft lands in `~/.claude/figma-conventions.yaml`, which survives uninstalling and reinstalling the plugin. Pass `out: ./figma-conventions.yaml` instead for a project-local one.
+**fig.** Nothing is written to Figma — this step only reads. It counts how the file already
+names frames, spaces sections, and styles arrows, takes the dominant value as the convention,
+and **leaves anything it can't settle as `null` rather than guessing.** A thin sample or a split
+vote produces a `null`, and it asks you about those rather than filling them in.
 
-Read the line comments before you accept it. They carry the evidence — `24/69 (35%)` means the value turned up in 24 of 69 observations, which is why that one came back `null`.
+The draft lands in `~/.claude/figma-conventions.yaml`, which survives uninstalling and
+reinstalling the plugin. Pass `out: ./figma-conventions.yaml` instead for a project-local one.
 
-### 3. Judge the first audit
+Read the line comments before you accept it. They carry the evidence — `24/69 (35%)` means the
+value turned up in 24 of 69 observations, which is why that one came back `null`.
+
+**pm.** Reads the schemas of your doc tool and your tracker, and asks only what no schema
+answers. Property names, select options, labels, board field ids and user mappings are read
+from the live schema rather than guessed at. The draft lands in `~/.claude/pm-conventions.yaml`.
+
+**deck.** `/fig:deck-setup` measures your team's slide template into `~/.claude/deck-assets`.
+The plugin ships no template values at all, because deck backgrounds carry company wordmarks
+and can't be distributed. Run it once before `/fig:deck`, and again when the template is revised.
+
+### 3. Judge the first audit (fig)
 
 `/fig:setup` finishes by running `/fig:lint` for you. **Read the result by its false-positive rate, not its violation count.**
 

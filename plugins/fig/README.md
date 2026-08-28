@@ -25,7 +25,7 @@ claude plugin install fig@byjunyoung
 
 A single `figma-conventions.yaml` decides the rules. The layers merge bundled defaults → `~/.claude/figma-conventions.yaml` → `./figma-conventions.yaml`, so **only the keys you need have to be written.**
 
-On a file you are opening for the first time, run `/fig:setup` first and let it observe the conventions. The full explanation is in the [repository README](https://github.com/byjunyoung/claude-product-skills).
+On a file you are opening for the first time, run `/fig:setup` first and let it observe the conventions. It opens by checking this machine — `plugin:figma`, `python3` with PyYAML, `node`, and which connectors actually answer — so anything missing is named up front rather than quietly narrowing the run. The full explanation is in the [repository README](https://github.com/byjunyoung/claude-product-skills).
 
 ## The other half
 

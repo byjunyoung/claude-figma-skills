@@ -32,7 +32,7 @@ FREE_KEY_MAPS = (
     "task.status_map.", "task.field_owner.",
 )
 
-SHARED = ["_common/scripts/lib/resolve-config.py"]
+SHARED = ["_common/scripts/lib/resolve-config.py", "_common/scripts/lib/preflight.py"]
 
 fails, warns, counts = [], [], []
 

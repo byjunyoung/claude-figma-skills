@@ -31,6 +31,24 @@ It does not ask for the conventions, it **observes them in the file.** Section s
 
 ## Procedure
 
+### 0. Preflight — can this machine run it at all (required)
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/preflight.py
+```
+
+**A missing connector does not announce itself.** A skill cannot call a tool it was never
+given, and it does not fail loudly when one is absent — the run simply comes back thin, and
+that reads as the skill having found nothing. This is the one step that says so out loud.
+
+Report the table as it returns, then judge it:
+
+- **FAIL** — stop and hand over the fix lines. Nothing below this works without them
+- **absent** on an optional connector — fine as it is. Say so, because a config key pointed
+  there in a later step will not reach it
+- **unknown** on Claude in Chrome — it is a browser extension rather than an MCP server, so
+  the shell cannot see it. It matters only for `/fig:proto`, `/fig:code` and `/fig:qa`
+
 ### 1. Read the page landscape (read-only)
 
 Read page names and **order** from `figma.root.children`. The file-level response from `get_metadata` returns an incomplete page list, so it is not used here.

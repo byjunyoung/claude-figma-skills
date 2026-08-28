@@ -1,5 +1,10 @@
 # fig
 
+## 3.4.0 — 2026-08-28
+- `/fig:setup` opens with a preflight — python3 and PyYAML, node, and which connectors actually answer
+- Getting started branches by what you installed: `fig`, `pm`, or a deck template
+- Both plugin READMEs say what the setup step checks before it runs
+
 ## 3.3.1 — 2026-08-28
 - `/fig:deck-setup` and `/fig:proto` state the figma-use prerequisite the other skills carry
 - `/fig:deck` and `/fig:deck-setup` declare the Figma tools they call
