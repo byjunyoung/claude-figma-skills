@@ -24,3 +24,5 @@ jobs:
         run: python3 tools/test/resolve-config.test.py
       - name: Adapter lookup fixtures
         run: python3 tools/test/adapter.test.py
+      - name: Starter conventions fixtures
+        run: python3 tools/test/starter-conventions.test.py

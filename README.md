@@ -56,7 +56,6 @@ Where it isn't the right tool:
 
 - A one-off job of a screen or two is faster by hand
 - Building a component library from scratch belongs to the official `figma-generate-library`
-- If your team has no conventions yet, `/fig:setup` has nothing to observe. Settle a few of them first
 
 ## What it solves
 
@@ -292,7 +291,7 @@ And the next request starts it again, against a canonical page that is now curre
 |---|---|
 | **Claude Code** | These are Claude Code plugins |
 | **The Figma MCP plugin** (`plugin:figma`) | Every `fig` skill reads and writes Figma through it. Confirm it answers before going further |
-| **A Figma file you already work in** | `/fig:setup` infers conventions by measuring a real file. An empty one has nothing to observe |
+| **A Figma file** | `/fig:setup` infers conventions by measuring a file you already work in. An empty one, or a first one, takes the starter path instead — four rules proposed in plain words, then the first skeleton laid on a page |
 | **`python3` with PyYAML, and `node`** | Config resolution runs on the host, and the audit scripts are syntax-checked with `node --check` |
 | **A Figma personal access token** *(optional)* | Only `/fig:read` needs one, to enumerate every page over the REST API. Without it, it falls back to the MCP and may see only some pages |
 | **The `gh` CLI** *(pm, where the tracker is GitHub)* | The GitHub tracker adapter runs on it, not on the connector. Logged in to the account that can see the tracker — a personal account against a company org gets a 404 — with `read:project` where a board is used |
@@ -358,6 +357,11 @@ table from one message you paste, `fig` audits one page — and names the comman
 names frames, spaces sections, and styles arrows, takes the dominant value as the convention,
 and **leaves anything it can't settle as `null` rather than guessing.** A thin sample or a split
 vote produces a `null`, and it asks you about those rather than filling them in.
+
+With nothing to observe — a first file, a team with no conventions yet — it proposes a starter
+set instead: four rules in plain words, three questions, a config that says on every line that
+it was chosen rather than measured, and then the first section and placeholders laid on a page
+with `/fig:prep`, so the rules are visible on the canvas before anything is drawn.
 
 The draft lands in `~/.claude/figma-conventions.yaml`, which survives uninstalling and
 reinstalling the plugin. Pass `out: ./figma-conventions.yaml` instead for a project-local one.
