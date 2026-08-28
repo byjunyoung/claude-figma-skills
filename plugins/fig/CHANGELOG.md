@@ -1,6 +1,6 @@
 # fig
 
-## Unreleased
+## 3.3.1 — 2026-08-28
 - `/fig:deck-setup` and `/fig:proto` state the figma-use prerequisite the other skills carry
 - `/fig:deck` and `/fig:deck-setup` declare the Figma tools they call
 - README states what each skill needs beyond `plugin:figma` — Chrome, Notion, Slack, GitHub

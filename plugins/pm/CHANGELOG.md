@@ -1,6 +1,6 @@
 # pm
 
-## Unreleased
+## 0.5.3 — 2026-08-28
 - `/pm:prd` declares the Notion tools it writes with
 
 ## 0.5.2 — 2026-08-27
