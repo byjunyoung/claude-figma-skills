@@ -98,6 +98,8 @@ the plugin's bundled defaults        the floor
 
 Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`, and `/pm:setup` drafts it by reading your tools' schemas — including the board field and option ids that no interface shows you. It opens by checking this machine — `python3` with PyYAML, `node`, and which connectors actually answer — so anything missing is named up front.
 
+`/pm:setup` takes a `side` where the doc tool and the tracker are reachable from different machines, and writes `null` — with the question beside it — for anything you cannot answer. A skill that cannot run without a key asks for it with `resolve-config.py --need`, and stops on the key's name rather than running on nothing. Trackers are one file each under `_common/trackers/` — `notion`, `github`, and `markdown` for a directory of files.
+
 ## What this skill holds to
 
 **It leaves no ambiguity.** The unit of judgement and aggregation, the target of filtering and sorting, the criteria for picking a 'representative', the definition of a state transition — a feature does not work with those four left blank, so they get filled with values. One slot left TBD that the material could have settled does not pass verification.

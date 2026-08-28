@@ -280,6 +280,7 @@ notion     Notion 페이지. prd.notion 절을 채워야 동작
 | **평소 쓰는 Figma 파일** | `/fig:setup`은 실제 파일을 재서 관례를 뽑습니다. 빈 파일은 관측할 게 없습니다 |
 | **`python3` + PyYAML, `node`** | 설정 해석은 호스트에서 돌고, 감사 스크립트는 `node --check`로 문법을 봅니다 |
 | **Figma 개인 액세스 토큰** *(선택)* | `/fig:read`만 씁니다. 페이지를 전수로 훑을 때 REST API가 필요해서인데, 없으면 MCP로 물러나 일부 페이지만 보일 수 있습니다 |
+| **`gh` CLI** *(pm, 트래커가 GitHub일 때)* | GitHub 트래커 어댑터는 커넥터가 아니라 이걸로 돕니다. 트래커가 보이는 계정으로 로그인돼 있어야 하고 — 회사 org에 개인 계정이면 404가 납니다 — 보드를 쓰면 `read:project` 스코프도 필요합니다 |
 
 `pm`은 Figma 쪽이 하나도 필요 없습니다. 기획 문서만 쓴다면 그것만 깔면 됩니다.
 
@@ -294,11 +295,13 @@ notion     Notion 페이지. prd.notion 절을 채워야 동작
 |---|---|
 | `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — 실제 브라우저를 띄웁니다 |
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — 설정이 Notion 페이지를 가리킬 때만 |
-| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — `task_tracker.type` / `task.mirror.type`이 `github`일 때만 |
+| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — `task_tracker.type` / `task.mirror.type`이 `github`일 때만. 로그인이 둘입니다 — 커넥터 하나, 트래커 어댑터가 도는 `gh` CLI 하나. 사전 점검이 둘 다 보고 `gh`가 어느 계정인지 이름으로 알려줍니다 |
 | `/fig:qa` `/pm:task-draft` | **Slack** — 요청 출처가 Slack 스레드일 때만 |
 | `/pm:prd` | **Notion** — `prd.target`이 `notion`일 때만 |
 
 커넥터 줄은 조건부입니다. 설정을 `none`이나 마크다운으로 두면 스킬은 그대로 돌고 결과만 다른 곳에 씁니다. Chrome 줄은 조건부가 아닙니다 — 저 셋은 브라우저를 엽니다.
+
+**설정이 도구를 지목하는 순간 선택이 아니게 됩니다.** 같은 점검이 설정을 읽습니다. 트래커가 `github`이면 GitHub이 필수가 되고, `prd.target: notion`이면 Notion이 필수가 되며, 이후 실행에서 거기 닿지 못하면 빈손으로 돌아오는 대신 그 이름을 대고 멈춥니다. 설정이 아직 없는 컴퓨터에선 호스트 말고는 아무것도 필수일 수 없고 — 요약 줄이 그렇게 말합니다 — `/pm:setup`이 방금 받은 답으로 점검을 한 번 더 돌립니다.
 
 **스킬은 받지 않은 도구를 부르지 못합니다.** 커넥터가 없으면 요란하게 실패하는 게 아니라 그냥 닿지 못합니다. 첫 실행이 아무것도 안 한 것처럼 보이는 가장 흔한 이유입니다.
 
@@ -340,6 +343,11 @@ claude plugin install pm@byjunyoung      # 기획 문서도 쓴다면
 **pm.** 문서 도구와 트래커의 스키마를 읽고, 스키마가 답하지 못하는 것만 묻습니다. 속성 이름,
 셀렉트 옵션, 라벨, 보드 필드 id, 사용자 매핑을 추측이 아니라 살아 있는 스키마에서 가져옵니다.
 초안은 `~/.claude/pm-conventions.yaml`에 떨어집니다.
+
+문서 도구와 트래커가 서로 다른 컴퓨터에서만 닿는다면 — 문서는 집에서, 트래커는 회사 계정으로만 —
+한쪽에서 `side: record`, 다른 쪽에서 `side: mirror`로 돌리면 됩니다. 각 실행은 같은 파일의 자기
+절반만 씁니다. **답할 수 없는 건 `null`입니다.** 파일이 그 옆에 질문을 주석으로 남겨 두어, 답할
+수 있는 사람이 찾아 채웁니다.
 
 **deck.** `/fig:deck-setup`이 팀 슬라이드 템플릿을 재서 `~/.claude/deck-assets`로 옮깁니다.
 플러그인에는 템플릿 값이 하나도 안 들어 있습니다. 덱 배경에 회사 워드마크가 박혀 있어 배포할 수
@@ -385,6 +393,7 @@ arrows:
 - **첫 실행** — 대상 파일에서 `/fig:setup`을 돌리면 관례를 관측해 초안을 만듭니다
 - **부분만 적어도 됩니다** — 세 층을 겹쳐 읽습니다. 안 적은 키는 기본값이 채우고, 적은 키만 덮입니다
 - **`null`의 의미** — 추정하지 않았다는 뜻이고, 해당 검사를 건너뜁니다. 검사를 끄려면 키를 지우지 말고 `null`을 적으세요 — 지우면 기본값이 살아납니다
+- **스킬이 없으면 못 도는 키** — `resolve-config.py --need task.record.ref`로 요구합니다. 거기서 `null`이면 아무것도 없이 도는 대신 키 이름을 찍고 끝납니다. 트래커 문제가 아니라 설정 구멍이고, setup 스킬이 써 줍니다
 - **파일별 설정** — 정본·아카이브 페이지 구분처럼 파일마다 다른 항목은 `files.<fileKey>`에 적습니다
 
 초안이 나오면 `/fig:lint`를 한 번 돌려 오탐률로 검증합니다. 위반이 전건에 가까우면 파일이 잘못된 게 아니라 설정이 틀린 것입니다.
@@ -420,6 +429,18 @@ REST 경로가 아니라 MCP 폴백으로 돈 것입니다. fileKey만 준 `get_
 **리포트가 원하는 언어로 안 나옵니다.**
 `meta.language`가 정합니다. `auto`는 대화 언어를 따르고, `ko`·`en` 같은 태그를 적으면 고정됩니다. 스킬 본문이 영어인 것과는 상관없습니다.
 
+**사전 점검은 통과했는데 트래커 단계가 빈손입니다.**
+GitHub은 로그인이 둘입니다. 커넥터가 하나, 트래커 어댑터가 도는 `gh` CLI가 하나이고 계정이 따로 갑니다. `gh auth status`가 어느 계정인지 말해줍니다 — 회사 org에 개인 계정이면 모든 레포가 404로 떨어지고, 그건 레포가 없는 것처럼 읽힙니다. `gh auth switch`로 바꾸고, 보드 id까지 뽑으려면 토큰에 `read:project`도 있어야 합니다(`gh auth refresh -s read:project`). 사전 점검이 `gh` 줄에 계정과 스코프를 찍고, 그 계정으로 트래커를 열어 봅니다.
+
+**GitHub 커넥터가 `400 … Authorization header is badly formatted`로 죽습니다.**
+커넥터는 환경변수의 토큰을 헤더에 끼우는데, 그 변수가 비어 있어 빈 bearer가 나간 것입니다. 대개 셸 프로필에서 export한 변수를, 그 프로필을 읽지 않는 곳 — 데스크톱 앱 같은 — 에서 세션을 띄워서 그렇습니다. `echo $GITHUB_PERSONAL_ACCESS_TOKEN`이 뭔가 찍히는 터미널에서 띄우거나, 앱에도 변수를 넣어 주세요. 사전 점검은 이걸 `configured but not answering`으로 보고합니다 — `absent`와는 고치는 법이 다릅니다.
+
+**`fig` 스킬이 쓰기 전에 좌석에서 멈춥니다.**
+`plugin:figma` 뒤의 계정이 그 플랜에서 View 좌석이고, `whoami`가 그렇게 말합니다. 읽기는 View 좌석으로도 되지만 쓰기는 전부 파일이 속한 플랜의 Edit 좌석이 필요하고, 재시도해도 달라지지 않습니다. 파일을 좌석이 있는 플랜으로 옮기거나, 좌석 있는 사람이 쓰기를 돌려야 합니다.
+
+**`resolve-config.py --need`가 키 이름을 찍고 끝납니다.**
+그 키가 모든 레이어에서 `null`이고, 스킬은 그것 없이 돌 수 없습니다. 트래커 문제가 아니라 설정 구멍입니다 — `/pm:setup`이 써 주거나 직접 적으세요. 빈 맵이나 빈 리스트는 값이라 여기서 안 멈춥니다. 없거나 null인 것만 멈춥니다.
+
 **컨펌 없이 뭔가 써졌습니다.**
 외부 쓰기는 Figma 노드든 기획 페이지든 브랜치든 전부 미리보기 → "go"를 거칩니다. 그게 없이 실행됐다면 버그이니 [알려주세요](https://github.com/byjunyoung/claude-product-skills/issues).
 
@@ -454,9 +475,20 @@ plugins/
         arrow-build.js                   화살표 생성 헬퍼
         prep-ops.js                      페이지 정리 헬퍼
         probe-page.js                    관례 관측
-        lib/                             설정 해석·초안 생성·문법 검사
+        lib/                             설정 해석·사전 점검·초안 생성·문법 검사
+  pm/
+    .claude-plugin/plugin.json
+    README.md
+    skills/
+      setup  prd  task-draft  task-publish
+      task-sync  log  log-review          각 SKILL.md
+    _common/
+      conventions.example.yaml           설정 스키마 + 내장 기본값
+      trackers/                          트래커마다 한 파일 — notion, github, markdown
+      scripts/lib/                       설정 해석·사전 점검 (fig 것의 사본, 동일하게 유지)
 tools/
   verify.py                    정합성 검사 (저장소 도구, 설치본에는 안 실림)
+  test/                        픽스처 — 화살표 수치, 설정 해석
 ```
 
 한 저장소가 플러그인 여럿을 담습니다. `marketplace.json`의 `plugins`가 배열이라, 설치는 따로 가면서 저장소·검사기는 한 벌만 관리합니다.

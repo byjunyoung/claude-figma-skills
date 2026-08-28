@@ -1,7 +1,7 @@
 ---
 name: prep
 description: Prepares a Figma design page before the real work — normalizing frame names to `[screen]-[state]`, creating and placing feature-level sections, and reading screen content to find missing cases (state variants, interaction results) and stub them as placeholder frames. Includes the absorb workflow that works around reparenting limits with local font files. It handles renumbering and handoff URLs; it does not verify or report violations — both status checks and completion checks belong to /fig:lint. Triggers - "/fig:prep", "tidy this page", "group these into sections", "stub the missing states", "프렙 해줘", "가이드대로 정리해줘", "빠진 케이스 채워줘".
-allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
+allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch, mcp__plugin_figma_figma__whoami
 ---
 
 # fig:prep — prepare the page (tidy, section, stub missing cases)
@@ -11,6 +11,8 @@ Like *mise en place* in a kitchen: before the design work and the arrows, every 
 Takes one page of a design file and (1) normalizes frame names to the convention, (2) groups them into feature-level sections and lays them out, and (3) reads what is actually on each screen to find missing cases and stub them as placeholder frames. A tidied page is only half done — connecting the flow with `/fig:arrows` completes the set.
 
 **Prerequisites**: always load the `figma:figma-use` skill before calling `use_figma`.
+
+**Seat check before the first write** — call `whoami` once. Where every plan it lists carries `seat: View`, stop before any `use_figma` write and say so: the reading half of this skill runs on a View seat, the writing half needs an Edit seat on the file's plan, and no retry changes that. Where the seats are mixed, go ahead — and if the first write comes back as a permission error, report the seat table and stop rather than retrying.
 
 ## When to invoke
 

@@ -1,7 +1,7 @@
 ---
 name: diff
 description: Compares AS-IS and TO-BE designs, marks the changed elements with native Figma Dev Mode annotations, and writes up the linked task doc with a Figma link, an AS-IS/TO-BE table, and a scope callout. The tracker comes from the task_tracker section of figma-conventions.yaml and can be notion, github, or none; with none it stops at the Figma annotations and emits the table as markdown. AS-IS may sit in another section of the same page or on a different page entirely, so the source is settled first. It never creates annotation categories — it reuses a shared one or uses none, and carries classification in a label tag. Only the representative screen is marked; state variants inherit. Triggers - "/fig:diff", "mark what changed", "annotate the design changes", "as-is to-be 비교", "변경점 표시해줘", "바뀐 요소 annotation 달아줘".
-allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__claude_ai_Notion__notion-search, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__add_issue_comment
+allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__claude_ai_Notion__notion-search, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__add_issue_comment, mcp__plugin_figma_figma__whoami
 ---
 
 # fig:diff — marking AS-IS / TO-BE changes and writing up the task doc
@@ -38,6 +38,8 @@ Compares AS-IS and TO-BE designs, **finds what changed and pins it with native F
 The rules come from `figma-conventions.yaml` — `resolve-config.py --js <fileKey>` supplies `task_tracker` and `sync.pair_patterns`.
 
 Always load the `figma:figma-use` skill before calling `use_figma`.
+
+**Seat check before the first write** — call `whoami` once. Where every plan it lists carries `seat: View`, stop before any `use_figma` write and say so: the reading half of this skill runs on a View seat, the writing half needs an Edit seat on the file's plan, and no retry changes that. Where the seats are mixed, go ahead — and if the first write comes back as a permission error, report the seat table and stop rather than retrying.
 
 ## Category policy (never create one)
 

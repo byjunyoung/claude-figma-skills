@@ -1,7 +1,7 @@
 ---
 name: sync
 description: Audits whether changes finished on working and update pages actually made it into the canonical page, applies whatever did not, then archives the working copies. This is the skill that executes the apply-after-release step — audit with zero writes, then apply, then archive, each behind its own preview and go gate. Frame names are identical on both sides so comparing names settles nothing; the call is made on three signals together — text diff, frame height, and component master. Triggers - "/fig:sync", "find what never made it into canonical", "bring the canonical page current", "정본 반영 안 된 것 찾아줘", "운영 페이지 최신화", "교체 안 된 화면 찾아줘".
-allowed-tools: AskUserQuestion, Bash, Read, Write, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
+allowed-tools: AskUserQuestion, Bash, Read, Write, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch, mcp__plugin_figma_figma__whoami
 ---
 
 # fig:sync — bring canonical current (audit → apply → archive)
@@ -11,6 +11,8 @@ Checks every finished screen against the canonical page to see whether it actual
 The canonical page is supposed to be "what is running right now", but shipping and updating canonical happen at different moments. Left alone, the gap widens and engineering and QA start making decisions against an old screen. **That lag is the accident this skill prevents.**
 
 **Prerequisites**: always load `figma:figma-use` before calling `use_figma`. Step 1 (audit) is **zero writes** — `use_figma` is used as a read-only script that only `return`s a report.
+
+**Seat check before the first write** — call `whoami` once. Where every plan it lists carries `seat: View`, stop before step 3's first `use_figma` write and say so: the reading half of this skill runs on a View seat, the writing half needs an Edit seat on the file's plan, and no retry changes that. Where the seats are mixed, go ahead — and if the first write comes back as a permission error, report the seat table and stop rather than retrying.
 
 ## When to invoke
 

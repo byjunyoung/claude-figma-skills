@@ -1,7 +1,7 @@
 ---
 name: arrows
 description: Generates and re-syncs flow arrows and their labels on a Figma design page. Reproduces in code what Autoflow-style plugins do — edge-midpoint anchors, right-angle elbows, branch trunks, element anchors, line styles that carry meaning. Flow information is stored in the node name (`source --> target`), so the whole page re-syncs with one command after frames move. Triggers - "/fig:arrows", "draw the flow arrows", "connect these screens", "re-sync the arrows", "화살표 그려줘", "흐름 화살표 추가", "화살표 sync", "플로우 연결해줘".
-allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot
+allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__whoami
 ---
 
 # fig:arrows — draw and sync screen flow arrows
@@ -9,6 +9,8 @@ allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__p
 Draws user flow between frames in a design file as arrow vectors with labels. Figma's magnetic connector (ConnectorNode) is FigJam-only, so in a design file these have to be plain vectors — this skill **stores the flow in the node name**, which makes re-syncing automatic even without magnetism.
 
 **Prerequisites**: always load the `figma:figma-use` skill before calling `use_figma`.
+
+**Seat check before the first write** — call `whoami` once. Where every plan it lists carries `seat: View`, stop before any `use_figma` write and say so: the reading half of this skill runs on a View seat, the writing half needs an Edit seat on the file's plan, and no retry changes that. Where the seats are mixed, go ahead — and if the first write comes back as a permission error, report the seat table and stop rather than retrying.
 
 ## When to invoke
 

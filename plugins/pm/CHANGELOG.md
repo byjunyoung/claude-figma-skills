@@ -1,5 +1,13 @@
 # pm
 
+## 0.10.0 — 2026-08-29
+- Preflight reads the config: a connector the config names is required, and a machine with no config yet is told nothing beyond the host can fail
+- Preflight checks the `gh` CLI the GitHub adapter runs on — which account it is logged in to, whether the token carries `read:project`, and whether that account can open the tracker at all. A connector that is configured but not answering is reported apart from one that is absent
+- `resolve-config.py --need` stops a skill on a `null` it cannot run without, naming the key, instead of running on nothing. `/pm:task-draft`, `/pm:task-publish` and `/pm:task-sync` ask for theirs
+- `/pm:setup` takes `side` for a doc tool and a tracker reachable from different machines, re-runs the preflight with what step 1 named, and writes `null` with the question beside it for anything a person cannot answer
+- A markdown tracker adapter, so `task.record.type: markdown` reads and writes a directory of files as the README already said it would
+- Config-resolution fixtures under `tools/test`, run in CI
+
 ## 0.9.0 — 2026-08-28
 - `/pm:log` reads the tracker through its adapter like every other skill here, instead of assuming one
 - `/pm:log-review` asks an item's three questions in one round, and stops at `log.review.max_items`

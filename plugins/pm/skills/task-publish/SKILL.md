@@ -13,8 +13,10 @@ Files a single task record as a ticket in the engineering tracker, or updates th
 ## What decides where things go
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml --need task.record.ref,task.link_property
 ```
+
+With `mirror.type` anything but `none`, `task.mirror.ref` belongs on that list too. A `null` named on stderr is a config gap, not a tracker problem — `/pm:setup` writes it. Stop on it rather than interviewing for the value here.
 
 `task.record` is where the task lives, `task.mirror` is the tracker it is filed into. **With `mirror.type: none` this skill has nothing to do** — say so and stop, rather than inventing a destination.
 

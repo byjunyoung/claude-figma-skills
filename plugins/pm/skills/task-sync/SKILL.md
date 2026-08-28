@@ -10,6 +10,14 @@ Brings a planning-side task list and the engineering tracker that mirrors it bac
 
 Where `task.mirror.type` is `none` there is no second side and nothing to reconcile. Say so and stop — that is the correct answer for a single-tracker team, not an error.
 
+## Configuration
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml --need task.record.ref,task.link_property
+```
+
+With a mirror, `task.mirror.ref` belongs on that list too. A `null` named on stderr is a config gap, not a tracker problem — `/pm:setup` writes it. Stop on it rather than reconciling against a side that was never named.
+
 ## What "correct" means — every verdict rests on these
 
 - **Matching runs on `task.link_property` and nothing else** — the property on the record holding the ticket's url, one to one. A back-link written in the ticket *body* is not trusted: it can point at a source that was already discarded, and that is exactly how past mis-matches, duplicates and resurrections happened.
