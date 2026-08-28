@@ -294,7 +294,7 @@ And the next request starts it again, against a canonical page that is now curre
 | **A Figma file** | `/fig:setup` infers conventions by measuring a file you already work in. An empty one, or a first one, takes the starter path instead — four rules proposed in plain words, then the first skeleton laid on a page |
 | **`python3` with PyYAML, and `node`** | Config resolution runs on the host, and the audit scripts are syntax-checked with `node --check` |
 | **A Figma personal access token** *(optional)* | Only `/fig:read` needs one, to enumerate every page over the REST API. Without it, it falls back to the MCP and may see only some pages |
-| **The `gh` CLI** *(pm, where the tracker is GitHub)* | The GitHub tracker adapter runs on it, not on the connector. Logged in to the account that can see the tracker — a personal account against a company org gets a 404 — with `read:project` where a board is used |
+| **The `gh` command** *(pm, where the tracker is GitHub)* | The GitHub side runs on it, not on Claude's connection. Log in with the account that can see the tracker — a personal account looking at a company repository sees nothing — and give it board access once with `gh auth refresh -s read:project` |
 
 `pm` needs none of the Figma side. If you only write specs, install it alone.
 
@@ -309,20 +309,20 @@ Everything under `fig` runs on `plugin:figma`. These skills want something more.
 |---|---|
 | `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — they drive a real browser |
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — only where a config key points at a Notion page |
-| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github`. Two logins are involved: the connector, and the `gh` CLI the tracker adapter runs on. Preflight checks both, and names the account `gh` is on |
+| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github`. Two logins are involved: Claude's connection, and the `gh` command the tracker is read through. The check covers both, and names the account `gh` is on |
 | `/fig:qa` `/pm:task-draft` | **A chat tool** — only where the request source is a thread. For `pm`, `sources.chat_type` names it; `/fig:qa` takes the tool from the link. Slack ships |
 | `/pm:log` | **A calendar and a chat tool** — both optional, named by `sources.calendar_type` and `sources.chat_type`; Google Calendar and Slack ship. Named as `none` they are skipped and the log says so. A scheduler on your own machine, if you want it unattended |
 | `/pm:prd` | **Notion** — only where `prd.target` is `notion` |
 
-The connector rows are conditional: point the config at `none` or at markdown and the skill still runs, it just writes somewhere else. The Chrome rows are not — those three open a browser.
+The connection rows are conditional: point the config at `none` or at markdown and the skill still runs, it just writes somewhere else. The Chrome rows are not — those three open a browser.
 
-Notion, GitHub, markdown, Slack and Google Calendar are the tools that ship with adapters; the rows read the same for any other tool the config names.
+Notion, GitHub, markdown, Slack and Google Calendar come with support built in; the rows read the same for any other tool your settings name.
 
 **Once a config names a tool, it stops being optional.** The same check reads the config: a tracker set to `github` makes GitHub required, `prd.target: notion` makes Notion required, and a later run that cannot reach one stops on its name instead of coming back thin. On a machine with no config yet nothing beyond the host can be required — the summary says so, and `/pm:setup` re-runs the check with the answers it has just been given.
 
-**A skill cannot call a tool it was never given.** If a connector is missing, the skill does not fail loudly; it simply cannot reach it. That is the most common reason a first run looks like it did nothing.
+**A skill cannot call a tool it was never given.** If a connection is missing, the skill does not fail loudly; it simply cannot reach it. That is the most common reason a first run looks like it did nothing.
 
-**Connector names are the claude.ai ones in the bundled adapters.** The Notion, Slack and GitHub calls name tools as `mcp__claude_ai_Notion__*` and so on. A tool this plugin has never seen — Linear, Jira, Confluence, Teams, a Notion behind your own MCP server — is not a dead end: write its type in the config and `/pm:setup` drafts an adapter from the tools actually connected on your machine, into `pm-adapters/` outside the plugin, marking what it could not verify. What an adapter has to answer is in [`trackers/README.md`](plugins/pm/_common/trackers/README.md) and [`sources/README.md`](plugins/pm/_common/sources/README.md).
+**The built-in support is for the claude.ai connections** — Notion, Slack and GitHub as claude.ai connects them. A tool this plugin has never seen — Linear, Jira, Confluence, Teams, a Notion behind your own server — is not a dead end: name it in your settings and `/pm:setup` writes the support for it from the tools actually connected on your machine, into `pm-adapters/` next to your settings, marking what it could not verify. What that support has to cover is written down in [`trackers/README.md`](plugins/pm/_common/trackers/README.md) and [`sources/README.md`](plugins/pm/_common/sources/README.md) — for whoever wants to read or edit one.
 
 ### 1. Install
 
@@ -337,7 +337,7 @@ claude plugin install pm@byjunyoung      # only if you write specs
 ### 2. Point it at your work
 
 Which entry point you take depends on what you installed. Each one **begins by checking this
-machine** — `python3` and PyYAML, `node`, and which connectors actually answer — and stops
+machine** — `python3` and PyYAML, `node`, and which connections actually answer — and stops
 there if something required is absent, rather than running on and coming back thin.
 
 | You installed | Run | What it reads |
@@ -381,7 +381,7 @@ answer is `null`**, and the file keeps the question beside it as a comment for w
 Starting with nothing at all — no doc tool, no tracker — is an answer it takes: it lays out one
 markdown repository (specs, tasks, logs) that needs no other tool, and a tracker attaches later
 with `side: mirror`. And a tool it has never seen — Linear, Jira, Teams — is not a dead end:
-name it in the config and it drafts the adapter from what is connected.
+name it in your settings and it writes the support from what is connected.
 
 **deck.** `/fig:deck-setup` measures your team's slide template into `~/.claude/deck-assets`.
 The plugin ships no template values at all, because deck backgrounds carry company wordmarks
@@ -427,8 +427,8 @@ arrows:
 - **First run** — `/fig:setup` in the target file observes its conventions and drafts one
 - **Partial configs are fine** — the three layers are merged, so keys you omit fall back to defaults and only what you write is overridden
 - **What `null` means** — the value wasn't inferred, so that check is skipped. To disable a check, write `null` rather than deleting the key — deleting it brings the default back
-- **Keys a skill cannot run without** — it asks for them with `resolve-config.py --need task.record.ref`, and a `null` there exits naming the key instead of running on nothing. That is a config gap, not a tracker problem; the setup skill writes it
-- **Adapters** — the calls for one tool live in one file, `trackers/<type>.md` or `sources/<type>.md`, and the type written in the config picks it. Yours go in `adapters.dirs`, outside the plugin. A type with no file stops the skill; `/pm:setup` drafts one from the tools connected on your machine
+- **Settings a skill cannot run without** — it checks them first, and stops naming the one that is blank instead of running on nothing. That is a gap in the settings, not a problem with your tool; `/pm:setup` fills it in
+- **Tools** — how to work with one tool lives in one file, and the tool's name in your settings picks it. Ones you add live in `pm-adapters/` next to your settings, so a plugin update never overwrites them. A tool with no file stops the skill, and `/pm:setup` writes the file from what is connected on your machine
 - **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
 
 Once you have a draft, run `/fig:lint` once and judge it by the false-positive rate. If nearly everything is flagged, the config is wrong, not the file.
@@ -437,53 +437,55 @@ Once you have a draft, run `/fig:lint` once and judge it by the false-positive r
 
 ## Troubleshooting
 
+Each entry is what you see, what it means, and what to do.
+
 **The report says it ran on defaults.**
-Your config isn't being read at all. Run `python3 plugins/fig/_common/scripts/lib/resolve-config.py --where` from your project directory — it prints the files it actually found. Usually it's a filename typo, or the file sitting somewhere other than `~/.claude/`.
+Your settings file was not found, so the built-in defaults ran instead. From your project folder, run `python3 plugins/fig/_common/scripts/lib/resolve-config.py --where` — it prints the files it actually found. Usually the filename has a typo, or the file is somewhere other than `~/.claude/`.
 
 **Everything in the file comes back as a violation.**
-The config is wrong, not the file. An over-strict naming pattern does this: one that limits a state suffix to Latin characters flags every non-Latin name in the file. Loosen the pattern, or set it to `null` to switch that check off entirely.
+The rule is wrong, not the file. A naming pattern that only accepts Latin letters flags every Korean name, for example. Loosen the pattern in the settings, or set it to `null` to switch that one check off.
 
 **I changed a skill and nothing changed.**
-An installed plugin is pinned by version at `plugins/cache/<marketplace>/<plugin>/<version>/`. Leave the version in `plugin.json` alone and updating the marketplace still leaves the installed copy running the old code. Bump the version first, then `claude plugin marketplace update`, then uninstall and reinstall.
+Claude Code keeps the installed copy pinned to a version, so editing the source does nothing until the version number goes up. Raise it in `plugin.json`, then `claude plugin marketplace update`, then uninstall and reinstall the plugin.
 
-**`check.sh` gives `Permission denied`.**
-Files shipped through the GitHub Contents API don't carry the executable bit. Call it as `bash <path>` rather than executing it directly.
+**`check.sh` says `Permission denied`.**
+The file arrived without permission to run on its own. Call it as `bash <path>` instead.
 
 **A Figma token request comes back 401.**
-401 covers "no token", "expired", and "invalid" alike. `/fig:read` checks whether the environment variable exists before it calls, so a 401 means the value is present and was rejected — reissue the token in Figma's Security tab.
+Figma rejected the token — it exists, but it is expired or wrong. `/fig:read` checks that the token is set before calling, so a 401 is never "no token". Issue a new one in Figma's Security tab.
 
 **`/fig:read` only returns some of the pages.**
-That's the MCP fallback rather than the REST path. `get_metadata` with a fileKey alone is bound to the desktop app's open file and viewport. Enumerating every page needs REST, which needs a token.
+Without a token it can only see what the desktop app has open. To list every page it needs a token — see the prerequisites.
 
 **`/fig:deck` says there are no assets.**
-Run `/fig:deck-setup` first — it measures your team's slide template into `~/.claude/deck-assets`. The plugin ships no template values at all, because deck backgrounds carry company wordmarks and can't be distributed.
+The slide template has not been measured yet. Run `/fig:deck-setup` once — it reads your team's template into `~/.claude/deck-assets`. The plugin ships no template, because template backgrounds carry company wordmarks.
 
 **A deck came out in the wrong font.**
-Your team font isn't installed in this environment. The build probes the candidates in `FAMS` in order and falls back to the next one, which changes the letter-spacing. Install the font, or accept the substitute and re-check where the lines break.
+Your team's font is not installed on this machine, so the next candidate was used and the line breaks moved. Install the font, or keep the substitute and check where the lines break.
 
 **Reports come out in the wrong language.**
-`meta.language` decides it. `auto` follows whichever language you're talking in; a tag like `ko` or `en` pins it. The skill bodies being in English has no bearing on the output.
+`meta.language` in the settings decides it. `auto` follows the language you are talking in; `ko` or `en` pins it.
 
-**Preflight passed, and the tracker step came back empty.**
-GitHub is two logins. The connector is one; the `gh` CLI the tracker adapter runs on is the other, and it has its own account. `gh auth status` says which — a personal account against a company org gets a 404 on every repo, which reads as if the repo did not exist. Switch with `gh auth switch`, and for board ids the token also needs `read:project` (`gh auth refresh -s read:project`). Preflight prints the account on its `gh` row — and, wherever GitHub is required by the config or the run, the scopes too — and tries to open the tracker as that account.
+**The check passed, but the tracker step came back empty.**
+GitHub is two logins, and only one of them was checked. Claude's GitHub connection is one; the `gh` command on your machine is the other, with its own account — and the tracker is read through `gh`. A personal account looking at a company repository sees nothing, which reads as if the repository did not exist. Run `gh auth status` to see which account is active, and `gh auth switch` to change it. To read project boards, the login also needs one extra permission: `gh auth refresh -s read:project`. The check now prints the account it found and tries to open the tracker with it.
 
-**The GitHub connector fails with `400 … Authorization header is badly formatted`.**
-The connector sends a token from an environment variable, and the variable is empty — so the header goes out with a blank bearer. Usually it is exported in a shell profile and the session was launched from somewhere that never read that profile, such as a desktop app. Launch from a terminal where `echo $GITHUB_PERSONAL_ACCESS_TOKEN` prints something, or set it for the app. Preflight reports this as `configured but not answering`, which is a different fix from `absent`.
+**The GitHub connection says "connected, but not responding".**
+Claude's GitHub connection is set up, but the login token it sends is empty — usually because Claude Code was opened from somewhere that never loaded the token, such as the desktop app. Open Claude Code from the terminal where the token is set, and it comes back. This is a different fix from "not connected".
 
-**A `fig` skill stops on the seat before writing.**
-The account behind `plugin:figma` holds a View seat on that plan, and `whoami` says so. Reading works on a View seat; every write needs an Edit seat on the file's plan, and no retry changes that. Either the file moves to a plan where you have one, or someone with a seat runs the write.
+**A `fig` skill stops before writing and mentions your seat.**
+Your Figma account can view that file but not edit it, and the skill checked before touching anything. Reading works; every write needs an Edit seat on the file's plan, and retrying will not change that. Either the file moves to a plan where you have one, or someone with a seat runs the write.
 
-**`resolve-config.py --need` exits with a key name.**
-That key is `null` in every layer, and the skill cannot run without it. It is a config gap rather than a tracker problem — `/pm:setup` writes it, or write it by hand. An empty map or list is a value and does not stop here; only a missing or null one does.
+**A skill stops saying a setting "is not set".**
+That value is empty in every settings file, and the skill cannot run without it. `/pm:setup` fills it in — or open the file and write it. An empty list is a value and does not stop a skill; only a missing one does.
 
-**`adapter.py` exits 3 — no adapter for that type.**
-The config names a tool nobody has written the calls for. `/pm:setup` drafts one from the tools actually connected on this machine, into `pm-adapters/` outside the plugin; the questions it has to answer are in `trackers/README.md` and `sources/README.md`. Until then the skill stops rather than improvising the calls — a call typed from memory of a tool's API is how a ticket lands in the wrong place.
+**A skill stops saying a tool "is not supported yet".**
+Your settings name a tool nobody has described how to work with. `/pm:setup` writes that support from the tools actually connected on your machine, into `pm-adapters/` next to your settings — and marks what it could not verify. Until then the skill stops rather than guessing how the tool works; a guess is how a ticket lands in the wrong place.
 
-**`adapter.py` exits 4 — the adapter answers for the other side.**
-The file for that type exists, but its `roles:` line says which side it serves and the skill asked for the other — the bundled GitHub file is a mirror, the Notion and markdown files are records. A config that puts one on the wrong side stops here rather than running with half an adapter. `/pm:setup` 3b drafts the missing side.
+**A skill stops saying a tool is "supported as the other side".**
+A tool can be where tasks are planned, or where engineering tracks them, and the support that ships covers one side each — GitHub as the tracking side, Notion and markdown as the planning side. Your settings put one on the other side. `/pm:setup` can add that side from what is connected.
 
 **A skill wrote something you didn't expect.**
-Every external write — Figma nodes, a spec page, a branch — goes through a preview and an explicit go. If one happened without that, it's a bug worth [reporting](https://github.com/byjunyoung/claude-product-skills/issues).
+Every write to Figma, a spec page or a branch goes through a preview and an explicit go. If one happened without that, it's a bug worth [reporting](https://github.com/byjunyoung/claude-product-skills/issues).
 
 ---
 

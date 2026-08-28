@@ -55,7 +55,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # 2. --need on that null: exit 2, the key named on stderr, nothing on stdout
     r = run(proj, home, "--need", "task.record.ref")
     check("--need on a null → exit 2", r.returncode == 2, f"rc={r.returncode}")
-    check("--need on a null → key named on stderr", "task.record.ref is null" in r.stderr, r.stderr)
+    check("--need on a null → key named on stderr", "task.record.ref is not set" in r.stderr, r.stderr)
     check("--need on a null → no JSON on stdout", r.stdout.strip() == "")
 
     # 3. A project layer writes the key: --need passes and the value comes through

@@ -29,7 +29,7 @@ notion     a Notion page. Requires the prd.notion section filled in
 
 ## Tools it has never seen
 
-The calls for one tool live in one file — `_common/trackers/<type>.md` for a tracker, `_common/sources/<type>.md` for chat or a calendar — and the type written in the config picks it. Notion, GitHub, markdown, Slack and Google Calendar ship. Name anything else and `/pm:setup` drafts its adapter from the tools connected on your machine, into `pm-adapters/` outside the plugin, marking what it could not verify. The questions an adapter answers are in [`trackers/README.md`](_common/trackers/README.md) and [`sources/README.md`](_common/sources/README.md).
+How to work with one tool is written in one file, and the tool's name in your settings picks it. Notion, GitHub, markdown, Slack and Google Calendar come built in. Name anything else — Linear, Jira, Teams — and `/pm:setup` writes the support for it from the tools connected on your machine, into `pm-adapters/` next to your settings, marking what it could not verify. Until that file exists, the skills stop and say the tool is not supported yet, rather than guessing. What such a file has to cover is in [`trackers/README.md`](_common/trackers/README.md) and [`sources/README.md`](_common/sources/README.md).
 
 ## Starting from nothing
 
@@ -106,7 +106,7 @@ the plugin's bundled defaults        the floor
 
 Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`, and `/pm:setup` drafts it by reading your tools' schemas — including the board field and option ids that no interface shows you. It opens by checking this machine — `python3` with PyYAML, `node`, and which connectors actually answer — so anything missing is named up front.
 
-`/pm:setup` takes a `side` where the doc tool and the tracker are reachable from different machines, and writes `null` — with the question beside it — for anything you cannot answer. A skill that cannot run without a key asks for it with `resolve-config.py --need`, and stops on the key's name rather than running on nothing. Trackers are one file each under `_common/trackers/` — `notion`, `github`, and `markdown` for a directory of files.
+`/pm:setup` takes a `side` where the doc tool and the tracker are reachable from different machines, and leaves blank — with the question beside it — anything you cannot answer. A skill that cannot run without a setting stops and names the setting, rather than running on nothing.
 
 ## What this skill holds to
 

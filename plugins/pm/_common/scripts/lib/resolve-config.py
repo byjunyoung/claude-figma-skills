@@ -119,7 +119,7 @@ def main():
     gaps = unmet(cfg, need)
     if gaps:
         for k in gaps:
-            print(f"{name} · {k} is null — /{PLUGIN}:setup writes it, or set it by hand", file=sys.stderr)
+            print(f"{k} is not set in {name} — this cannot run without it. /{PLUGIN}:setup fills it in, or write it by hand", file=sys.stderr)
         sys.exit(2)
     if where:
         print(src)
