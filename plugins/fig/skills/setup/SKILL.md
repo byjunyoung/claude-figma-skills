@@ -25,6 +25,9 @@ Show this before the first call, and name each step as it begins:
 ⑥ First result                        /fig:lint on one page, judged by its false-positive rate
 ```
 
+With nothing to observe — a first file — ② to ④ give way to the starter path below: the same
+ladder, a different middle, and the first result is a skeleton on the canvas rather than a lint.
+
 **Open with what this produces.** After this, a page can be tidied and its missing states
 stubbed (`/fig:prep`), its flow arrows drawn and re-synced (`/fig:arrows`), and audited in one
 pass (`/fig:lint`) — against the conventions this file already keeps, not a template's. Five
@@ -51,6 +54,7 @@ a probe that takes seconds in silence reads as a hang.
 
 - `figma_url` (required): the target file URL. The fileKey is taken from it
 - `out` (optional): where to write. Defaults to `~/.claude/figma-conventions.yaml`; use `./figma-conventions.yaml` for a project-specific config
+- `mode` (optional): `observe`, `starter`, or `auto` (the default). Auto observes, and takes the starter path when there is nothing to observe
 
 ## Procedure
 
@@ -91,7 +95,7 @@ What to take from this —
 
 - **Are there divider pages** (empty pages named `---` or `## label ##`)? If so, the band beneath each one is a role group, and a candidate for `match: divider` on the three `pages` axes
 - **Is there a naming prefix?** Bracket tags, symbols, a leading word — any group of pages sharing a prefix is probably a role split, and a candidate for `pages.strict` / `free` / `readonly`. Do not decide from the name alone what a prefix *means*; ask in step 4
-- If no convention is visible, **do not invent one.** An empty list means the file simply has no such tier
+- If no convention is visible, **do not invent one.** An empty list means the file simply has no such tier — unless nothing at all is visible, in which case the starter path *proposes* one, out loud and labelled as chosen, rather than writing a file of nulls
 
 ### 2. Probe representative pages (in parallel)
 
@@ -149,9 +153,77 @@ the commands that follow, in the order they are used —
     /fig:prep <page>       tidy names, place sections, stub the missing states
     /fig:arrows <page>     draw the flow, re-sync it after frames move
 
+## The starter path — when there is nothing to observe
+
+A first file, an empty file, a page with two frames: observation returns nulls, and a config of
+nulls checks nothing. **Nothing to observe is not a reason to stop; it is the cue to propose.**
+Take this path when step 2 finds fewer than three frames on every page, when no page or section
+carries a pattern, when the person says the team has no conventions yet, or when `mode` is
+`starter`. Say which of those it was.
+
+Steps ② to ④ give way to S1 to S4; ⑤ and ⑥ change shape.
+
+### S1. Four rules, in plain words
+
+Say what the words mean before using them — a page is a tab, a frame is one screen, a section
+is a labelled area that groups screens, an arrow connects two screens. Then the four rules,
+each as *the rule · an example · what `/fig:lint` will catch because of it*:
+
+| Rule | Starter | Example | What lint then catches |
+|---|---|---|---|
+| How a screen is named | `{screen}-{state}` — one dash, the state from a fixed list | `Login-Default`, `Login-Error` | a screen with no state; a state not on the list; a form with no Validation state |
+| How screens are grouped | one section per feature, named `NN. {domain} - {feature}`; the number is the order a user meets it | `01. Account - Login` | a screen outside any section; two sections overlapping; numbers out of order |
+| How far apart | gaps derived from the screen width — a 1440 screen gets 120 | frames 120 apart, sections 240, domains 480 | uneven gaps; a frame off the grid |
+| How a flow is drawn | an arrow from the edge of one screen to the edge of the next, labelled at a branch; a same-screen result is a dashed `[state]` chain, not an arrow | `Login-Default --> Home-Default` | an arrow entering from the wrong side; an unlabelled branch; a flow passing through a screen |
+
+And which pages count: the pages engineering builds from start with a prefix — `[UI] ` — and
+every rule applies there; a section named `Template` is never audited.
+
+### S2. Three questions, each with "keep the starter"
+
+One at a time. The screen width — 1440 for desktop, 390 for a phone, or the number. The state
+list — the starter six, or the ones this product needs. The prefix of the pages that count —
+`[UI] `, or the team's own word. Nothing else is asked; everything else is the plugin's opinion
+until the file has one of its own.
+
+### S3. Generate
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/starter-conventions.py --width 1440 --states Default,Empty,Loading,Error,Validation,Selected --prefix "[UI] " > draft.yaml
+```
+
+Every line carries `# starter — …` saying how it was picked. Spacing is derived from the width
+by ratio and says so; nothing in it was measured. Section, placeholder and arrow styles are not
+written — the bundled defaults carry them, and a line that is not there is a line nobody has
+to maintain.
+
+### S4. Preview → go → write
+
+As in ⑤: the whole draft, then the go. Say plainly that these are chosen rules, and that
+running `/fig:setup` again once the file has habits of its own observes them instead.
+
+### S5. First result — the first skeleton, not a lint
+
+There is nothing to lint yet, so the first result is the structure itself. Ask for one feature
+and its two to four screens — "Login: the form, success, the error" — and hand `/fig:prep` the
+page and that list. It previews one section named by the rule and one dashed placeholder per
+screen named by the rule, writes them after the go, and calls `/fig:lint`, which reports the
+placeholders as the to-draw list. That is the moment the rules become visible on the canvas.
+
+Where the seat is View (`whoami`), `/fig:prep` cannot write. Give the same skeleton as a tree —
+the page name, the section name, each placeholder's name — for the person to make by hand, and
+run `/fig:lint` on it once they have.
+
+### S6. How to operate under the rules
+
+Close with the loop, in plain words: draw inside the placeholders; duplicate a screen to make
+its next state and rename it by the rule; run `/fig:lint` after each feature and treat what it
+reports as the to-draw list; `/fig:arrows` before handoff; `/fig:sync` after a release. Then
+the three commands, in that order.
+
 ## Constraints
 
-- **Zero Figma writes.** This skill only reads. The one thing it writes is a local config file
+- **Zero Figma writes.** This skill only reads. The one thing it writes is a local config file. The starter's skeleton is `/fig:prep`'s write, previewed and confirmed there, not this skill's
 - **Never present inference as settled.** Thin or split samples get `null`, with the evidence (n/m) left as a comment
 - Before overwriting an existing config, **show the diff and get a go** — hand-entered values are hard to recover once erased
 - Three to five representative pages. Probing every page costs tokens and does not make the conventions more accurate
