@@ -1,0 +1,112 @@
+---
+name: log
+description: Writes one day's work log as a file — what moved in the tracker, what was on the calendar, what was decided, what other people said about your work, and links to the evidence. Built to run unattended on a schedule, so it never asks and never invents; a source it cannot reach is reported as missing rather than filled in. It also looks back a few days and fills the gaps an earlier run left. Turning these files into accomplishment statements is /pm:log-review. Triggers - explicit invocation only - "/pm:log", "write the log for today", "fill in the days that were missed", "일지 써줘", "업무 일지 작성", "빠진 날 채워줘".
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-query-data-sources, mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Slack__slack_read_channel, mcp__claude_ai_Slack__slack_search_public_and_private, mcp__claude_ai_Google_Calendar__list_events, mcp__plugin_github_github__issue_read
+---
+
+# log — one day, one file
+
+Assembles a day's work log from the tracker `/pm:task-*` already uses, plus a calendar and chat where you name them, and writes it as a single markdown file. Reads everywhere, writes one place: a file under `log.out.dir`. Nothing is written back to the tracker.
+
+Built for a scheduler. It runs with nobody watching, so the rules below lean hard on *say what you could not do* rather than *fill it in anyway*.
+
+**It records; it does not appraise.** These files are the raw material a later review turns into accomplishment statements — that is `/pm:log-review`. This skill's job is to capture, on the day, the things that cannot be reconstructed months later: who said what about your work, what was decided and why, and the link that proves a piece of work existed. It never rates the importance of anything, and it never writes a sentence a source did not supply.
+
+## Principles
+
+- **Never ask.** There is no one to answer. A missing value is skipped and named in the closing summary.
+- **Never invent.** Every line traces to something a source returned. An empty section gets `log.empty_line`, not a plausible sentence.
+- **Quote, do not characterise.** Praise, criticism and decisions are recorded in the words they were said in, with a link. Do not summarise someone's opinion into your own phrasing — a later review needs the original.
+- **Read the tracker's schema before querying it.** Property names drift and differ per workspace. Fetch the data source and use the names it currently has. Never trust names pinned in this document or in config.
+- **A source that fails does not stop the run.** Write the log from what did come back, and record what did not.
+- **The file is the output.** No preview gate — the target is a file in the user's own log directory, and every other system is read-only here.
+- **Yesterday is still fixable.** Every run re-checks the recent past and repairs what an earlier run missed.
+
+## Configuration
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml
+```
+
+`log.enabled: false` means stop immediately and say so — that is a correct outcome, not an error. `task.record` gives the tracker; `log` gives everything else. A `null` source is skipped and named in the summary.
+
+## 1. Settle the date
+
+Get today in the local timezone from the shell, not from memory. Everything downstream keys off this one value.
+
+```bash
+date +%Y-%m-%d
+```
+
+## 2. Learn the tracker's shape
+
+Fetch `task.record.ref` and read its schema. Take from it the actual names of the title, status, assignee, project, grouping, priority, due-date and progress properties, and the exact column spellings a query needs. Use those names for the rest of the run.
+
+If the fetch fails, skip sections 3 and 4 and say so. Do not fall back to guessed names — a wrong column name returns nothing, and nothing looks exactly like a quiet day.
+
+## 3. Collect what moved
+
+Query rows the day actually touched, split by whether they are yours.
+
+- **Mine** — assignee contains `log.me.tracker_user_id`, last-edited on the date.
+- **The team's** — assignee is anyone else or empty, last-edited on the date.
+
+Query on **last edited**, never on created. Work in progress was created weeks ago; a created-date filter returns a nearly empty day and looks like a correct answer.
+
+Carry each row's **stable url** alongside its title. Titles get rewritten; urls do not, and a later review stitches months of entries together by url. A row recorded without its url cannot be stitched.
+
+Where the previous entry for the same url shows a different status, note the transition rather than the state alone — `in progress → done` says something `done` does not. Rows that reached a terminal status today go into the front matter's `completed` list as title and url.
+
+Resolve assignee ids to names through `log.people`. An id that is not there is looked up once against the tracker and used as found. Never guess a name from an id.
+
+## 4. Collect the day around it
+
+- **Calendar** — `log.sources.calendar`, the day in local time, ordered by start. Drop working-location, birthday and out-of-office entries. Each event becomes time, title, and one or two key attendees.
+- **Chat** — `log.sources.chat_channels` for the day, plus messages the user sent or was mentioned in. Keep decisions, questions and answers, feedback, shared material, and open threads. Drop chatter, bots and reactions.
+
+From the same pass, pull out two things that are cheap now and unrecoverable later.
+
+- **What others said** — messages *about* the user's work: thanks, praise, criticism, an accepted proposal, a request that names them as the one to do it. Record the sender, the quote as written, and the permalink. Do not include something merely because the user was mentioned in it, and do not soften or sharpen the wording.
+- **Decisions** — a decision the user made or took part in, with the reason **as the source states it**. No reason in the source means no reason in the file. Do not reconstruct rationale.
+
+Chat search tools cap their response size. Ask for concise output without surrounding context, and page rather than widening a single call — an over-large request fails outright and returns nothing, which reads as silence.
+
+## 5. Assemble
+
+Write `log.out.dir/YYYY/MM/YYYY-MM-DD.md`. Front matter carries `log.out.front_matter`; counts are counts and `completed` is an index of title and url, never a second copy of the body. Sections follow `log.sections` in order, and a section with nothing in it gets `log.empty_line`.
+
+What belongs where, given the default section names:
+
+| Section | What goes in |
+|---|---|
+| What I did | Three to six lines. Your own work and the discussions you personally drove |
+| Meetings | One line per event, with the decision or the point of it |
+| My tasks | Rows from section 3, mine. Title with url, priority, status transition, progress, project, grouping, due |
+| Team tasks (reference) | Rows from section 3, the team's, each with its owner. Plus items discussed today that have no row yet |
+| Decisions | What was decided, and the stated reason. One line each |
+| What others said | Sender, quote, permalink. Verbatim |
+| Evidence | Links to what the day produced — a change request, a design node, a document, a release announcement |
+| Follow-ups | Threads still open, each with the action it is waiting on |
+| Tomorrow | One to three unchecked boxes, drawn from what is unresolved |
+
+Where the file already exists with a body, update it rather than replacing it — preserve anything a human added by hand.
+
+Prose follows whatever writing standard applies in `meta.language`.
+
+## 6. Fill the gaps behind you
+
+Look back `log.backfill.business_days` business days. For each one, check the file exists and its sections are not all empty. A day whose file is missing is written now, from the same sources scoped to that date. A day whose file exists but has an empty section the sources can now fill gets that section filled — nothing else on the page is touched.
+
+Limit the look-back to the configured window so a long absence does not turn one run into a backfill of the whole quarter. Say in the summary how far back you went and what you repaired.
+
+## 7. Summarise
+
+Close with a few lines: the file path, the counts that went in, what the gap check repaired or that it found nothing, and any source that was skipped along with why. This summary is the only thing a scheduled run leaves in its own log, so it has to be enough to diagnose a bad day from.
+
+## When NOT to invoke
+
+- Turning these files into accomplishment statements → `/pm:log-review`
+- Writing a task record's context table → `/pm:task-draft`
+- Filing a task in an engineering tracker → `/pm:task-publish`
+- Reconciling two trackers → `/pm:task-sync`
+- Writing requirements → `/pm:prd`

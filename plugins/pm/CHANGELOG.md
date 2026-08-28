@@ -1,5 +1,9 @@
 # pm
 
+## 0.7.0 — 2026-08-28
+- `/pm:log` writes a day's work log as a file, and fills the days an earlier run missed
+- `/pm:log-review` turns a period of those logs into accomplishment statements, asking for the role, the measure and the learning it cannot derive
+
 ## 0.6.0 — 2026-08-28
 - `/pm:setup` opens with the same preflight
 - Getting started reaches `/pm:setup` without going through the fig path first

@@ -24,7 +24,7 @@
     {
       "name": "pm",
       "source": "./plugins/pm",
-      "description": "A bundle for product docs and the tasks that follow. Write and verify a spec, draft a task's context table from a request thread, file it in the engineering tracker, and reconcile the two sides. 5 skills. Where things are stored is decided by config.",
+      "description": "A bundle for product docs and the tasks that follow. Write and verify a spec, draft a task's context table from a request thread, file it in the engineering tracker, and reconcile the two sides. 7 skills. Where things are stored is decided by config.",
       "category": "productivity",
       "tags": [
         "prd",

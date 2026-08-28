@@ -193,3 +193,39 @@ task:
 
   notion:
     body_template: null          # page id whose body is copied into a new record
+
+# --- Daily log (/pm:log, /pm:log-review) ----------------------------------------
+# A day's record, assembled from the tracker plus whatever else you name here.
+# The tracker itself comes from task.record above and is not repeated.
+#
+# Two layers. The daily file captures facts and evidence with nobody watching;
+# the review turns a period of them into statements you can reuse, and asks you
+# the things a file cannot know. Do not try to make the daily run do the second
+# job — an unattended agent writing about its own significance is how a log
+# fills with sentences nobody can check later.
+log:
+  enabled: false               # off by default. turn it on where you keep a log
+  out:
+    dir: "./logs"              # written as <dir>/YYYY/MM/YYYY-MM-DD.md
+    front_matter: [date, tasks_mine, tasks_others, meetings, completed, sources]
+                               # completed is an index of title and url, not prose
+  me:
+    tracker_user_id: null      # your id in the record tracker. tells your rows from the team's
+  people: {}                   # tracker user id -> display name, for the team section
+  sections: [What I did, Meetings, My tasks, Team tasks (reference),
+             Decisions, What others said, Evidence, Follow-ups, Tomorrow]
+  empty_line: "- Nothing of note"   # what a section with nothing in it says
+  sources:
+    calendar: null             # calendar id, or null to skip
+    chat_channels: []          # channel ids to read for the day
+  backfill:
+    business_days: 3           # how many past days to re-check for gaps
+
+  # --- The periodic write-up (/pm:log-review) -----------------------------------
+  review:
+    out: "./highlights/{YYYY}.md"    # accumulating document. {YYYY} is the period's year
+    sections: [Projects, Collaboration and mentoring, Design and documentation,
+               What I learned, Feedback received, Company building]
+    sentence: xyz              # xyz = accomplished X as measured by Y by doing Z
+                               # plain = what was done and what changed
+    unknown_metric: "metric unconfirmed"   # stands in where you had no figure to give

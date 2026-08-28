@@ -14,6 +14,8 @@ claude plugin install pm@byjunyoung
 | `/pm:task-draft` | Turns a request source into a task's context table |
 | `/pm:task-publish` | Files one task as a ticket in the engineering tracker |
 | `/pm:task-sync` | Reconciles the planning list against that tracker |
+| `/pm:log` | Writes a day's work log as a file from the same tracker |
+| `/pm:log-review` | Turns a period of those logs into accomplishment statements |
 
 ## Where it writes
 
