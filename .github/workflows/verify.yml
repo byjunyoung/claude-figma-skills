@@ -14,6 +14,19 @@ jobs:
         with:
           python-version: '3.x'
       - run: pip install pyyaml
+      # The team-string check needs the list of a team's own names, which never ships in the
+      # repo. Put them in a TEAM_STRINGS secret, one per line, and this step writes the gitignored
+      # file verify.py reads — masking every line first, so a match never prints a name into a
+      # public log. Without the secret the check is skipped, and verify says so.
+      - name: Team strings (from the TEAM_STRINGS secret, when set)
+        if: env.TEAM_STRINGS != ''
+        env:
+          TEAM_STRINGS: ${{ secrets.TEAM_STRINGS }}
+        run: |
+          printf '%s\n' "$TEAM_STRINGS" | while IFS= read -r line; do
+            [ -n "$line" ] && echo "::add-mask::${line#!}"
+          done
+          printf '%s\n' "$TEAM_STRINGS" > tools/team-strings.local.txt
       - name: Repository consistency
         run: python3 tools/verify.py
       - name: Figma sandbox script syntax
