@@ -69,6 +69,16 @@ The file speaks in keys. The questions do not.
 | `task.hierarchy.parent_kind` | Are tasks grouped under something bigger — an epic, a project? | none — a flat list |
 | `task.context_rows` | The rows your team asks about a task — these defaults, or your own words | the defaults |
 
+**When a script stops, say what it means — never the code or the path.**
+
+| The script says | Say to the person |
+|---|---|
+| preflight `Not ready` | what is missing and the one thing that fixes it, from the `Fix first` lines |
+| preflight `Cannot tell` | connections could not be checked on this machine; confirm them, or run where Claude Code is installed |
+| `… is not supported yet` (exit 3) | "this tool isn't supported yet — I can write the support from what's connected here" — then 3b |
+| `… supported as the other side` (exit 4) | "this tool is set up as the {other} side; I can add the {this} side" — then 3b |
+| `… is not set` (`--need`) | which setting is blank and that this run fills it |
+
 Three rules —
 
 - **One question per turn in ⑤. ② is the only grouped round**, and it is two questions

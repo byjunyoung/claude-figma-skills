@@ -46,7 +46,7 @@ date +%Y-%m-%d
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.record.type} --role record
 ```
 
-It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls, and do not fall back to a tracker the config did not name. **Exit 4 means the adapter exists but answers for the other side** — a mirror-only file asked for the record, say. Stop the same way; 3b drafts the side that is missing.
+It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls, and do not fall back to a tracker the config did not name. **Exit 4 means the adapter exists but answers for the other side** — a mirror-only file asked for the record, say. Stop the same way; 3b drafts the side that is missing. Say what it means in the person's words — "this tool isn't supported yet; `/pm:setup` can add it from what's connected here" — never the exit code or the file path.
 
 Whatever the tracker, read its **current** schema or field names immediately before querying, and use what it has now — the title, status, assignee, project, grouping, priority, due-date and progress equivalents, and the exact spellings a query needs. Names drift and differ per workspace. A name pinned in a document or in config returns nothing, and nothing looks exactly like a quiet day.
 

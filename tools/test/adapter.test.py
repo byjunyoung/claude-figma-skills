@@ -69,7 +69,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # The case above pointed adapters.dirs elsewhere; put the default back first
     (proj / "pm-conventions.yaml").unlink()
     r = run(proj, home, "--kind", "trackers", "--type", "github", "--role", "record")
-    check("github as record → exit 4", r.returncode == 4 and "answers as mirror" in r.stderr, f"rc={r.returncode} {r.stderr}")
+    check("github as record → exit 4", r.returncode == 4 and "supported as the mirror side" in r.stderr, f"rc={r.returncode} {r.stderr}")
     r = run(proj, home, "--kind", "trackers", "--type", "github", "--role", "mirror")
     check("github as mirror → found", r.returncode == 0 and r.stdout.strip().endswith("trackers/github.md"), r.stderr)
     r = run(proj, home, "--kind", "sources", "--type", "slack", "--role", "calendar")

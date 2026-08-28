@@ -34,12 +34,12 @@ with tempfile.TemporaryDirectory() as tmp:
     (home / ".claude").mkdir(parents=True); proj.mkdir()
 
     out = run(proj, home)
-    check("no config → says nothing is required yet", "Nothing is required yet" in out.splitlines()[0], out.splitlines()[0])
-    check("no config → required-by line says so", "no config yet" in line(out, "required by"), line(out, "required by"))
+    check("no config → says nothing is needed yet", "Nothing is needed yet" in out.splitlines()[0], out.splitlines()[0])
+    check("no config → needed-because line says so", "no settings yet" in line(out, "needed because"), line(out, "needed because"))
 
     (proj / "pm-conventions.yaml").write_text("task:\n  record: {type: notion, ref: 'collection://x'}\n")
     out = run(proj, home)
-    check("record notion → Notion required", "task.record.type: notion" in line(out, "required by"), line(out, "required by"))
+    check("record notion → Notion required", "task.record.type: notion" in line(out, "needed because"), line(out, "needed because"))
 
     # A type the plugin has never heard of, whose adapter declares its connector
     (proj / "pm-adapters" / "trackers").mkdir(parents=True)
@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory() as tmp:
     (proj / "pm-conventions.yaml").write_text("task:\n  record: {type: gsheet, ref: 'abc'}\n")
     out = run(proj, home)
     check("unknown type → connector taken from the adapter's connector: line",
-          "task.record.type: gsheet → Google Drive" in line(out, "required by"), line(out, "required by"))
+          "task.record.type: gsheet → Google Drive" in line(out, "needed because"), line(out, "needed because"))
     check("unknown type → a row named after that connector (whatever its state)", any(ln.startswith("connector Google Drive") for ln in out.splitlines()), out)
 
     # Where the claude CLI is absent — a CI runner — a required connector must not read as answered
@@ -66,7 +66,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # The same type with no adapter falls back to the type name, and says so
     (proj / "pm-adapters" / "trackers" / "gsheet.md").unlink()
     out = run(proj, home)
-    check("unknown type, no adapter → the type name itself", "task.record.type: gsheet" in line(out, "required by") and "→" not in line(out, "required by"), line(out, "required by"))
+    check("unknown type, no adapter → the type name itself", "task.record.type: gsheet" in line(out, "needed because") and "→" not in line(out, "needed because"), line(out, "needed because"))
 
 print()
 if failures:
