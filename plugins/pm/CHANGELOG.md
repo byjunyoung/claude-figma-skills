@@ -1,5 +1,8 @@
 # pm
 
+## 0.8.1 — 2026-08-28
+- `/pm:log-review` stitches by title where a period's files carry no urls, instead of returning every day as its own item
+
 ## 0.8.0 — 2026-08-28
 - `/pm:log` reads the channel you type notes to yourself in, and carries the text across rather than a link that expires
 

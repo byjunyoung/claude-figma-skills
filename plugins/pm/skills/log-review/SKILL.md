@@ -37,19 +37,24 @@ Glob the daily files inside the period and read their front matter and bodies. R
 
 If the period has no files at all, stop and say so. Do not reconstruct the period from other sources.
 
-## 2. Stitch by url
+## 2. Stitch by url, then by title
 
-Group entries by the tracker url recorded against each task. One url appearing across many days is **one piece of work**, not many. For each group, derive what the files already know:
+Group entries by the tracker url recorded against each task. One url appearing across many days is **one piece of work**, not many.
+
+Older files may carry no urls at all — a log written before urls were recorded, or one imported from somewhere that did not have them. **Fall back to an exact title match within the period** rather than treating every day as its own item; a period of ninety single-day entries is not a review, it is the raw log again. Titles are the weaker key: a task renamed mid-period splits into two groups, and two tasks that briefly shared a name merge into one. Say which key each group was stitched with, so a surprising group can be checked.
+
+For each group, derive what the files already know:
 
 | Derived | From |
 |---|---|
-| Span | First and last date the url appears |
+| Span | First and last date the group appears |
 | Days active | How many daily files mention it |
+| Key | url or title — which one grouped it |
 | Outcome | Whether it reached a terminal status, and on which date |
 | Evidence | Every link collected against it over the span |
 | What others said | Quotes attached to those days that name this work |
 
-An entry with no url cannot be stitched. Keep those as single-day items and say how many there were — a run with many of them means `/pm:log` is dropping urls, which is worth fixing at the source.
+An entry with neither a url nor a title cannot be stitched at all. Keep those as single-day items and say how many there were. Many url-less entries in a **recent** period mean `/pm:log` is dropping urls, which is worth fixing at the source; in an imported period it just means the old format did not carry them.
 
 ## 3. Rank and cut
 
