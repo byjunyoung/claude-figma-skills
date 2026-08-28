@@ -1,7 +1,7 @@
 ---
 name: code
 description: Applies a Figma design to real code in a frontend repo — porting changed parts into existing code with minimal edits, or implementing screens and state variants that exist only in the design. Reads the repo's own naming, tokens, and state-management conventions first so it never overwrites them, checks both by numbers and by screenshot comparison, then opens a branch and a PR. Triggers - "/fig:code", "apply this design to the code", "implement this screen in the frontend", "시안 코드에 반영해줘", "피그마 바뀐 거 앱에 적용", "시안대로 코드 고쳐줘".
-allowed-tools: AskUserQuestion, Bash, Read, Write, Edit, Glob, Grep, Skill, mcp__plugin_figma_figma__get_design_context, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_variable_defs, mcp__plugin_figma_figma__download_assets, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__read_console_messages
+allowed-tools: AskUserQuestion, Bash, Read, Write, Edit, Glob, Grep, mcp__plugin_figma_figma__get_design_context, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_variable_defs, mcp__plugin_figma_figma__download_assets, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__read_console_messages
 ---
 
 # fig:code — Figma design → frontend repo code
