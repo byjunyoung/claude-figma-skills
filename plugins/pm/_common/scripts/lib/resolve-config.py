@@ -11,6 +11,12 @@ Usage
     python3 resolve-config.py --js [fileKey] → one `const CFG = {...};` line
     python3 resolve-config.py --where        → which files were used, nothing else
     python3 resolve-config.py --name pm-conventions.yaml   → change the filename to look for
+    python3 resolve-config.py --need task.record.ref,task.link_property
+                                             → exit 2 naming any of these that is null, no JSON
+
+A skill that cannot run without a value asks for it with --need. A null there is a config
+gap — setup writes it — and the skill stops on the key's name instead of running on nothing,
+which is how a run on an unfinished config used to come back thin and look like a result.
 
 The layers merge (later covers earlier). A config holding only some keys works as it is —
 missing keys are filled by the defaults, and only what is written gets covered.
@@ -23,6 +29,7 @@ Deleting a key does not switch a check off — write null for that. Deleting res
 import json, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+PLUGIN = "pm" if f"{os.sep}pm{os.sep}" in HERE else "fig"
 DEFAULT_NAME = "figma-conventions.yaml"
 
 
@@ -74,19 +81,46 @@ def resolve(file_key=None, name=DEFAULT_NAME):
     return cfg, src
 
 
+def unmet(cfg, keys):
+    """The dotted keys whose value is missing, null, or an empty string. An empty list or map
+    is a value — `label_map: {}` says nothing is mapped, which is a legitimate state."""
+    out = []
+    for k in keys:
+        cur = cfg
+        for part in k.split("."):
+            cur = cur.get(part) if isinstance(cur, dict) else None
+            if cur is None:
+                break
+        if cur is None or cur == "":
+            out.append(k)
+    return out
+
+
+def take(argv, flag):
+    """The value after a flag, removed from argv. None where the flag is absent."""
+    if flag not in argv:
+        return None
+    i = argv.index(flag)
+    if i + 1 >= len(argv):
+        sys.exit(f"{flag} needs a value after it")
+    val = argv[i + 1]
+    del argv[i:i + 2]
+    return val
+
+
 def main():
     argv = sys.argv[1:]
     as_js = "--js" in argv
     where = "--where" in argv
-    name = DEFAULT_NAME
-    if "--name" in argv:
-        i = argv.index("--name")
-        if i + 1 >= len(argv):
-            sys.exit("--name needs a filename after it")
-        name = argv[i + 1]
-        del argv[i:i + 2]
+    name = take(argv, "--name") or DEFAULT_NAME
+    need = [k.strip() for k in (take(argv, "--need") or "").split(",") if k.strip()]
     args = [a for a in argv if not a.startswith("--")]
     cfg, src = resolve(args[0] if args else None, name)
+    gaps = unmet(cfg, need)
+    if gaps:
+        for k in gaps:
+            print(f"{name} · {k} is null — /{PLUGIN}:setup writes it, or set it by hand", file=sys.stderr)
+        sys.exit(2)
     if where:
         print(src)
     elif as_js:

@@ -1,5 +1,10 @@
 # fig
 
+## 3.5.0 — 2026-08-29
+- The six skills that write to Figma — `prep`, `arrows`, `diff`, `sync`, `tokens`, `deck` — check the seat with `whoami` before the first write, and stop on a View seat instead of failing halfway
+- Preflight (shared with pm) reads the config, treats a tracker it names as required, and checks the `gh` CLI where that tracker is GitHub
+- `/fig:setup` says what the preflight cannot see — the seat — and which skills check it
+
 ## 3.4.0 — 2026-08-28
 - `/fig:setup` opens with a preflight — python3 and PyYAML, node, and which connectors actually answer
 - Getting started branches by what you installed: `fig`, `pm`, or a deck template

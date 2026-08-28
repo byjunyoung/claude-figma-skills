@@ -20,3 +20,5 @@ jobs:
         run: bash plugins/fig/_common/scripts/lib/check.sh
       - name: Arrow geometry fixtures
         run: node --test tools/test/audit-flow.test.js
+      - name: Config resolution fixtures
+        run: python3 tools/test/resolve-config.test.py

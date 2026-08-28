@@ -20,8 +20,10 @@ Takes a **request source** — a chat thread, a document, a conversation someone
 ## Configuration
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml --need task.record.ref
 ```
+
+A `null` named on stderr is a config gap, not a tracker problem — `/pm:setup` writes it. Stop on it rather than interviewing for the value here.
 
 `task.record.type` decides where the record lives, `task.context_rows` names the rows, and `task.properties` lists the values a record can take. Nothing is written into this document. A `null` means that lookup is skipped — say so in the result rather than stopping.
 

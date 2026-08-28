@@ -295,6 +295,7 @@ And the next request starts it again, against a canonical page that is now curre
 | **A Figma file you already work in** | `/fig:setup` infers conventions by measuring a real file. An empty one has nothing to observe |
 | **`python3` with PyYAML, and `node`** | Config resolution runs on the host, and the audit scripts are syntax-checked with `node --check` |
 | **A Figma personal access token** *(optional)* | Only `/fig:read` needs one, to enumerate every page over the REST API. Without it, it falls back to the MCP and may see only some pages |
+| **The `gh` CLI** *(pm, where the tracker is GitHub)* | The GitHub tracker adapter runs on it, not on the connector. Logged in to the account that can see the tracker — a personal account against a company org gets a 404 — with `read:project` where a board is used |
 
 `pm` needs none of the Figma side. If you only write specs, install it alone.
 
@@ -309,12 +310,14 @@ Everything under `fig` runs on `plugin:figma`. These skills want something more.
 |---|---|
 | `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — they drive a real browser |
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — only where a config key points at a Notion page |
-| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github` |
+| `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github`. Two logins are involved: the connector, and the `gh` CLI the tracker adapter runs on. Preflight checks both, and names the account `gh` is on |
 | `/fig:qa` `/pm:task-draft` | **Slack** — only where the request source is a Slack thread |
 | `/pm:log` | **A calendar and a chat workspace** — both optional. Named as `null` they are skipped and the log says so. A scheduler on your own machine, if you want it unattended |
 | `/pm:prd` | **Notion** — only where `prd.target` is `notion` |
 
 The connector rows are conditional: point the config at `none` or at markdown and the skill still runs, it just writes somewhere else. The Chrome rows are not — those three open a browser.
+
+**Once a config names a tool, it stops being optional.** The same check reads the config: a tracker set to `github` makes GitHub required, `prd.target: notion` makes Notion required, and a later run that cannot reach one stops on its name instead of coming back thin. On a machine with no config yet nothing beyond the host can be required — the summary says so, and `/pm:setup` re-runs the check with the answers it has just been given.
 
 **A skill cannot call a tool it was never given.** If a connector is missing, the skill does not fail loudly; it simply cannot reach it. That is the most common reason a first run looks like it did nothing.
 
@@ -356,6 +359,11 @@ value turned up in 24 of 69 observations, which is why that one came back `null`
 **pm.** Reads the schemas of your doc tool and your tracker, and asks only what no schema
 answers. Property names, select options, labels, board field ids and user mappings are read
 from the live schema rather than guessed at. The draft lands in `~/.claude/pm-conventions.yaml`.
+
+Where the doc tool and the tracker are reachable from different machines — the doc tool from
+home, the tracker only on the office account — run it with `side: record` on one and
+`side: mirror` on the other; each writes only its half of the same file. **Anything you cannot
+answer is `null`**, and the file keeps the question beside it as a comment for whoever can.
 
 **deck.** `/fig:deck-setup` measures your team's slide template into `~/.claude/deck-assets`.
 The plugin ships no template values at all, because deck backgrounds carry company wordmarks
@@ -401,6 +409,7 @@ arrows:
 - **First run** — `/fig:setup` in the target file observes its conventions and drafts one
 - **Partial configs are fine** — the three layers are merged, so keys you omit fall back to defaults and only what you write is overridden
 - **What `null` means** — the value wasn't inferred, so that check is skipped. To disable a check, write `null` rather than deleting the key — deleting it brings the default back
+- **Keys a skill cannot run without** — it asks for them with `resolve-config.py --need task.record.ref`, and a `null` there exits naming the key instead of running on nothing. That is a config gap, not a tracker problem; the setup skill writes it
 - **Per-file settings** — things that differ by file, like which pages are canonical vs. archive, go under `files.<fileKey>`
 
 Once you have a draft, run `/fig:lint` once and judge it by the false-positive rate. If nearly everything is flagged, the config is wrong, not the file.
@@ -436,6 +445,18 @@ Your team font isn't installed in this environment. The build probes the candida
 **Reports come out in the wrong language.**
 `meta.language` decides it. `auto` follows whichever language you're talking in; a tag like `ko` or `en` pins it. The skill bodies being in English has no bearing on the output.
 
+**Preflight passed, and the tracker step came back empty.**
+GitHub is two logins. The connector is one; the `gh` CLI the tracker adapter runs on is the other, and it has its own account. `gh auth status` says which — a personal account against a company org gets a 404 on every repo, which reads as if the repo did not exist. Switch with `gh auth switch`, and for board ids the token also needs `read:project` (`gh auth refresh -s read:project`). Preflight prints the account and the scopes on its `gh` row, and tries to open the tracker as that account.
+
+**The GitHub connector fails with `400 … Authorization header is badly formatted`.**
+The connector sends a token from an environment variable, and the variable is empty — so the header goes out with a blank bearer. Usually it is exported in a shell profile and the session was launched from somewhere that never read that profile, such as a desktop app. Launch from a terminal where `echo $GITHUB_PERSONAL_ACCESS_TOKEN` prints something, or set it for the app. Preflight reports this as `configured but not answering`, which is a different fix from `absent`.
+
+**A `fig` skill stops on the seat before writing.**
+The account behind `plugin:figma` holds a View seat on that plan, and `whoami` says so. Reading works on a View seat; every write needs an Edit seat on the file's plan, and no retry changes that. Either the file moves to a plan where you have one, or someone with a seat runs the write.
+
+**`resolve-config.py --need` exits with a key name.**
+That key is `null` in every layer, and the skill cannot run without it. It is a config gap rather than a tracker problem — `/pm:setup` writes it, or write it by hand. An empty map or list is a value and does not stop here; only a missing or null one does.
+
 **A skill wrote something you didn't expect.**
 Every external write — Figma nodes, a spec page, a branch — goes through a preview and an explicit go. If one happened without that, it's a bug worth [reporting](https://github.com/byjunyoung/claude-product-skills/issues).
 
@@ -470,9 +491,20 @@ plugins/
         arrow-build.js                   arrow construction helper
         prep-ops.js                      page cleanup helper
         probe-page.js                    convention observation
-        lib/                             config resolution, draft generation, syntax check
+        lib/                             config resolution, preflight, draft generation, syntax check
+  pm/
+    .claude-plugin/plugin.json
+    README.md
+    skills/
+      setup  prd  task-draft  task-publish
+      task-sync  log  log-review          one SKILL.md each
+    _common/
+      conventions.example.yaml           config schema + bundled defaults
+      trackers/                          one file per tracker — notion, github, markdown
+      scripts/lib/                       config resolution, preflight (copies of fig's, held identical)
 tools/
   verify.py                    consistency check (repo tool, not shipped)
+  test/                        fixtures — arrow geometry, config resolution
 ```
 
 One repo holds several plugins. `plugins` in `marketplace.json` is an array, so they install separately while sharing one repo and one checker.
