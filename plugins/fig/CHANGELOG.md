@@ -1,6 +1,7 @@
 # fig
 
 ## Unreleased
+- `/fig:deck` and `/fig:deck-setup` declare the Figma tools they call
 - README states what each skill needs beyond `plugin:figma` — Chrome, Notion, Slack, GitHub
 - Scope wording covers before the drawing as well as after
 

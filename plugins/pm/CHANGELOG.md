@@ -1,5 +1,8 @@
 # pm
 
+## Unreleased
+- `/pm:prd` declares the Notion tools it writes with
+
 ## 0.5.2 — 2026-08-27
 - An empty search is no longer treated as evidence of absence
 
