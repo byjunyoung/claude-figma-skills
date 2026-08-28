@@ -212,7 +212,7 @@ def connector_checks():
             # Configured and not answering is a different fix from not configured. The tail of
             # the error is what says which — a 400 on the auth header is an empty token variable,
             # not a revoked login
-            tail = re.sub(r".*Failed to connect\s*[—-]*\s*", "", hit).strip()[:70]
+            tail = re.sub(r".*Failed to connect\s*[—-]*\s*", "", hit).strip()[:90]
             row("connector", name, "missing" if need else "failed",
                 f"configured but not answering — {tail}" if tail else "configured but not answering")
         elif need:
@@ -246,17 +246,22 @@ def gh_checks(cfg):
         row("cli", f"gh {ver}", "missing" if need else "attention", "not logged in — gh auth login")
         return
 
+    if not need:                               # one network call fewer where nothing needs GitHub
+        row("cli", f"gh {ver}", "ok", f"account {account}")
+        return
+
     hdr, _ = run(["gh", "api", "-i", "user"])
     m = re.search(r"^x-oauth-scopes:\s*(.*)$", hdr or "", re.I | re.M)
     scopes = m.group(1).strip() if m else ""
-    note = f"account {account}"
+    note, state = f"account {account}", "ok"
     if scopes:
         note += f" · scopes {scopes}"
         if "project" not in scopes:
             note += " · no read:project — board ids need it: gh auth refresh -s read:project"
+            state = "attention"                # the repo answers and the board comes back empty — worth a line in --quiet
     else:
         note += " · scopes not reported by this token"
-    row("cli", f"gh {ver}", "ok", note)
+    row("cli", f"gh {ver}", state, note)
 
     ref = dig(cfg, TRACKER_REF[PLUGIN]) if cfg else None
     if need and isinstance(ref, str) and "/" in ref:

@@ -311,13 +311,13 @@ Everything under `fig` runs on `plugin:figma`. These skills want something more.
 | `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — they drive a real browser |
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — only where a config key points at a Notion page |
 | `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — only where `task_tracker.type` / `task.mirror.type` is `github`. Two logins are involved: the connector, and the `gh` CLI the tracker adapter runs on. Preflight checks both, and names the account `gh` is on |
-| `/fig:qa` `/pm:task-draft` | **A chat tool** — only where the request source is a thread. `sources.chat_type` names it; Slack ships |
+| `/fig:qa` `/pm:task-draft` | **A chat tool** — only where the request source is a thread. For `pm`, `sources.chat_type` names it; `/fig:qa` takes the tool from the link. Slack ships |
 | `/pm:log` | **A calendar and a chat tool** — both optional, named by `sources.calendar_type` and `sources.chat_type`; Google Calendar and Slack ship. Named as `none` they are skipped and the log says so. A scheduler on your own machine, if you want it unattended |
 | `/pm:prd` | **Notion** — only where `prd.target` is `notion` |
 
 The connector rows are conditional: point the config at `none` or at markdown and the skill still runs, it just writes somewhere else. The Chrome rows are not — those three open a browser.
 
-Notion, GitHub and Slack are the tools that ship with adapters; the rows read the same for any other tool the config names.
+Notion, GitHub, markdown, Slack and Google Calendar are the tools that ship with adapters; the rows read the same for any other tool the config names.
 
 **Once a config names a tool, it stops being optional.** The same check reads the config: a tracker set to `github` makes GitHub required, `prd.target: notion` makes Notion required, and a later run that cannot reach one stops on its name instead of coming back thin. On a machine with no config yet nothing beyond the host can be required — the summary says so, and `/pm:setup` re-runs the check with the answers it has just been given.
 
@@ -454,7 +454,7 @@ Your team font isn't installed in this environment. The build probes the candida
 `meta.language` decides it. `auto` follows whichever language you're talking in; a tag like `ko` or `en` pins it. The skill bodies being in English has no bearing on the output.
 
 **Preflight passed, and the tracker step came back empty.**
-GitHub is two logins. The connector is one; the `gh` CLI the tracker adapter runs on is the other, and it has its own account. `gh auth status` says which — a personal account against a company org gets a 404 on every repo, which reads as if the repo did not exist. Switch with `gh auth switch`, and for board ids the token also needs `read:project` (`gh auth refresh -s read:project`). Preflight prints the account and the scopes on its `gh` row, and tries to open the tracker as that account.
+GitHub is two logins. The connector is one; the `gh` CLI the tracker adapter runs on is the other, and it has its own account. `gh auth status` says which — a personal account against a company org gets a 404 on every repo, which reads as if the repo did not exist. Switch with `gh auth switch`, and for board ids the token also needs `read:project` (`gh auth refresh -s read:project`). Preflight prints the account on its `gh` row — and, wherever GitHub is required by the config or the run, the scopes too — and tries to open the tracker as that account.
 
 **The GitHub connector fails with `400 … Authorization header is badly formatted`.**
 The connector sends a token from an environment variable, and the variable is empty — so the header goes out with a blank bearer. Usually it is exported in a shell profile and the session was launched from somewhere that never read that profile, such as a desktop app. Launch from a terminal where `echo $GITHUB_PERSONAL_ACCESS_TOKEN` prints something, or set it for the app. Preflight reports this as `configured but not answering`, which is a different fix from `absent`.

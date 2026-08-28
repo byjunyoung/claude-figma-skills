@@ -1,50 +1,54 @@
 # Slack as the chat source
 
 For a `sources.chat_type` of `slack`. The channel and app ids the calls need come from
-`log.sources` — `chat_channels`, `notes_channel`, `notes_exclude_apps`. These are the calls
-`/pm:task-draft` and `/pm:log` were written against; the warnings are the ones they hit.
+`log.sources` — `chat_channels`, `notes_channel`, `notes_exclude_apps`. Your own user id is
+printed in the search tool's own description ("Current logged in user's user_id is U…"). The
+calls below were run against a real workspace on 2026-08-29; the warnings are what came back.
 
 ## A thread from a link
 
 ```
-slack_read_thread   channel_id={from the permalink}  thread_ts={from the permalink}
+slack_read_thread   channel_id={C… from the permalink}   message_ts={the parent's ts, "1234567890.123456"}
 ```
 
-A permalink to a *reply* carries the reply's timestamp. Resolve the thread root first —
-`thread_ts` in the message — and read from there, or the shape of the discussion is lost and
-only the tail comes back. Attached images and video arrive as filenames; they count as
-context, never as evidence.
+A permalink is `…/archives/{channel}/p{16 digits}`, and the ts is those digits with a decimal
+point before the last six. A permalink to a *reply* carries the reply's ts in the path and the
+root's in its `?thread_ts=` query — read from the root, or only the tail comes back. Attached
+images and files arrive as names.
 
 ## A channel on a day
 
 ```
-slack_read_channel   channel_id={id}   oldest={date 00:00 local, as epoch}   latest={date 23:59:59}
+slack_read_channel   channel_id={id}   oldest={epoch of 00:00 local}   latest={epoch of 23:59:59 local}   limit=100
 ```
 
-Page with the cursor until it is empty. A day in a busy channel is more than one page.
+Newest first. Page with `cursor` until it is empty — a day in a busy channel is more than one
+page. A user id as `channel_id` reads that DM, which is how a notes channel is read where it is
+a DM to yourself.
 
 ## Messages about me on a day
 
 ```
-slack_search_public_and_private   query="from:@me on:{YYYY-MM-DD}"
-slack_search_public_and_private   query="@me on:{YYYY-MM-DD}"
+slack_search_public_and_private   query="from:<@{my id}> on:{YYYY-MM-DD}"   include_context=false   response_format=concise   sort=timestamp   limit=20
+slack_search_public_and_private   query="<@{my id}> on:{YYYY-MM-DD}"        … the same parameters
 ```
 
-**Search caps its response size, and an over-large request fails outright and returns
-nothing** — which reads as a quiet day. Ask for concise output without surrounding context,
-and page rather than widening a single call.
+The first is what I sent; the second is where I was mentioned — the literal `<@id>` in the
+query matches the mention. Results carry a local-time stamp and a `cursor` for the next page.
+`limit` tops out at 20, and the size cap is on the response rather than the page:
+`include_context=false` and `response_format=concise` are what keep it under. `after` and
+`before` take Unix timestamps as separate parameters, for a day bounded in your own zone.
 
 ## My notes channel
 
-`log.sources.notes_channel` — a channel only you write in, usually your own direct message to
-yourself. Read it as a channel on a day. **An app that posts there on your behalf is
-attributed to the app** — its user id shows as the author — and `log.sources.notes_exclude_apps`
+`log.sources.notes_channel` — read as a channel on a day. **An app that posts there on your
+behalf is attributed to the app** — its user id is the author — and `log.sources.notes_exclude_apps`
 lists the ids to drop. Nothing you did not type belongs in your notes.
 
 ## Permalinks and names
 
 ```
-slack_read_user_profile   user_id={id}     → display name, for a quote's sender
+slack_read_user_profile   user_id={U…}   response_format=concise     → display name, for a quote's sender
 ```
 
 A message's permalink is `https://{workspace}.slack.com/archives/{channel}/p{ts without the dot}`.
@@ -52,8 +56,12 @@ Record a quote with the time, the body as written, and the permalink beside it.
 
 ## Things that bite
 
-- **Retention expires.** A log that links a message nobody can open a year later has recorded
-  nothing. Carry the text across; keep the permalink as a citation, not as the record
-- **The search cap fails silently.** It does not return a partial page; it returns nothing
-- **`on:` is the workspace's day, not yours.** Where the two differ, bound the query a day wider
-  and drop what falls outside after the fetch
+- **The search cap fails silently.** An over-large request returns nothing, not a partial page —
+  which reads as a quiet day. Concise, no context, and page
+- **`include_bots` at its default still returned a post from a sender named as a report bot**, in
+  a mention search — whether that sender was a bot user or an app was not checked. Drop app
+  authors by id from `log.sources.notes_exclude_apps`, never by that flag
+- **Retention expires.** Carry the text across; keep the permalink as a citation, not as the record
+- **Which zone `on:` counts a day in is not documented.** The runs here matched the local day,
+  but where the workspace and you sit in different zones, `after` and `before` with your own
+  epoch bounds is the form that cannot be misread

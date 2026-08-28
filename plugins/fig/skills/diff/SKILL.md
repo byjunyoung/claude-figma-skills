@@ -111,6 +111,7 @@ Only where and how they go in is decided by `task_tracker.type`.
 | `notion` | the `ui_section_heading` section of the task page (usually behind an empty callout) | `update_content`, catching the heading and callout as `old_str` and **inserting after them**. Never replace the whole body |
 | `github` | the task issue | If the body has that section, insert beneath it; if not, add it as a comment |
 | `none` | — | Nothing is written. **Emit the comparison table and the callout as markdown in the response** and stop |
+| any other | — | As `none`. The write belongs to `pm`'s adapter for that type, which this skill does not read — emit the markdown, and say which type was not handled |
 
 - If no task was found, skip this step (with the user's confirmation).
 - **Search for the target section.** If `ui_section_heading` is missing or named differently, confirm where it should go. If there is already content there, do not overwrite it — append after it.

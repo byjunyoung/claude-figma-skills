@@ -41,7 +41,7 @@ headings are yours; the questions are not. A question the tool cannot answer is 
 | **What moved on a day** — rows last edited on a date, split by assignee | `/pm:log` | Filter on last-edited, never created. How the day filter is applied, and whether it is exact |
 | **A new record** — with the properties the interview settled and the context table as its body | `/pm:task-draft` | The call. Whether a database template is applied on create — usually not, which is what `task.notion.body_template` and its equivalents are for |
 | **Writing the link property** | `/pm:task-publish` | The call. This is the one property matching runs on, so say how to verify it landed |
-| **Appending a change summary** — one dated line after what is already there | `/pm:task-publish`, `/fig:diff` | Append, never replace. How to catch the end of the existing text |
+| **Appending a change summary** — one dated line after what is already there | `/pm:task-publish` | Append, never replace. How to catch the end of the existing text |
 | **A user directory** — id to display name | `/pm:log` | The call, so a name is looked up rather than guessed |
 
 ### As the mirror — `task.mirror.type`
@@ -54,7 +54,9 @@ headings are yours; the questions are not. A question the tool cannot answer is 
 | **Creating a parent** and attaching a ticket under it | `/pm:task-publish` | The calls, where the tracker has a hierarchy. Where it does not, say so and `task.hierarchy.parent_kind` stays `null` |
 | **Seating on a board** — the project field, the status column, the dates | `/pm:task-publish` | Which id each write takes; they are rarely the same id |
 | **Milestones** — list open ones, create one, set it on the parent | `/pm:task-publish` | Only where `task.hierarchy.milestone_projects` names a project |
-| **Updating a ticket's body** | `/pm:task-publish`, `/fig:diff` | Read before overwrite. Keep the row that links back to the record |
+| **Updating a ticket's body** | `/pm:task-publish` | Read before overwrite. Keep the row that links back to the record |
+
+`/fig:diff` writes into a task doc too, with notion and github calls of its own; it does not read these files.
 
 ### Always
 

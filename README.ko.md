@@ -296,13 +296,13 @@ notion     Notion 페이지. prd.notion 절을 채워야 동작
 | `/fig:proto` `/fig:code` `/fig:qa` | **Claude in Chrome** — 실제 브라우저를 띄웁니다 |
 | `/fig:prep` `/fig:lint` `/fig:sync` `/fig:diff` `/fig:qa` | **Notion** — 설정이 Notion 페이지를 가리킬 때만 |
 | `/fig:diff` `/pm:setup` `/pm:task-draft` `/pm:task-publish` `/pm:task-sync` | **GitHub** — `task_tracker.type` / `task.mirror.type`이 `github`일 때만. 로그인이 둘입니다 — 커넥터 하나, 트래커 어댑터가 도는 `gh` CLI 하나. 사전 점검이 둘 다 보고 `gh`가 어느 계정인지 이름으로 알려줍니다 |
-| `/fig:qa` `/pm:task-draft` | **채팅 도구** — 요청 출처가 스레드일 때만. `sources.chat_type`이 지목하고, Slack이 딸려 옵니다 |
+| `/fig:qa` `/pm:task-draft` | **채팅 도구** — 요청 출처가 스레드일 때만. `pm`은 `sources.chat_type`이 지목하고, `/fig:qa`는 링크에서 도구를 압니다. Slack이 딸려 옵니다 |
 | `/pm:log` | **캘린더와 채팅 도구** — 둘 다 선택. `sources.calendar_type`·`sources.chat_type`이 지목하고, Google Calendar·Slack이 딸려 옵니다. `none`이면 건너뛰고 일지가 그렇게 말합니다. 무인으로 돌리려면 내 컴퓨터의 스케줄러 |
 | `/pm:prd` | **Notion** — `prd.target`이 `notion`일 때만 |
 
 커넥터 줄은 조건부입니다. 설정을 `none`이나 마크다운으로 두면 스킬은 그대로 돌고 결과만 다른 곳에 씁니다. Chrome 줄은 조건부가 아닙니다 — 저 셋은 브라우저를 엽니다.
 
-어댑터가 딸려 오는 도구는 Notion·GitHub·Slack입니다. 설정이 다른 도구를 지목해도 위 줄들은 같은 뜻으로 읽힙니다.
+어댑터가 딸려 오는 도구는 Notion·GitHub·markdown·Slack·Google Calendar입니다. 설정이 다른 도구를 지목해도 위 줄들은 같은 뜻으로 읽힙니다.
 
 **설정이 도구를 지목하는 순간 선택이 아니게 됩니다.** 같은 점검이 설정을 읽습니다. 트래커가 `github`이면 GitHub이 필수가 되고, `prd.target: notion`이면 Notion이 필수가 되며, 이후 실행에서 거기 닿지 못하면 빈손으로 돌아오는 대신 그 이름을 대고 멈춥니다. 설정이 아직 없는 컴퓨터에선 호스트 말고는 아무것도 필수일 수 없고 — 요약 줄이 그렇게 말합니다 — `/pm:setup`이 방금 받은 답으로 점검을 한 번 더 돌립니다.
 
@@ -439,7 +439,7 @@ REST 경로가 아니라 MCP 폴백으로 돈 것입니다. fileKey만 준 `get_
 `meta.language`가 정합니다. `auto`는 대화 언어를 따르고, `ko`·`en` 같은 태그를 적으면 고정됩니다. 스킬 본문이 영어인 것과는 상관없습니다.
 
 **사전 점검은 통과했는데 트래커 단계가 빈손입니다.**
-GitHub은 로그인이 둘입니다. 커넥터가 하나, 트래커 어댑터가 도는 `gh` CLI가 하나이고 계정이 따로 갑니다. `gh auth status`가 어느 계정인지 말해줍니다 — 회사 org에 개인 계정이면 모든 레포가 404로 떨어지고, 그건 레포가 없는 것처럼 읽힙니다. `gh auth switch`로 바꾸고, 보드 id까지 뽑으려면 토큰에 `read:project`도 있어야 합니다(`gh auth refresh -s read:project`). 사전 점검이 `gh` 줄에 계정과 스코프를 찍고, 그 계정으로 트래커를 열어 봅니다.
+GitHub은 로그인이 둘입니다. 커넥터가 하나, 트래커 어댑터가 도는 `gh` CLI가 하나이고 계정이 따로 갑니다. `gh auth status`가 어느 계정인지 말해줍니다 — 회사 org에 개인 계정이면 모든 레포가 404로 떨어지고, 그건 레포가 없는 것처럼 읽힙니다. `gh auth switch`로 바꾸고, 보드 id까지 뽑으려면 토큰에 `read:project`도 있어야 합니다(`gh auth refresh -s read:project`). 사전 점검이 `gh` 줄에 계정을 찍고 — 설정이나 실행이 GitHub을 요구하면 스코프까지 — 그 계정으로 트래커를 열어 봅니다.
 
 **GitHub 커넥터가 `400 … Authorization header is badly formatted`로 죽습니다.**
 커넥터는 환경변수의 토큰을 헤더에 끼우는데, 그 변수가 비어 있어 빈 bearer가 나간 것입니다. 대개 셸 프로필에서 export한 변수를, 그 프로필을 읽지 않는 곳 — 데스크톱 앱 같은 — 에서 세션을 띄워서 그렇습니다. `echo $GITHUB_PERSONAL_ACCESS_TOKEN`이 뭔가 찍히는 터미널에서 띄우거나, 앱에도 변수를 넣어 주세요. 사전 점검은 이걸 `configured but not answering`으로 보고합니다 — `absent`와는 고치는 법이 다릅니다.
