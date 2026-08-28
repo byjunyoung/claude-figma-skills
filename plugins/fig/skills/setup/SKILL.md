@@ -71,6 +71,7 @@ that reads as the skill having found nothing. This is the one step that says so 
 Report the table as it returns, then judge it:
 
 - **FAIL** — stop and hand over the fix lines. Nothing below this works without them
+- **UNKNOWN** — the claude CLI is not on this machine, so the connectors could not be checked. Confirm them by hand before going on, or run this where the CLI is
 - **absent** on an optional connector — fine as it is. Say so, because a config key pointed
   there in a later step will not reach it
 - **unknown** on Claude in Chrome — it is a browser extension rather than an MCP server, so

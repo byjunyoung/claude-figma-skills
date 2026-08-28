@@ -48,7 +48,20 @@ with tempfile.TemporaryDirectory() as tmp:
     out = run(proj, home)
     check("unknown type → connector taken from the adapter's connector: line",
           "task.record.type: gsheet → Google Drive" in line(out, "required by"), line(out, "required by"))
-    check("unknown type → a row named after that connector", any(ln.startswith("connector Google Drive") for ln in out.splitlines()), out)
+    check("unknown type → a row named after that connector (whatever its state)", any(ln.startswith("connector Google Drive") for ln in out.splitlines()), out)
+
+    # Where the claude CLI is absent — a CI runner — a required connector must not read as answered
+    # A PATH with node but without claude — /usr/bin alone would also lose node and fail on the host row
+    import shutil
+    bare_bin = Path(tmp) / "bin"; bare_bin.mkdir()
+    for tool in ("node", "gh"):
+        found = shutil.which(tool)
+        if found:
+            (bare_bin / tool).symlink_to(found)
+    bare = dict(os.environ, HOME=str(home), PYTHONUSERBASE=site.getuserbase(), PATH=f"{bare_bin}:/usr/bin:/bin")
+    r = subprocess.run([sys.executable, str(SCRIPT)], cwd=proj, env=bare, capture_output=True, text=True, timeout=120)
+    check("no claude CLI → verdict says it cannot tell", r.stdout.startswith("Cannot tell"), r.stdout.splitlines()[0] if r.stdout else r.stderr)
+    check("no claude CLI → exit 2, not PASS", r.returncode == 2 and "UNKNOWN" in r.stdout.splitlines()[-1], f"rc={r.returncode}")
 
     # The same type with no adapter falls back to the type name, and says so
     (proj / "pm-adapters" / "trackers" / "gsheet.md").unlink()
