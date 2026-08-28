@@ -11,7 +11,7 @@
     {
       "name": "fig",
       "source": "./plugins/fig",
-      "description": "A bundle for the half of Figma work that isn't drawing the screen itself. Before you draw, it lays out the sections and stubs the states you're missing so the gaps become your to-draw list; after, it wires the flow, audits the file, and syncs the canonical page once engineering ships. prep, arrows, lint, sync, code, qa, deck and more — 13 in all.",
+      "description": "A bundle for the half of Figma work that isn't drawing the screen itself. Before you draw, it lays out the sections and stubs the states you're missing so the gaps become your to-draw list; after, it wires the flow, audits the file, and syncs the canonical page once engineering ships. prep, arrows, lint, sync, code, qa, deck and more.",
       "category": "design",
       "tags": [
         "figma",
@@ -24,7 +24,7 @@
     {
       "name": "pm",
       "source": "./plugins/pm",
-      "description": "A bundle for product docs and the tasks that follow. Write and verify a spec, draft a task's context table from a request thread, file it in the engineering tracker, and reconcile the two sides. 7 skills. Where things are stored is decided by config.",
+      "description": "A bundle for product docs and the tasks that follow. Write and verify a spec, draft a task's context table from a request thread, file it in the engineering tracker, and reconcile the two sides. Where things are stored is decided by config.",
       "category": "productivity",
       "tags": [
         "prd",

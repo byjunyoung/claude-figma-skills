@@ -6,10 +6,10 @@
 
 Most Claude Code skills are aimed at the codebase. These two are aimed at the work beside it — the Figma file you draw in, and the spec you write next to it. One repo, installed separately.
 
-| Plugin | What it does | Skills |
-|---|---|---|
-| **fig** | Everything around drawing a screen — the to-draw list before, the audit and sync after | 13 |
-| **pm** | Write and verify product specs, then draft, file and reconcile the tasks | 5 |
+| Plugin | What it does |
+|---|---|
+| **fig** | Everything around drawing a screen — the to-draw list before, the audit and sync after |
+| **pm** | Write and verify product specs, then draft, file and reconcile the tasks |
 
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
@@ -19,7 +19,7 @@ claude plugin install pm@byjunyoung      # if you also write specs
 
 Neither needs the other. Most of what follows is about `fig`; `pm` has [its own section](#pm--product-docs), and the two config values you set when you run both are in [Where the two meet](#where-the-two-meet).
 
-[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The thirteen skills](#the-thirteen-skills) · [Getting started](#getting-started) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Design principles](#design-principles) · [pm](#pm--product-docs) · [Where the two meet](#where-the-two-meet)
+[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The skills](#the-skills) · [Getting started](#getting-started) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Design principles](#design-principles) · [pm](#pm--product-docs) · [Where the two meet](#where-the-two-meet)
 
 ---
 
@@ -82,6 +82,7 @@ Three rhythms: the cycle of drawing and handing off one feature, the per-release
    ·          Draw the screens (official plugins, or by hand)
 /fig:arrows   Wire transition arrows and state groups
 /fig:lint     Audit structure, flow, and components in one pass
+/fig:handoff  Mark the passing sections Ready for dev and hand over the links
 /fig:diff     For revisions to existing screens, pin change annotations
 ```
 
@@ -163,7 +164,7 @@ flowchart TD
 
 ---
 
-## The thirteen skills
+## The skills
 
 | Command | What it does |
 |---|---|
@@ -172,6 +173,7 @@ flowchart TD
 | `/fig:prep` | Normalize names · place into sections · stub missing screens |
 | `/fig:arrows` | Create and re-sync flow arrows |
 | `/fig:lint` | Read-only audit gate (zero writes) |
+| `/fig:handoff` | Mark lint-passed sections Ready for dev · hand over the links |
 | `/fig:tokens` | Audit design system token binding for colors |
 | `/fig:sync` | Full canonical-page audit → apply → archive |
 | `/fig:diff` | Annotate changes · write up the task doc |
@@ -401,7 +403,7 @@ Conventions live in one file, `figma-conventions.yaml`, not in the skill docs. S
 
 <img src=".github/config-layers.png" alt="Three config layers stacked, with one key resolving from each layer and the merged result underneath" width="100%">
 
-The full schema lives in [`conventions.example.yaml`](plugins/fig/_common/conventions.example.yaml) — 14 sections, 112 keys, each commented with what it governs, so you can copy it and edit in place. It looks like this:
+The full schema lives in [`conventions.example.yaml`](plugins/fig/_common/conventions.example.yaml) — every section commented with what it governs, so you can copy it and edit in place. It looks like this:
 
 ```yaml
 naming:

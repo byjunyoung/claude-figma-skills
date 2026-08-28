@@ -207,13 +207,15 @@ running `/fig:setup` again once the file has habits of its own observes them ins
 
 There is nothing to lint yet, so the first result is the structure itself. Ask for one feature
 and its two to four screens — "Login: the form, success, the error" — and hand `/fig:prep` the
-page and that list. It previews one section named by the rule and one dashed placeholder per
+page and that list, with one page before it: a **Cover** — the file's name, one line on what it
+is for, and a status line. Figma's own file-organization guide opens every file with one, and it
+is what people see in the file browser. The cover carries no prefix, so no rule applies to it. It previews one section named by the rule and one dashed placeholder per
 screen named by the rule, writes them after the go, and calls `/fig:lint`, which reports the
 placeholders as the to-draw list. That is the moment the rules become visible on the canvas.
 
 Where the seat is View (`whoami`), `/fig:prep` cannot write. Give the same skeleton as a tree —
-the page name, the section name, each placeholder's name — for the person to make by hand, and
-run `/fig:lint` on it once they have.
+the cover, the page name, the section name, each placeholder's name — for the person to make by
+hand, and run `/fig:lint` on it once they have.
 
 ### S6. How to operate under the rules
 

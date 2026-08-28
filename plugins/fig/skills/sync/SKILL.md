@@ -129,6 +129,21 @@ Move working pages whose changes are now in canonical into the archive.
 - Confirm the moved frames have the same text node count as before the move
 - Reference material kept in canonical but excluded from audits (size variants and the like) goes in a section matching `pages.exclude_sections`. Left in a normal section it reports as a missing state variant or a flow orphan
 
+### Step 6 — the signals Figma shows engineering
+
+Where `handoff.dev_status` is on, and only after Step 5 passed:
+
+1. **Mark completed** — on each canonical section the applied changes landed in, `section.devStatus = { type: "COMPLETED" }`. This is what turns the "ready for dev" a prep left there into "shipped" where engineering looks
+2. **Name the version** — `sync.named_version` with `{date}` and `{n}` (screens applied) filled in, then in a **separate** `use_figma` call after every write above has finished:
+
+   ```js
+   await figma.saveVersionHistoryAsync("{title}", "{one line: what was applied, from where}");
+   ```
+
+   Separate on purpose: changes made earlier in the same script are not guaranteed to be in the version. `null` saves none
+
+Both go in the preview with everything else; nothing here is a second gate. *(Not yet run on a live file — the seat where this was written could only view. The first sync on an Edit seat verifies both, and removes this note.)*
+
 ## Reporting
 
 ```
@@ -144,6 +159,9 @@ audited N  →  applied X · not applied Y · needs checking Z
 
 [archived]
 · working page → archive location, whether deleted
+
+[handoff]
+· sections marked completed: N · version saved: {title}   (or: off — handoff.dev_status)
 ```
 
 If nothing was un-applied, report just that, briefly.
