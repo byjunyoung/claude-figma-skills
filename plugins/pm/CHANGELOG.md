@@ -1,5 +1,8 @@
 # pm
 
+## 0.8.0 — 2026-08-28
+- `/pm:log` reads the channel you type notes to yourself in, and carries the text across rather than a link that expires
+
 ## 0.7.0 — 2026-08-28
 - `/pm:log` writes a day's work log as a file, and fills the days an earlier run missed
 - `/pm:log-review` turns a period of those logs into accomplishment statements, asking for the role, the measure and the learning it cannot derive

@@ -213,11 +213,15 @@ log:
     tracker_user_id: null      # your id in the record tracker. tells your rows from the team's
   people: {}                   # tracker user id -> display name, for the team section
   sections: [What I did, Meetings, My tasks, Team tasks (reference),
-             Decisions, What others said, Evidence, Follow-ups, Tomorrow]
+             Decisions, What others said, Evidence, Notes, Follow-ups, Tomorrow]
   empty_line: "- Nothing of note"   # what a section with nothing in it says
   sources:
     calendar: null             # calendar id, or null to skip
     chat_channels: []          # channel ids to read for the day
+    notes_channel: null        # where you type notes to yourself — meetings, memos.
+                               # a channel only you write in, so nothing has to be tagged
+    notes_exclude_apps: []     # user ids of apps that post there on your behalf.
+                               # their output is not something you wrote
   backfill:
     business_days: 3           # how many past days to re-check for gaps
 

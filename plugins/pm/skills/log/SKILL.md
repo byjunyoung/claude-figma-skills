@@ -69,6 +69,15 @@ From the same pass, pull out two things that are cheap now and unrecoverable lat
 - **What others said** — messages *about* the user's work: thanks, praise, criticism, an accepted proposal, a request that names them as the one to do it. Record the sender, the quote as written, and the permalink. Do not include something merely because the user was mentioned in it, and do not soften or sharpen the wording.
 - **Decisions** — a decision the user made or took part in, with the reason **as the source states it**. No reason in the source means no reason in the file. Do not reconstruct rationale.
 
+- **Your own notes** — `log.sources.notes_channel` is a channel only you write in, so everything
+  there is yours by definition and nothing needs tagging. Read the day's messages and drop the
+  ones an app posted on your behalf: the workspace attributes those to the app, and the ids to
+  ignore are in `log.sources.notes_exclude_apps`. Nothing you did not type belongs here.
+
+  **Carry the text across, not a link to it.** Chat retention expires; this file does not, and
+  a log that points at a message nobody can open years later has not recorded anything. Keep the
+  time, the body as written, and the permalink alongside it.
+
 Chat search tools cap their response size. Ask for concise output without surrounding context, and page rather than widening a single call — an over-large request fails outright and returns nothing, which reads as silence.
 
 ## 5. Assemble
@@ -86,6 +95,7 @@ What belongs where, given the default section names:
 | Decisions | What was decided, and the stated reason. One line each |
 | What others said | Sender, quote, permalink. Verbatim |
 | Evidence | Links to what the day produced — a change request, a design node, a document, a release announcement |
+| Notes | What you typed to yourself that day — meeting notes, memos, things to look into. Body as written, with time and permalink |
 | Follow-ups | Threads still open, each with the action it is waiting on |
 | Tomorrow | One to three unchecked boxes, drawn from what is unresolved |
 
