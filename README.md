@@ -541,7 +541,7 @@ One repo holds several plugins. `plugins` in `marketplace.json` is an array, so 
 
 Figma plugins have no filesystem access. So config resolution happens locally: `resolve-config.py --js <fileKey>` emits a single line that gets prepended to the script before it runs. Script paths are relative to `${CLAUDE_PLUGIN_ROOT}`, since install locations differ between environments.
 
-After editing a skill, run `python3 tools/verify.py` from the repo root. It checks every plugin listed in the marketplace, and flags shared files that have drifted apart between them. The same run happens on every push. The one check that needs your team's own names — the leak check — runs there too once a `TEAM_STRINGS` secret holds the list, one name per line, in the form `team-strings.example.txt` shows; the names are masked in the log.
+After editing a skill, run `bash tools/verify-all.sh` from the repo root — the consistency check plus every fixture, the same list CI runs. The consistency check itself (`tools/verify.py`) covers every plugin listed in the marketplace, and flags shared files that have drifted apart between them. The same run happens on every push. The one check that needs your team's own names — the leak check — runs there too once a `TEAM_STRINGS` secret holds the list, one name per line, in the form `team-strings.example.txt` shows; the names are masked in the log.
 
 ## Built with
 
