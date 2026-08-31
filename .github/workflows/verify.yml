@@ -27,21 +27,7 @@ jobs:
             [ -n "$line" ] && echo "::add-mask::${line#!}"
           done
           printf '%s\n' "$TEAM_STRINGS" > tools/team-strings.local.txt
-      - name: Repository consistency
-        run: python3 tools/verify.py
-      - name: Figma sandbox script syntax
-        run: bash plugins/fig/_common/scripts/lib/check.sh
-      - name: Arrow geometry fixtures
-        run: node --test tools/test/audit-flow.test.js
-      - name: Config resolution fixtures
-        run: python3 tools/test/resolve-config.test.py
-      - name: Adapter lookup fixtures
-        run: python3 tools/test/adapter.test.py
-      - name: Starter conventions fixtures
-        run: python3 tools/test/starter-conventions.test.py
-      - name: Preflight fixtures
-        run: python3 tools/test/preflight.test.py
-      - name: Draft generator fixtures
-        run: python3 tools/test/draft-conventions.test.py
-      - name: Notion export importer fixtures
-        run: node --test plugins/pm/_common/scripts/import-notion-export.test.mjs
+      # One script, so the workflow and the local command can never disagree about what runs.
+      # It discovers the checks itself — a fixture added under tools/test needs no edit here.
+      - name: All checks
+        run: bash tools/verify-all.sh

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Repository consistency check — every plugin registered in the marketplace.
 
-    python3 tools/verify.py
+    python3 tools/verify.py      # this check alone
+    bash tools/verify-all.sh     # this plus every fixture — the list CI runs
 
 Run this after editing a skill. It is the regression gate for as long as `plugin eval` stays
 behind early access. It checks one thing: has the documentation drifted from the reality —

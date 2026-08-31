@@ -51,12 +51,13 @@ splits into separate calls issued in parallel in one message.
 ## After editing
 
 ```bash
-python3 tools/verify.py     # from the repository root
+bash tools/verify-all.sh    # from the repository root
 ```
 
 What it checks — both config files parse · every team config key exists in the schema · script syntax ·
 the frontmatter `name` matches the directory · the config keys a SKILL.md references actually exist ·
-the skills it points at actually exist · no team-specific values are left in.
+the skills it points at actually exist · no team-specific values are left in · every fixture under
+`tools/test` passes. It is the list CI runs, so a green run here is a green run there.
 
 The team-value check runs **one pattern at a time.** Joining several with `|` tangles the escaping and
 silently returns zero — one case actually slipped through that way.
@@ -84,7 +85,7 @@ Edit in your working copy and push to the repository.
 
 ```
 1  edit in the working copy
-2  python3 tools/verify.py          confirm zero violations
+2  bash tools/verify-all.sh         confirm zero violations
 3  bump version in .claude-plugin/plugin.json   ← skip this and the installed copy never changes
 4  push to the repository
 5  claude plugin marketplace update <marketplace>
