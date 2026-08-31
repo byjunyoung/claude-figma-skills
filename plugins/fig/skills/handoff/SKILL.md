@@ -1,7 +1,7 @@
 ---
 name: handoff
-description: Hands finished sections to engineering. Runs /fig:lint as the gate, lets the person pick which passing sections go, marks them Ready for dev in Figma — the status engineering actually sees in Dev Mode — hands over the section links, and writes one line into the task doc where a tracker is configured. Nothing else is touched. Triggers - "/fig:handoff", "hand this off", "mark these ready for dev", "send this to engineering", "개발 넘겨줘", "핸드오프 해줘", "Ready for dev 표시해줘", "이 섹션 개발팀에 넘겨".
-allowed-tools: AskUserQuestion, Bash, Read, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__whoami, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__add_issue_comment
+description: Hands finished sections to engineering. Runs /fig:lint as the gate, lets the person pick which passing sections go, hands over the section links, and writes one line into the task doc where a tracker is configured. Marking them Ready for dev in Figma is off by default: use_figma cannot write a dev status. Nothing else is touched. Triggers - "/fig:handoff", "hand this off", "mark these ready for dev", "send this to engineering", "개발 넘겨줘", "핸드오프 해줘", "Ready for dev 표시해줘", "이 섹션 개발팀에 넘겨".
+allowed-tools: AskUserQuestion, Bash, Read, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__add_issue_comment
 ---
 
 # fig:handoff — hand finished sections to engineering

@@ -1,5 +1,8 @@
 # fig
 
+## 3.11.2 — 2026-08-31
+- `/fig:handoff`'s own one-line description still promised the Ready-for-dev mark 3.11.1 had just turned off — the one line an agent reads before deciding to run it. It now says what the skill does and that the mark is off; `whoami` leaves its tool list with the seat check that is gone
+
 ## 3.11.1 — 2026-08-31
 - The two Figma writes 3.11.0 shipped as unverified turn out to be unavailable, not untested: `use_figma` rejects `section.devStatus` (getter and setter both) and `figma.saveVersionHistoryAsync` with `"… is not a supported API"`. An Edit seat changes nothing — it is the tool's allowlist, and Figma's REST API reads a dev status but has no endpoint that sets one. `handoff.dev_status` and `sync.named_version` now ship off, the code is kept for a runtime that does expose it, and the skills say what the error means instead of pointing at the seat
 - `starter-conventions.py` and `/fig:setup` no longer carry a team's own page prefix as the starter default
