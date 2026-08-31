@@ -47,7 +47,7 @@ if cfg:
     check("1440 → every key is in the schema", not unknown, ", ".join(unknown))
     lo = cfg["layout"]
     check("1440 → gap 120, grid 1560", lo["frame_gap"] == 120 and lo["column_grid"] == 1560, str(lo))
-    check("1440 → strict page prefix escaped", cfg["pages"]["strict"] == ["^\\[UI\\]\\ "], str(cfg["pages"]["strict"]))
+    check("1440 → strict page prefix escaped", cfg["pages"]["strict"] == ["^\\[Design\\]\\ "], str(cfg["pages"]["strict"]))
     check("1440 → profile is starter", cfg["meta"]["profile"] == "starter")
     check("1440 → every line of layout says where it came from", all("#" in ln for ln in out.splitlines() if ln.startswith("  ") and ":" in ln and "layout" not in ln and ln.strip().split(":")[0] in lo), out)
 
@@ -75,7 +75,7 @@ with tempfile.TemporaryDirectory() as tmp:
     merged = json.loads(r.stdout) if r.returncode == 0 else {}
     check("merged → layout filled where the bundle had null", merged.get("layout", {}).get("frame_gap") == 120 and merged["layout"]["section_padding"] == 120, r.stderr)
     check("merged → bundled arrow style still there", merged.get("arrows", {}).get("stroke_weight") == 3)
-    check("merged → strict pages set", merged.get("pages", {}).get("strict") == ["^\\[UI\\]\\ "])
+    check("merged → strict pages set", merged.get("pages", {}).get("strict") == ["^\\[Design\\]\\ "])
 
 print()
 if failures:
