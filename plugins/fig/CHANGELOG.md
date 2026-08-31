@@ -1,5 +1,9 @@
 # fig
 
+## 3.11.1 — 2026-08-31
+- The two Figma writes 3.11.0 shipped as unverified turn out to be unavailable, not untested: `use_figma` rejects `section.devStatus` (getter and setter both) and `figma.saveVersionHistoryAsync` with `"… is not a supported API"`. An Edit seat changes nothing — it is the tool's allowlist, and Figma's REST API reads a dev status but has no endpoint that sets one. `handoff.dev_status` and `sync.named_version` now ship off, the code is kept for a runtime that does expose it, and the skills say what the error means instead of pointing at the seat
+- `starter-conventions.py` and `/fig:setup` no longer carry a team's own page prefix as the starter default
+
 ## 3.11.0 — 2026-08-29
 - `/fig:handoff` — the last step of the cycle. `/fig:lint` is the gate, the person picks which passing sections go, the skill marks them *Ready for dev* in Figma (the status engineering sees in Dev Mode), hands over the section links, and writes one line into the task doc where a tracker is configured. `/fig:sync` marks sections *Completed* after canonical apply and saves a named version. `handoff.dev_status` switches the statuses, `sync.named_version` names the version. The starter skeleton opens with a Cover page. Measured against Figma's file-organization and Dev Mode guides
 - The Figma writes for status and version are marked as not yet run on a live file — the seat where they were written could only view; the first run on an Edit seat verifies them

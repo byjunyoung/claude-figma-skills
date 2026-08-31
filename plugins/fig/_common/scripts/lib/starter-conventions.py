@@ -13,7 +13,7 @@ style are not written at all: the bundled defaults already carry them, and writi
 would only make them harder to change later.
 
 Usage
-    python3 starter-conventions.py --width 1440 --states Default,Empty,Loading,Error,Validation,Selected --prefix "[UI] "
+    python3 starter-conventions.py --width 1440 --states Default,Empty,Loading,Error,Validation,Selected --prefix "[Design] "
     python3 starter-conventions.py --width 390 > ./figma-conventions.yaml
 
 Nothing here is measured. Every value carries a comment that says where it came from.
@@ -47,7 +47,7 @@ def main():
     argv = sys.argv[1:]
     width = int(take(argv, "--width", "1440"))
     states = [s.strip() for s in take(argv, "--states", ",".join(DEFAULT_STATES)).split(",") if s.strip()]
-    prefix = take(argv, "--prefix", "[UI] ")
+    prefix = take(argv, "--prefix", "[Design] ")
     if width < 100:
         sys.exit("--width is a screen width in px, e.g. 1440 or 390")
     if "Default" not in states:

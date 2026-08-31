@@ -82,7 +82,7 @@ Three rhythms: the cycle of drawing and handing off one feature, the per-release
    ·          Draw the screens (official plugins, or by hand)
 /fig:arrows   Wire transition arrows and state groups
 /fig:lint     Audit structure, flow, and components in one pass
-/fig:handoff  Mark the passing sections Ready for dev and hand over the links
+/fig:handoff  Gate the passing sections and hand over the links
 /fig:diff     For revisions to existing screens, pin change annotations
 ```
 
@@ -173,7 +173,7 @@ flowchart TD
 | `/fig:prep` | Normalize names · place into sections · stub missing screens |
 | `/fig:arrows` | Create and re-sync flow arrows |
 | `/fig:lint` | Read-only audit gate (zero writes) |
-| `/fig:handoff` | Mark lint-passed sections Ready for dev · hand over the links |
+| `/fig:handoff` | Pick from the lint-passed sections · hand over the links · one line in the task doc |
 | `/fig:tokens` | Audit design system token binding for colors |
 | `/fig:sync` | Full canonical-page audit → apply → archive |
 | `/fig:diff` | Annotate changes · write up the task doc |

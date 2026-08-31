@@ -18,7 +18,7 @@ the links, and leaves one line in the task doc. It draws nothing, moves nothing,
 **Prerequisites**: load `figma:figma-use` before calling `use_figma`. Every write goes through
 preview → go.
 
-**Seat check before the first write** — call `whoami` once. Where every plan it lists carries `seat: View`, the status cannot be set: hand over the links and say who with an Edit seat sets it. Where the seats are mixed, go ahead — and if the write comes back as a permission error, report the seat table and stop rather than retrying.
+**`devStatus` cannot be written through `use_figma`.** The tool's API allowlist rejects the getter and the setter alike — `"devStatus" is not a supported API` — on an Edit seat as much as a View one (checked on a live file, 2026-08-31). Figma's REST API reads the status but has no endpoint that sets it, so there is no way round it from here. `handoff.dev_status` therefore ships off, and the skill hands over links without touching Figma. Where someone turns it on and the write throws, report the error as it came and stop: it is not a permission problem, and no seat and no retry changes it.
 
 ## When to invoke
 
@@ -46,13 +46,13 @@ preview → go.
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --js <fileKey>
 ```
 
-`handoff.dev_status` — off, and the skill hands over links without touching Figma. `handoff.ready_note` — the note on the status. `task_tracker.type` and `task_tracker.ui_section_heading` — where the one line goes; `none` writes none.
+`handoff.dev_status` — off by default, and the skill hands over links without touching Figma; read the note at the top before turning it on. `handoff.ready_note` — the note on the status. `task_tracker.type` and `task_tracker.ui_section_heading` — where the one line goes; `none` writes none.
 
 ## Procedure
 
-### 0. Seat
+### 0. Status route
 
-`whoami`, as above. On a View seat, steps 1 to 3 still run — the gate and the choice are worth having — and the report says the status was not set and by whom it can be.
+With `handoff.dev_status` off — the default — steps 1 to 3 still run: the gate and the choice are the point, and the links are what actually gets handed over. The report then says the status was not set, and that it is set by hand in Dev Mode on the section. Nothing about the seat is worth checking here; what blocks the write belongs to the tool, not to the file.
 
 ### 1. The gate — `/fig:lint` on the page (zero writes)
 
@@ -87,6 +87,10 @@ Then the go.
 
 ### 5. Write
 
+Only where `handoff.dev_status` was turned on. Through `use_figma` this throws — see the note at
+the top. The call is kept as written because it is correct against the Plugin API, and a runtime
+that exposes it needs no other change:
+
 ```js
 // on each chosen section — never on a frame: a node inside a section that has a status cannot carry one
 section.devStatus = { type: "READY_FOR_DEV", description: "{note}" };
@@ -98,7 +102,7 @@ Then the task-doc line, where configured.
 
 Re-read `devStatus` on every section written. The status is not visible in a screenshot, so the check is the property. A mismatch is reported, not retried.
 
-*(Setting `devStatus` has not yet been run on a live file — the seat where this skill was written could only view. The first run on an Edit seat verifies it, and removes this note.)*
+*(Run on a live file with an Edit seat, 2026-08-31: the read and the write are both rejected by `use_figma` with `"devStatus" is not a supported API`. The property is there on the node — the allowlist is what stops it. Recorded so the next reader does not go looking for a permission problem.)*
 
 ## Report
 
@@ -111,7 +115,7 @@ Re-read `devStatus` on every section written. The status is not visible in a scr
 · 03. Account - Recovery   lint: 2 frames outside any section · Recovery-Error missing
 
 [task doc]   {where the line went, or "no tracker configured"}
-[status]     set · or: not set — View seat; someone with an Edit seat marks these
+[status]     not set — mark these by hand in Dev Mode on each section (handoff.dev_status is off)
 ```
 
 ## Constraints
@@ -120,4 +124,4 @@ Re-read `devStatus` on every section written. The status is not visible in a scr
 - A section that fails lint is never marked, whoever asks
 - Status goes on sections only
 - A section already `COMPLETED` is not touched without its own confirmation
-- On a View seat, report — do not retry the write
+- Where the status write is rejected, report the error as it came — do not retry it, and do not read it as a seat problem

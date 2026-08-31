@@ -177,20 +177,20 @@ each as *the rule · an example · what `/fig:lint` will catch because of it*:
 | How far apart | gaps derived from the screen width — a 1440 screen gets 120 | frames 120 apart, sections 240, domains 480 | uneven gaps; a frame off the grid |
 | How a flow is drawn | an arrow from the edge of one screen to the edge of the next, labelled at a branch; a same-screen result is a dashed `[state]` chain, not an arrow | `Login-Default --> Home-Default` | an arrow entering from the wrong side; an unlabelled branch; a flow passing through a screen |
 
-And which pages count: the pages engineering builds from start with a prefix — `[UI] ` — and
+And which pages count: the pages engineering builds from start with a prefix — `[Design] ` — and
 every rule applies there; a section named `Template` is never audited.
 
 ### S2. Three questions, each with "keep the starter"
 
 One at a time. The screen width — 1440 for desktop, 390 for a phone, or the number. The state
 list — the starter six, or the ones this product needs. The prefix of the pages that count —
-`[UI] `, or the team's own word. Nothing else is asked; everything else is the plugin's opinion
+`[Design] `, or the team's own word. Nothing else is asked; everything else is the plugin's opinion
 until the file has one of its own.
 
 ### S3. Generate
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/starter-conventions.py --width 1440 --states Default,Empty,Loading,Error,Validation,Selected --prefix "[UI] " > draft.yaml
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/starter-conventions.py --width 1440 --states Default,Empty,Loading,Error,Validation,Selected --prefix "[Design] " > draft.yaml
 ```
 
 Every line carries `# starter — …` saying how it was picked. Spacing is derived from the width

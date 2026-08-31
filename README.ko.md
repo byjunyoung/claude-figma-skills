@@ -82,7 +82,7 @@ Figma를 다루는 도구는 크게 둘로 갈립니다. 화면 안을 그려내
    ·          화면을 그린다 (공식 플러그인 또는 손으로)
 /fig:arrows   전환 화살표와 상태 묶음을 연결한다
 /fig:lint     구조 · 흐름 · 컴포넌트를 한 번에 검사한다
-/fig:handoff  통과한 섹션에 Ready for dev 를 표시하고 링크를 넘긴다
+/fig:handoff  통과한 섹션 중에서 고르고 링크를 넘긴다
 /fig:diff     기존 화면을 고친 일감이면 변경점에 주석 핀을 박는다
 ```
 
@@ -173,7 +173,7 @@ flowchart TD
 | `/fig:prep` | 이름 통일 · 섹션 배치 · 누락 화면 placeholder |
 | `/fig:arrows` | 흐름 화살표 생성과 재동기화 |
 | `/fig:lint` | 읽기 전용 검증 게이트 (쓰기 0) |
-| `/fig:handoff` | 검사 통과한 섹션에 Ready for dev 표시 · 넘길 링크 정리 |
+| `/fig:handoff` | 검사 통과한 섹션에서 고르기 · 넘길 링크 정리 · 일감 문서 한 줄 |
 | `/fig:tokens` | 색상의 디자인시스템 토큰 바인딩 검수 |
 | `/fig:sync` | 정본 반영 전수 감사 → 반영 → 이관 |
 | `/fig:diff` | 변경점 주석 표기 · 일감 문서 정리 |

@@ -140,9 +140,11 @@ Where `handoff.dev_status` is on, and only after Step 5 passed:
    await figma.saveVersionHistoryAsync("{title}", "{one line: what was applied, from where}");
    ```
 
-   Separate on purpose: changes made earlier in the same script are not guaranteed to be in the version. `null` saves none
+   Separate on purpose: changes made earlier in the same script are not guaranteed to be in the version. `null` saves none — and `null` is the default
 
-Both go in the preview with everything else; nothing here is a second gate. *(Not yet run on a live file — the seat where this was written could only view. The first sync on an Edit seat verifies both, and removes this note.)*
+Both go in the preview with everything else; nothing here is a second gate.
+
+*(Checked on a live file with an Edit seat, 2026-08-31: `use_figma` rejects both of these — `"devStatus" is not a supported API` and `"saveVersionHistoryAsync" is not a supported API`. It is the tool's allowlist, not the seat and not the file, and Figma's REST API has no endpoint that sets a dev status either. Both settings ship off; the apply in Steps 1 to 5 is unaffected and its seat check above still holds.)*
 
 ## Reporting
 
@@ -161,7 +163,7 @@ audited N  →  applied X · not applied Y · needs checking Z
 · working page → archive location, whether deleted
 
 [handoff]
-· sections marked completed: N · version saved: {title}   (or: off — handoff.dev_status)
+· sections marked completed: N · version saved: {title}   (or: off — handoff.dev_status, sync.named_version)
 ```
 
 If nothing was un-applied, report just that, briefly.
