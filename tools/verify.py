@@ -7,7 +7,11 @@
 Run this after editing a skill. It is the regression gate for as long as `plugin eval` stays
 behind early access. It checks one thing: has the documentation drifted from the reality —
 a config key a skill references that is not in the schema, a skill it points at that does not
-exist, a team-specific value left in.
+exist, a skill no README introduces, a section one language's README has and the other does not,
+a version with no changelog entry, a team-specific value left in.
+
+What it cannot do is read a sentence and judge whether it is still true. That half is a checklist,
+in CLAUDE.md at the repository root.
 
 This is a repository development tool, so it does not live inside a plugin. It never ships to an install.
 
@@ -262,6 +266,44 @@ def check_plugin(name, root, yaml):
                 if not any(tool in a for a in allowed):
                     fails.append(f"[{name}] {kind}/{f.name} names `{tool}`, which no skill's allowed-tools carries")
 
+    # Every skill has to be introduced where a reader goes looking for one. The three READMEs each
+    # open with a table of commands, and a skill added without a row there exists for whoever wrote
+    # it and nobody else — which is exactly how the Korean README came to name /pm:log in its
+    # requirements table without ever saying what /pm:log is.
+    #
+    # The skills table is the FIRST table in the document whose rows begin with a single command of
+    # this plugin. Later tables name several commands per cell (what each skill needs, prerequisites),
+    # so they never take the title by accident.
+    row_cmd = re.compile(rf"^`/{name}:([a-z-]+)`$")
+    for f in (root / "README.md", REPO / "README.md", REPO / "README.ko.md"):
+        if not f.exists():
+            continue
+        block, blocks = 0, {}
+        for line in f.read_text().splitlines():
+            if not line.startswith("|"):
+                block += 1
+                continue
+            cells = line.split("|")
+            m = row_cmd.match(cells[1].strip()) if len(cells) > 2 else None
+            if m:
+                blocks.setdefault(block, set()).add(m.group(1))
+        if not blocks:
+            fails.append(f"[{name}] {f.name}: no table of commands at all — the skills are never introduced")
+            continue
+        listed = blocks[min(blocks)]
+        missing = sorted(set(names) - listed)
+        if missing:
+            fails.append(
+                f"[{name}] {f.name}: the skills table is missing {', '.join('/' + name + ':' + s for s in missing)}"
+                " — a skill nobody introduces is one nobody runs")
+
+    # A version bump with no changelog entry loses the only account of what changed. The manifest
+    # is the version people install; the changelog is where they read why.
+    ch = root / "CHANGELOG.md"
+    ver = json.loads((root / ".claude-plugin" / "plugin.json").read_text()).get("version") if (root / ".claude-plugin" / "plugin.json").exists() else None
+    if ver and ch.exists() and not re.search(rf"^##\s+{re.escape(ver)}\b", ch.read_text(), re.M):
+        fails.append(f"[{name}] CHANGELOG.md has no entry for {ver} — the version people install is undocumented")
+
     # A skill count written into prose is wrong the day a skill is added. The list of skills is
     # the directory; prose says "the skills" or lists them, never a number
     COUNT_WORDS = r"(\d+|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|twenty)"
@@ -319,6 +361,48 @@ def main():
             continue
         roots[name] = root
         check_plugin(name, root, yaml)
+
+    # Files outside plugins/ ship too — the repository is public, so a diagram, a dev checklist or a
+    # tool carries a team's name just as far as a SKILL.md does. The per-plugin check never looked
+    # at them, because it walks a plugin's own directory.
+    #
+    # Strict where the file has no reason to hold a value (a checklist, a tool), identifiers only
+    # where it does: the READMEs and the diagrams show example config, and an example config is
+    # values.
+    repo_files = [(REPO / "CLAUDE.md", TEAM_STRINGS)]
+    repo_files += [(f, TEAM_STRINGS) for f in sorted((REPO / "tools").glob("*.py")) + sorted((REPO / "tools").glob("*.sh"))]
+    repo_files += [(f, IDENTITY_STRINGS) for f in sorted((REPO / ".github").rglob("*.html"))]
+    repo_files += [(f, IDENTITY_STRINGS) for f in sorted((REPO / ".github" / "workflows").glob("*.yml"))]
+    for f, words in repo_files:
+        if not f.exists():
+            continue
+        t_ = f.read_text(errors="ignore")
+        for w in words:
+            if w in t_:
+                fails.append(f"[repo] {f.relative_to(REPO)}: team value '{w}' — this repository is public")
+
+    # The two root READMEs are one document in two languages, so they drift the way a translation
+    # drifts: something is added to the English and the Korean is never opened. It went unnoticed
+    # for four days that the Korean README had no /pm:log section at all.
+    #
+    # Two signals, both cheap. The set of commands each names, and how many headings each carries
+    # per level. A whole section added on one side moves the second number; a command added to a
+    # table moves the first.
+    en, ko = REPO / "README.md", REPO / "README.ko.md"
+    if en.exists() and ko.exists():
+        cmd = re.compile(rf"/(?:{'|'.join(map(re.escape, roots))}):[a-z-]+")
+        te, tk = en.read_text(), ko.read_text()
+        for label, only in (("README.md", set(cmd.findall(te)) - set(cmd.findall(tk))),
+                            ("README.ko.md", set(cmd.findall(tk)) - set(cmd.findall(te)))):
+            if only:
+                other = "README.ko.md" if label == "README.md" else "README.md"
+                fails.append(f"[docs] {' '.join(sorted(only))} appears in {label} but not in {other}")
+        head = lambda s: {n: len(re.findall(rf"^#{{{n}}} ", s, re.M)) for n in (2, 3)}
+        he, hk = head(te), head(tk)
+        if he != hk:
+            diff = ", ".join(f"{'#' * n} {he[n]} vs {hk[n]}" for n in he if he[n] != hk[n])
+            fails.append(f"[docs] README.md and README.ko.md have different sections ({diff})"
+                         " — one side gained a section the other never got")
 
     # Have the shared copies diverged
     for rel in SHARED:
