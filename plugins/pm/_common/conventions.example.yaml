@@ -162,7 +162,10 @@ task:
     parent_kind:   null          # Epic, Project, Milestone — whatever your tracker calls it
     parent_title:  null          # e.g. "[EPIC] [{group}] {name}"
     milestone_on:  none          # parent | task | none — which level carries a milestone
-    milestone_format: null       # e.g. "{project} YYYY-MM"
+    milestone_format: null       # e.g. "{project} YYYY-MM". Where the milestone axis differs
+                                 # by project — one on a month, another on a release version —
+                                 # write a map keyed by project name instead of one string, and
+                                 # key it by the name the tracker shows, not the doc's own
     milestone_projects: []       # projects that use milestones; empty means none do
 
   # --- Which side wins, per field ------------------------------------------------

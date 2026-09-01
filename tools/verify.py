@@ -31,6 +31,7 @@ FREE_KEY_MAPS = (
     "files.", "qa.environments.",
     "task.mirror_extras.", "task.label_map.", "task.assignee_map.",
     "task.status_map.", "task.field_owner.",
+    "task.hierarchy.milestone_format.",
 )
 
 SHARED = ["_common/scripts/lib/resolve-config.py", "_common/scripts/lib/preflight.py"]

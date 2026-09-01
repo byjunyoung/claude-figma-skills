@@ -1,5 +1,8 @@
 # pm
 
+## 0.15.1 — 2026-09-01
+- `task.hierarchy.milestone_format` takes a map keyed by project name, not one string only. A team whose projects run on different milestone axes — one on the month, another on a release version — had no way to write that down, and `verify` counted each project's entry as a key the schema did not know. Key it by the name the tracker shows, since that is what makes an existing milestone come up as a candidate
+
 ## 0.15.0 — 2026-09-01
 - **The contract has a level.** `task.contract.level` says which ticket carries the done conditions and the QA checklist — the task, or the parent it hangs under. Put them where review happens: a condition and the step confirming it, split across two tickets, cannot be checked against each other and the coverage rule stops meaning anything. `level: none` files a summary and links only
 - At `level: parent` the contract is its own run (`mode: contract`) rather than a rewrite triggered by every sibling task, and it is a body edit on an existing parent — the two sections are replaced and every other section of that parent is left byte for byte

@@ -176,6 +176,7 @@ gh api repos/{repo}/milestones --paginate \
   -q '.[] | select(.title | startswith("{prefix}")) | select(.state=="open") | .title'
 
 # create one, after a preview
+# a map keyed by project name takes this project's entry; one string serves every project
 gh api -X POST repos/{repo}/milestones -f title="{task.hierarchy.milestone_format, filled in}"
 
 # set it on the parent
