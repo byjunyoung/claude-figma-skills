@@ -2,6 +2,8 @@
 
 A bundle for product specs and the tasks that come out of them. Write the spec, draft the task, file it, keep both sides reconciled — and keep a record of what you actually did.
 
+You type these the way you type anything else to Claude — `/pm:prd`, and it asks you what it cannot work out on its own. Nothing here asks you to write code.
+
 ```bash
 claude plugin marketplace add byjunyoung/claude-product-skills
 claude plugin install pm@byjunyoung
@@ -9,10 +11,10 @@ claude plugin install pm@byjunyoung
 
 | Command | What it does |
 |---|---|
-| `/pm:setup` | Reads your tool schemas and drafts the config |
+| `/pm:setup` | Reads how your own tools are set up and writes your first settings file |
 | `/pm:prd` | Writes a new requirements document, or extends one |
-| `/pm:task-draft` | Turns a request source into a task's context table |
-| `/pm:task-publish` | Files one task as a ticket in the engineering tracker |
+| `/pm:task-draft` | Turns a request — a chat thread, a page, a conversation — into a task's context table |
+| `/pm:task-publish` | Files one task as a ticket wherever engineering tracks its work |
 | `/pm:task-sync` | Reconciles the planning list against that tracker |
 | `/pm:log` | Writes a day's work log as a file from the same tracker |
 | `/pm:log-review` | Turns a period of those logs into accomplishment statements |
@@ -58,7 +60,8 @@ now and then    /pm:log-review   a period of those files → accomplishment stat
 
 **The first run is already useful.** A day's file is a written end-of-day summary — what moved, the meetings and what came out of them, the threads still open, what to pick up tomorrow. That it also accumulates into review material is the second benefit, not the first one you feel.
 
-### Running it on a schedule
+<details>
+<summary><b>Running it on a schedule — the wrapper, and why launchd rather than cron</b></summary>
 
 `/pm:log` is built to run with nobody watching. A wrapper and a calendar entry is the whole setup. Open only the tools it needs — `--dangerously-skip-permissions` is the wrong instrument for something that reaches your documents and your workspace.
 
@@ -86,13 +89,16 @@ Trim that tool list to the connectors you actually named in the config. **A tool
 
 On macOS use a launchd agent with `StartCalendarInterval`: unlike cron it runs a missed job when the machine next wakes, so a laptop asleep at the scheduled hour catches up instead of losing the day. Elsewhere, cron plus the backfill window covers the same ground — every run re-checks the last `log.backfill.business_days` days and fills what it missed.
 
+</details>
+
 ### Where meeting notes go
 
 `log.sources.notes_channel` is a channel only you write in — your own direct message to yourself works. Everything there is yours by definition, so nothing has to be tagged or prefixed while a meeting is underway. Anything an app posted there on your behalf is excluded by `log.sources.notes_exclude_apps`.
 
 The text is carried into the day's file rather than linked. Chat retention expires; a log that points at a message nobody can open years later has not recorded anything.
 
-### Coming from a Notion log
+<details>
+<summary><b>Coming from a Notion log — the importer, and what it learned on a real export</b></summary>
 
 `_common/scripts/import-notion-export.mjs` converts a Notion "Markdown & CSV" export of a daily-log database into one file per day. Three things it learned the hard way, on a real 354-page export:
 
@@ -101,6 +107,8 @@ The text is carried into the day's file rather than linked. Chat retention expir
 - Where the title carries an absolute date and the property disagrees, the title wins — and every disagreement is reported. On that export two pages had the wrong property, and trusting it would have buried two real days under empty templates.
 
 Nothing is dropped silently: undated pages, duplicates and unclaimed folders all land in `logs/_unresolved/` with a reason.
+
+</details>
 
 ## Configuration
 
@@ -112,7 +120,7 @@ the plugin's bundled defaults        the floor
 ./pm-conventions.yaml                per project (strongest)
 ```
 
-Three layers merge, so **only the keys you need have to be written.** The full schema is in `_common/conventions.example.yaml`, and `/pm:setup` drafts it by reading your tools' schemas — including the board field and option ids that no interface shows you. It opens by checking this machine — `python3` with PyYAML, `node`, and which connectors actually answer — so anything missing is named up front.
+Three layers merge, so **only the lines you actually want to change have to be written.** Everything that can be set is listed with a comment in `_common/conventions.example.yaml`, and `/pm:setup` drafts your copy by reading how your tools are already set up — including the board fields and option ids no interface shows you. It opens by checking this machine — the two programs it runs on (`python3` with PyYAML, and `node`) and which of your connected tools actually answer — so anything missing is named up front. You never have to open the file yourself: say what to change and Claude edits it.
 
 `/pm:setup` takes a `side` where the doc tool and the tracker are reachable from different machines, and leaves blank — with the question beside it — anything you cannot answer. A skill that cannot run without a setting stops and names the setting, rather than running on nothing.
 
