@@ -1,5 +1,8 @@
 # fig
 
+## 3.12.1 — 2026-09-01
+- The plugin's own README is written for the person who runs these commands, not for whoever wrote them. What each command does is said in plain words, the settings file is described as something Claude edits for you rather than something you open, and a Figma seat, a connected tool and an empty setting are each explained where they first come up
+
 ## 3.12.0 — 2026-09-01
 - `/fig:handoff` pins the moment it hands over. A handover names a Figma named version, every section link goes out with `&version-id=`, and the task-doc line carries the label and the version's own date — which is what `/pm:task-publish` reads to fill a ticket's referenced-version row. Without a pin, "matches the design" moves the next time somebody edits the file, and a ticket leaning on it is checked against a target that shifted after it was written
 - The version is Figma's own snapshot, so nothing is copied and no frozen duplicate of the file has to be kept current. Saving one stays manual — `use_figma`'s allowlist rejects the version API the same way it rejects `devStatus` — so the skill asks, the person saves, the skill reads it back over REST and stops rather than guessing when the token is missing or nothing matches
