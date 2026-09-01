@@ -271,9 +271,10 @@ def check_plugin(name, root, yaml):
     # it and nobody else — which is exactly how the Korean README came to name /pm:log in its
     # requirements table without ever saying what /pm:log is.
     #
-    # The skills table is the FIRST table in the document whose rows begin with a single command of
-    # this plugin. Later tables name several commands per cell (what each skill needs, prerequisites),
-    # so they never take the title by accident.
+    # The skills table is the one naming the MOST of this plugin's commands, one per row. Other
+    # tables mention commands too — what each skill needs, prerequisites — but a row there is
+    # usually several commands in one cell, and never the whole set. Picking by count rather than
+    # by position means reordering the document cannot change which table is judged.
     row_cmd = re.compile(rf"^`/{name}:([a-z-]+)`$")
     for f in (root / "README.md", REPO / "README.md", REPO / "README.ko.md"):
         if not f.exists():
@@ -290,7 +291,7 @@ def check_plugin(name, root, yaml):
         if not blocks:
             fails.append(f"[{name}] {f.name}: no table of commands at all — the skills are never introduced")
             continue
-        listed = blocks[min(blocks)]
+        listed = max(blocks.values(), key=len)
         missing = sorted(set(names) - listed)
         if missing:
             fails.append(
