@@ -271,9 +271,16 @@ Written into whichever ticket `task.contract.level` names — this one, or the p
 
   ← {contract.sections.qa} is not written. The note says it is coming, and an
     empty heading reads as something that got deleted
+
+### {contract.sections.links}
+- {link_rows.spec}:   {not settled yet — what is being waited on}
+- {link_rows.design}: {not settled yet — what is being waited on}
+- {link_rows.version}: {when it will be filled in}
 ```
 
 The note goes in **as a quote, never as a checkbox.** A checkbox invites ticking, which is how a placeholder ends up looking satisfied — the same failure that made "TBD" stop meaning anything. `{missing}` is filled from what the coverage pass could not settle, named specifically: a bare "not decided" tells the next reader nothing about what would unblock it.
+
+**The links section stays, and every row says its own state.** The rule that drops a row with no value is for a ticket whose other rows are filled — one absent row among several reads as "not applicable here". It inverts on a placeholder: drop them all and only the heading is left, which reads as a section somebody emptied, and nothing tells the reader apart "not decided yet" from "forgot to fill it in". So each row is written and names what it is waiting on. The referenced-version row is the one that can say *when* rather than *what* — there is nothing to pin until a design exists.
 
 ### 6. Preview → "go"
 

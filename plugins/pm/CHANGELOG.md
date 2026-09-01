@@ -1,5 +1,9 @@
 # pm
 
+## 0.15.3 — 2026-09-01
+- On a placeholder publish the links section stays, and every row says what it is waiting on. Dropping a row with no value is right when the other rows are filled — one absent row reads as "not applicable here". It inverts when none of them are: drop them all and only a heading is left, which reads as a section somebody emptied, and nothing separates "not decided yet" from "forgot to fill it in"
+- This plugin's README is written for the person who runs these commands. The command table says what each one does in plain words, the settings file is described as something Claude edits for you rather than something you open, and the two operator-level sections — the scheduling wrapper and the Notion importer — fold away so what a first-time reader needs is what stays on the page
+
 ## 0.15.2 — 2026-09-01
 - A ticket's section names come from the tracker's own template, not from this skill's preference. That template is shared with everyone who files a ticket, most of whom have nothing to do with this workflow, so renaming its sections to suit one process is a cost paid by people who get no benefit. What goes inside a section is ours to decide; what the section is called is not — and the project and version block is written again for the same reason, where the template asks for one
 
