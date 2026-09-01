@@ -4,34 +4,73 @@
 
 [한국어](README.ko.md) · **English**
 
-Most Claude Code skills are aimed at the codebase. These two are aimed at the work beside it — the Figma file you draw in, and the spec you write next to it. One repo, installed separately.
+Most Claude Code plugins are aimed at the codebase. These two are aimed at the work beside it — the Figma file you draw in, and the spec you write next to it. One repository, installed separately.
 
 | Plugin | What it does |
 |---|---|
 | **fig** | Everything around drawing a screen — the to-draw list before, the audit and sync after |
 | **pm** | Write and verify product specs, then draft, file and reconcile the tasks |
 
-```bash
-claude plugin marketplace add byjunyoung/claude-product-skills
-claude plugin install fig@byjunyoung
-claude plugin install pm@byjunyoung      # if you also write specs
-```
+**You do not write any code to use these.** You type `/fig:lint` the way you already type anything else to Claude, and it answers in words. A command to run or a settings file to edit turns up here and there — hand either to Claude rather than typing it yourself, and it does it and tells you what it found.
 
-Neither needs the other. Most of what follows is about `fig`; `pm` has [its own section](#pm--product-docs), and the two config values you set when you run both are in [Where the two meet](#where-the-two-meet).
+<sub>**New to Claude Code?** It is Anthropic's assistant, and it runs in a terminal, a desktop app, or your editor. Install it from [claude.com/claude-code](https://claude.com/claude-code) first — a *plugin* like these two adds commands to it, and a *marketplace* is where it downloads them from.</sub>
 
-[Where it fits](#where-it-fits) · [Who it's for](#who-its-for) · [What it solves](#what-it-solves) · [How you use it](#how-you-use-it) · [The skills](#the-skills) · [Getting started](#getting-started) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Design principles](#design-principles) · [pm](#pm--product-docs) · [Where the two meet](#where-the-two-meet)
+Neither needs the other. Most of what follows is about `fig`; `pm` has [its own section](#pm--product-docs), and the two settings you match up when you run both are in [Where the two meet](#where-the-two-meet).
+
+[What it solves](#what-it-solves) · [Your first five minutes](#your-first-five-minutes) · [Who it's for](#who-its-for) · [Where it fits](#where-it-fits) · [How you use it](#how-you-use-it) · [The skills](#the-skills) · [Getting started](#getting-started) · [Configuration](#configuration) · [Troubleshooting](#troubleshooting) · [Design principles](#design-principles) · [pm](#pm--product-docs) · [Where the two meet](#where-the-two-meet)
+
+<details>
+<summary>If any of the words below are new — ten of them, one line each</summary>
+
+| Word | What it means here |
+|---|---|
+| **Claude Code** | Anthropic's assistant, running in a terminal, a desktop app or your editor. Everything here happens inside it |
+| **plugin** | A bundle of commands you add to Claude Code. `fig` and `pm` are two of them |
+| **marketplace** | Where Claude Code downloads plugins from. `byjunyoung` is this repository's |
+| **skill / slash command** | One command, typed as `/fig:lint`. A skill is the instructions Claude follows when you type it |
+| **settings file** | One text file holding your team's rules — how screens are named, how far apart they sit. `/fig:setup` writes your first one |
+| **`null`** | A setting deliberately left empty. The check that needed it is skipped rather than guessed at |
+| **token** | A key you generate in a tool's own settings so a skill can talk to it directly. Figma and GitHub each have one |
+| **connection** | A tool linked to Claude — Notion, Slack, GitHub. A skill can only reach what is connected |
+| **tracker** | Wherever engineering keeps its tickets — GitHub, Jira, Linear. `pm` files into it |
+| **canonical page** | The Figma page that is the current truth, as opposed to the working copies beside it |
+
+</details>
 
 ---
 
-## Where it fits
+## What it solves
 
-Figma tooling splits into two halves: the half that draws what's inside a screen, and the half that handles everything around it.
+A design file rarely breaks when one person owns it. It breaks when there are several people, hundreds of screens, and a few months of history. Four things recur.
 
-Figma's official plugins (`figma-use`, `figma-generate-design`, `figma-generate-library`) are the first half. Give them code or a description and they produce screens and components.
+- **Duplication residue** — duplicate a screen to make a new one and the original's settings come along. An unused display toggle stays on, rendering an empty slot with nothing in it. It's invisible at zoomed-out scale
+- **Stale canonical page** — engineering has already shipped, but the canonical Figma page still shows the old screen. The next person plans against it
+- **Broken arrows** — move a screen and its flow arrows don't follow. Redrawing by hand costs enough that people leave them
+- **The screen nobody drew** — "what shows up in this case?" You find out that screen doesn't exist when engineering asks
 
-This bundle is the second half. Before you draw, it lays out the section skeleton and stubs the states that are missing, so the gap list is what you draw next. After, it checks whether names follow the convention, whether screens sit where they belong, whether flow arrows actually connect, whether changes shipped to engineering made it back into the canonical page. It runs on top of the official plugins, so you use both.
+None of the four is catchable by eye, and by the time you do catch one, engineering has already asked. This bundle measures for them instead.
 
-Drawing is the official plugins' job. What happens around the drawing is this bundle's.
+---
+
+## Your first five minutes
+
+```
+1  Install                     two lines in a terminal, once per machine
+2  /fig:setup <Figma file URL>  it reads how your file already names and spaces things,
+                               and writes what it found into a settings file on your machine
+3  /fig:lint                    the audit. It reads the page and reports back
+4  Read the report              and decide what is worth fixing
+```
+
+**None of these four touches your Figma file.** Step 2 writes one file on your own machine, step 3 writes nothing at all — so running them on a file other people are working in is safe.
+
+**Step 3 is where you find out whether this is for you.** The report names specific screens: this one sits outside its section, this arrow points at empty space, this duplicate kept a setting nobody wanted. If almost everything comes back flagged, that is not your file being a mess — it is the rules from step 2 being wrong, and [Troubleshooting](#troubleshooting) says which one to loosen.
+
+**You never have to open the settings file yourself.** Tell Claude what to change in your own words — "stop checking screen names", "the gap between screens is 160, not 120" — and it edits the file for you.
+
+[Getting started](#getting-started) has each step in full. [How you use it](#how-you-use-it) is the loop that runs around drawing a feature.
+
+---
 
 ## Who it's for
 
@@ -57,18 +96,15 @@ Where it isn't the right tool:
 - A one-off job of a screen or two is faster by hand
 - Building a component library from scratch belongs to the official `figma-generate-library`
 
-## What it solves
+## Where it fits
 
-A design file rarely breaks when one person owns it. It breaks when there are several people, hundreds of screens, and a few months of history. Four things recur.
+Figma tooling splits into two halves: the half that draws what's inside a screen, and the half that handles everything around it.
 
-- **Duplication residue** — duplicate a screen to make a new one and the original's settings come along. An unused display toggle stays on, rendering an empty slot with nothing in it. It's invisible at zoomed-out scale
-- **Stale canonical page** — engineering has already shipped, but the canonical Figma page still shows the old screen. The next person plans against it
-- **Broken arrows** — move a screen and its flow arrows don't follow. Redrawing by hand costs enough that people leave them
-- **The screen nobody drew** — "what shows up in this case?" You find out that screen doesn't exist when engineering asks
+Figma's official plugins (`figma-use`, `figma-generate-design`, `figma-generate-library`) are the first half. Give them code or a description and they produce screens and components.
 
-None of the four is catchable by eye, and by the time you do catch one, engineering has already asked. This bundle measures for them instead.
+This bundle is the second half. Before you draw, it lays out the section skeleton and stubs the states that are missing, so the gap list is what you draw next. After, it checks whether names follow the convention, whether screens sit where they belong, whether flow arrows actually connect, whether changes shipped to engineering made it back into the canonical page. It runs on top of the official plugins, so you use both.
 
----
+Drawing is the official plugins' job. What happens around the drawing is this bundle's.
 
 ## How you use it
 
@@ -279,7 +315,7 @@ The two plugins never call each other. What they share is two objects, each name
 
 Those two are the whole of the configuration, and each half of it exists for a reason. `/fig:qa` needs the spec because a defect report is only worth handing over when it reads *this breaks rule X in document Y* — and `/pm:prd` is what wrote document Y. `/fig:diff` needs the task record because an AS-IS/TO-BE table belongs beside the request that caused it — and `/pm:task-draft` is what opened that record.
 
-Neither link is required. Leave `qa.baseline.prd` at `null` and `/fig:qa` files everything as needs-checking rather than as a defect. Leave `task_tracker.type` at `none` and `/fig:diff` prints its table as markdown instead. You lose the linkage, not the skill.
+Neither link is required. Leave `qa.baseline.prd` **empty** — written as `null`, which is how these settings say *not set*, and the check that needs it is skipped rather than failed — `/fig:qa` then files everything as needs-checking rather than as a defect. Leave `task_tracker.type` at `none` and `/fig:diff` prints its table as markdown instead. You lose the linkage, not the skill.
 
 **One more thing crosses, and it travels as data rather than as config.** Where `handoff.version` is on, `/fig:handoff` pins the moment it hands over — a Figma named version — and writes its label and date into the task doc. `/pm:task-publish` reads that line to fill the ticket's referenced-version row, and where `contract.design_match_line` is set, the done condition reads *the build matches the {version} design*. Without the pin that condition points at a target that moves the next time somebody opens the file.
 
@@ -301,8 +337,8 @@ And the next request starts it again, against a canonical page that is now curre
 | **The Figma MCP plugin** (`plugin:figma`) | Every `fig` skill reads and writes Figma through it. Confirm it answers before going further |
 | **A Figma file** | `/fig:setup` infers conventions by measuring a file you already work in. An empty one, or a first one, takes the starter path instead — four rules proposed in plain words, then the first skeleton laid on a page |
 | **`python3` with PyYAML, and `node`** | Config resolution runs on the host, and the audit scripts are syntax-checked with `node --check` |
-| **A Figma personal access token** *(optional)* | `/fig:read` enumerates every page over the REST API with one; without it, it falls back to the MCP and may see only some pages. `/fig:handoff` reads a saved version back through the same API where `handoff.version` is on — with no token it asks for the version's link to be pasted instead, and never hands over unpinned |
-| **The `gh` command** *(pm, where the tracker is GitHub)* | The GitHub side runs on it, not on Claude's connection. Log in with the account that can see the tracker — a personal account looking at a company repository sees nothing — and give it board access once with `gh auth refresh -s read:project` |
+| **A Figma personal access token** *(optional)* | A key you generate in Figma yourself (Settings → Security), which lets a skill ask Figma directly instead of going through the app. `/fig:read` enumerates every page over the REST API with one; without it, it falls back to the MCP and may see only some pages. `/fig:handoff` reads a saved version back through the same API where `handoff.version` is on — with no token it asks for the version's link to be pasted instead, and never hands over unpinned |
+| **The `gh` command** *(pm, where the tracker is GitHub)* | GitHub's own command-line tool, installed on your machine and logged in separately from Claude. The GitHub side runs on it, not on Claude's connection. Log in with the account that can see the tracker — a personal account looking at a company repository sees nothing — and give it board access once with `gh auth refresh -s read:project` |
 
 `pm` needs none of the Figma side. If you only write specs, install it alone.
 
@@ -450,55 +486,119 @@ Once you have a draft, run `/fig:lint` once and judge it by the false-positive r
 
 ## Troubleshooting
 
-Each entry is what you see, what it means, and what to do.
+Each line is a symptom — open it for what it means and what to do. Where an entry names a command, you can paste it to Claude instead of running it yourself.
 
-**The report says it ran on defaults.**
+<details>
+<summary><b>The report says it ran on defaults.</b></summary>
+
 Your settings file was not found, so the built-in defaults ran instead. From your project folder, run `python3 plugins/fig/_common/scripts/lib/resolve-config.py --where` — it prints the files it actually found. Usually the filename has a typo, or the file is somewhere other than `~/.claude/`.
 
-**Everything in the file comes back as a violation.**
+</details>
+
+<details>
+<summary><b>Everything in the file comes back as a violation.</b></summary>
+
 The rule is wrong, not the file. A naming pattern that only accepts Latin letters flags every Korean name, for example. Loosen the pattern in the settings, or set it to `null` to switch that one check off.
 
-**I changed a skill and nothing changed.**
+</details>
+
+<details>
+<summary><b>I changed a skill and nothing changed.</b></summary>
+
 Claude Code keeps the installed copy pinned to a version, so editing the source does nothing until the version number goes up. Raise it in `plugin.json`, then `claude plugin marketplace update`, then uninstall and reinstall the plugin.
 
-**`check.sh` says `Permission denied`.**
+</details>
+
+<details>
+<summary><b>`check.sh` says `Permission denied`.</b></summary>
+
 The file arrived without permission to run on its own. Call it as `bash <path>` instead.
 
-**A Figma token request comes back 401.**
+</details>
+
+<details>
+<summary><b>A Figma token request comes back 401.</b></summary>
+
 Figma rejected the token — it exists, but it is expired or wrong. `/fig:read` checks that the token is set before calling, so a 401 is never "no token". Issue a new one in Figma's Security tab.
 
-**`/fig:read` only returns some of the pages.**
+</details>
+
+<details>
+<summary><b>`/fig:read` only returns some of the pages.</b></summary>
+
 Without a token it can only see what the desktop app has open. To list every page it needs a token — see the prerequisites.
 
-**`/fig:deck` says there are no assets.**
+</details>
+
+<details>
+<summary><b>`/fig:deck` says there are no assets.</b></summary>
+
 The slide template has not been measured yet. Run `/fig:deck-setup` once — it reads your team's template into `~/.claude/deck-assets`. The plugin ships no template, because template backgrounds carry company wordmarks.
 
-**A deck came out in the wrong font.**
+</details>
+
+<details>
+<summary><b>A deck came out in the wrong font.</b></summary>
+
 Your team's font is not installed on this machine, so the next candidate was used and the line breaks moved. Install the font, or keep the substitute and check where the lines break.
 
-**Reports come out in the wrong language.**
+</details>
+
+<details>
+<summary><b>Reports come out in the wrong language.</b></summary>
+
 `meta.language` in the settings decides it. `auto` follows the language you are talking in; `ko` or `en` pins it.
 
-**The check passed, but the tracker step came back empty.**
+</details>
+
+<details>
+<summary><b>The check passed, but the tracker step came back empty.</b></summary>
+
 GitHub is two logins, and only one of them was checked. Claude's GitHub connection is one; the `gh` command on your machine is the other, with its own account — and the tracker is read through `gh`. A personal account looking at a company repository sees nothing, which reads as if the repository did not exist. Run `gh auth status` to see which account is active, and `gh auth switch` to change it. To read project boards, the login also needs one extra permission: `gh auth refresh -s read:project`. The check now prints the account it found and tries to open the tracker with it.
 
-**The GitHub connection says "connected, but not responding".**
+</details>
+
+<details>
+<summary><b>The GitHub connection says "connected, but not responding".</b></summary>
+
 Claude's GitHub connection is set up, but the login token it sends is empty — usually because Claude Code was opened from somewhere that never loaded the token, such as the desktop app. Open Claude Code from the terminal where the token is set, and it comes back. This is a different fix from "not connected".
 
-**A `fig` skill stops before writing and mentions your seat.**
+</details>
+
+<details>
+<summary><b>A `fig` skill stops before writing and mentions your seat.</b></summary>
+
 Your Figma account can view that file but not edit it, and the skill checked before touching anything. Reading works; every write needs an Edit seat on the file's plan, and retrying will not change that. Either the file moves to a plan where you have one, or someone with a seat runs the write.
 
-**A skill stops saying a setting "is not set".**
+</details>
+
+<details>
+<summary><b>A skill stops saying a setting "is not set".</b></summary>
+
 That value is empty in every settings file, and the skill cannot run without it. `/pm:setup` fills it in — or open the file and write it. An empty list is a value and does not stop a skill; only a missing one does.
 
-**A skill stops saying a tool "is not supported yet".**
+</details>
+
+<details>
+<summary><b>A skill stops saying a tool "is not supported yet".</b></summary>
+
 Your settings name a tool nobody has described how to work with. `/pm:setup` writes that support from the tools actually connected on your machine, into `pm-adapters/` next to your settings — and marks what it could not verify. Until then the skill stops rather than guessing how the tool works; a guess is how a ticket lands in the wrong place.
 
-**A skill stops saying a tool is "supported as the other side".**
+</details>
+
+<details>
+<summary><b>A skill stops saying a tool is "supported as the other side".</b></summary>
+
 A tool can be where tasks are planned, or where engineering tracks them, and the support that ships covers one side each — GitHub as the tracking side, Notion and markdown as the planning side. Your settings put one on the other side. `/pm:setup` can add that side from what is connected.
 
-**A skill wrote something you didn't expect.**
+</details>
+
+<details>
+<summary><b>A skill wrote something you didn't expect.</b></summary>
+
 Every write to Figma, a spec page or a branch goes through a preview and an explicit go. If one happened without that, it's a bug worth [reporting](https://github.com/byjunyoung/claude-product-skills/issues).
+
+</details>
 
 ---
 
@@ -512,6 +612,9 @@ Every write to Figma, a spec page or a branch goes through a preview and an expl
 
 ## Layout
 
+<details>
+<summary>The repository tree</summary>
+
 ```
 .claude-plugin/
   marketplace.json             marketplace entry (plugin list)
@@ -520,8 +623,9 @@ plugins/
     .claude-plugin/plugin.json
     README.md
     skills/
-      setup  read  prep  arrows  lint
-      tokens sync  diff  proto   code    one SKILL.md each
+      setup   read  prep   arrows  lint
+      handoff sync  diff   tokens
+      proto   code  qa     deck    deck-setup     one SKILL.md each
     _common/
       conventions.example.yaml           config schema + bundled defaults
       scripts/
@@ -548,11 +652,18 @@ tools/
   test/                        fixtures — arrow geometry, config resolution
 ```
 
+</details>
+
 One repo holds several plugins. `plugins` in `marketplace.json` is an array, so they install separately while sharing one repo and one checker.
+
+<details>
+<summary>If you are editing the plugins themselves</summary>
 
 Figma plugins have no filesystem access. So config resolution happens locally: `resolve-config.py --js <fileKey>` emits a single line that gets prepended to the script before it runs. Script paths are relative to `${CLAUDE_PLUGIN_ROOT}`, since install locations differ between environments.
 
 After editing a skill, run `bash tools/verify-all.sh` from the repo root — the consistency check plus every fixture, the same list CI runs. The consistency check itself (`tools/verify.py`) covers every plugin listed in the marketplace, and flags shared files that have drifted apart between them. The same run happens on every push. The one check that needs your team's own names — the leak check — runs there too once a `TEAM_STRINGS` secret holds the list, one name per line, in the form `team-strings.example.txt` shows; the names are masked in the log.
+
+</details>
 
 ## Built with
 

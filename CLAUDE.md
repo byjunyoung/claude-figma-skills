@@ -49,6 +49,11 @@ was left undeclared — steps 2 and 4 are what make it true, and true for somebo
 
 - Commit messages are Korean, in the form `type(scope): what changed, in a sentence`; the body says
   why, and what was tried. Documents and code comments are English.
+- The READMEs are read by designers and PMs, not by engineers. A term gets three or four words of
+  explanation the first time it appears — `null`, a token, a tracker — and a command that shows up in
+  the prose is one the reader can hand to Claude instead of typing. Deep material (troubleshooting
+  entries, the repository tree, anything aimed at whoever edits the plugins) sits inside `<details>`
+  so the page stays short for the person reading it for the first time.
 - Prose never carries a skill count — it goes stale the day a skill is added, and `verify.py` fails
   on one. List the skills, or say "the skills".
 - The example config is a schema **and** a guide: a new key arrives with the comment explaining what
