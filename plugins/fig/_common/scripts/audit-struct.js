@@ -2,6 +2,7 @@
  * audit-struct.js — structural audit (read-only, zero writes)
  *
  * Checks: frame membership · out of bounds · frame overlap · section overlap · naming
+ *         · variant stacking · library sibling overlap
  *
  * Usage
  *   1) python3 scripts/lib/resolve-config.py --js <fileKey>   → `const CFG = {...};`
@@ -112,6 +113,40 @@ for (const s of secs) {
       }
     }
   }
+}
+
+// ── Variant stacking — a component set whose variants sit on top of one another ──
+// A variant added to a set with no layout lands on the last one's coordinates, and the set then
+// reads as a single component: three states look like one. It survives review because nothing
+// about it looks broken — the top variant renders fine and the ones beneath it are simply gone.
+// An auto-layout set places every new variant on its own, which is why the note points there.
+for (const cs of figma.currentPage.findAllWithCriteria({ types: ["COMPONENT_SET"] })) {
+  const v = cs.children;
+  let hit = null;
+  for (let i = 0; i < v.length && !hit; i++)
+    for (let j = i + 1; j < v.length && !hit; j++) {
+      const a = v[i], b = v[j];
+      if (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y)
+        hit = `${a.name} ∩ ${b.name}`;
+    }
+  if (hit)
+    issues.push(`[variant stack] ${cs.name}: ${hit}${cs.layoutMode === "NONE" ? " (set has no auto-layout)" : ""}`);
+}
+
+// ── Library sibling overlap — a set or component covering the one placed beside it ──
+// Frame overlap above only looks at frames, so a library page passes it while its components
+// sit on top of each other. A set that grows — one variant more, a layout applied — runs past
+// the gap it was placed with and buries its neighbour.
+const isLib = c => c.type === "COMPONENT_SET" || c.type === "COMPONENT";
+for (const s of secs) {
+  if (skipSection(s)) continue;
+  const kids = s.children.filter(isLib);
+  for (let i = 0; i < kids.length; i++)
+    for (let j = i + 1; j < kids.length; j++) {
+      const a = kids[i], b = kids[j];
+      if (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y)
+        issues.push(`[library overlap] ${s.name}: ${a.name} ∩ ${b.name}`);
+    }
 }
 
 return issues.length ? issues : "STRUCT PASS";

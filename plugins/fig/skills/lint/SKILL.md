@@ -1,6 +1,6 @@
 ---
 name: lint
-description: Audits a Figma design page read-only — frame membership and bounds, section overlap, naming, arrow geometry and entry direction and pass-through, coverage orphans, [state] dashed links, and component default residue carried over by duplication. Reports violations and writes nothing. Rules come from figma-conventions.yaml and the audit code lives in one place under ${CLAUDE_PLUGIN_ROOT}/_common/scripts. It is the single gate that absorbs the checks fig:prep and fig:arrows would otherwise each carry, and it is called again right after those skills write. Triggers - "/fig:lint", "lint this page", "audit the design", "검증해줘", "규칙 위반 검사해줘", "피그마 검수", "화면 복제 후 검수".
+description: Audits a Figma design page read-only — frame membership and bounds, section overlap, naming, arrow geometry and entry direction and pass-through, coverage orphans, [state] dashed links, variants stacked on one another inside a component set, and component default residue carried over by duplication. Reports violations and writes nothing. Rules come from figma-conventions.yaml and the audit code lives in one place under ${CLAUDE_PLUGIN_ROOT}/_common/scripts. It is the single gate that absorbs the checks fig:prep and fig:arrows would otherwise each carry, and it is called again right after those skills write. Triggers - "/fig:lint", "lint this page", "audit the design", "검증해줘", "규칙 위반 검사해줘", "피그마 검수", "화면 복제 후 검수".
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 
@@ -47,7 +47,7 @@ The layers merge bottom-up: bundled defaults → `~/.claude/figma-conventions.ya
 - On an unfamiliar file with no config at all, run `/fig:setup` first to infer the conventions and draft one
 - If the team keeps a written guide, point `guide_source` at it. **It is not fetched on every run** — it is an input absorbed once to help fill the config
 
-**Checked regardless of config**: frame membership, out-of-bounds frames, section overlap, arrow geometry, pass-through, orphans. Coordinates and parentage are geometry, not convention, so they hold true with or without a written rule.
+**Checked regardless of config**: frame membership, out-of-bounds frames, section overlap, variant stacking, library sibling overlap, arrow geometry, pass-through, orphans. Coordinates and parentage are geometry, not convention, so they hold true with or without a written rule.
 
 ## What it checks
 
@@ -63,6 +63,8 @@ The layers merge bottom-up: bundled defaults → `~/.claude/figma-conventions.ya
 | Ordering mismatch | A section's `NN.` number disagreeing with its position on the canvas (row-major) | low |
 | Missing required state ✋ | Missing states per `[screen]` group against `naming.required_states` — **unless that state is managed on a common page and the screen's Default carries a reference annotation to it** (see fig:prep, "repeated common elements") | low |
 | Split state variants | Variants of one `[screen]` broken apart in a column by an unrelated frame wedged between parent and variant, so the `[state]` dashed line passes through it | medium |
+| **Variant stacking** | Variants of one component set whose bboxes intersect. A set with no auto-layout drops a new variant on the last one's coordinates, so several states render as a single component — nothing about it looks broken, the top variant draws fine and the rest are simply not visible | ★ high |
+| Library sibling overlap | A set or component overlapping the one placed beside it in the same section. Frame overlap above looks at frames only, so a component page passes that check while its components bury each other — a set that gained a variant or a layout runs past the gap it was placed with | medium |
 
 ### B. Flow (arrows) — fig:arrows's territory
 
