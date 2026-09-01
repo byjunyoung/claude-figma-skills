@@ -182,16 +182,94 @@ task:
   assignee_map: {}               # record user id -> mirror username
 
   # --- The ticket written in the mirror ------------------------------------------
-  # The detail stays in the record. The ticket carries a summary and links, so there
-  # is one place to edit and no second copy to drift.
+  # The detail stays in the record and the ticket links to it, so there is one place
+  # to edit and no second copy to drift. Two sections are the exception: the done
+  # conditions and the QA checklist have no copy on the record side, because they are
+  # the contract the work is finished against and the boxes are ticked in the mirror.
   ticket:
     title: "[Task] [{group}] {name}"
     default_labels: []           # labels every task gets, e.g. a type label
-    sections: [Project and version, Summary, Links, Definition of done, Schedule]
-    link_rows:                   # what appears under Links. null drops that row
+
+    # The heading each slot is written under, in the order written here. A slot set
+    # to null is dropped. The keys are fixed, the names are yours — rename a section
+    # without the skill losing track of which slot it is.
+    sections:
+      project:  "Project / version"
+      summary:  "Summary"
+      done:     "Definition of done"
+      links:    "Spec and design"
+      schedule: "Schedule"
+
+    link_rows:                   # what appears under the task's links slot. null drops that row
+      spec:    null              # at contract.level parent these live on the parent instead
+      design:  null
+      version: null
+      record:  "Change summary"
+
+    # A task's own completion — what the person holding it has to produce. This is not
+    # the contract: the contract says the feature behaves correctly, a task's done
+    # conditions say this slice of work is finished. They do not overlap, and a task
+    # whose done conditions restate the contract is the copy this design avoids.
+    #
+    # Where a kind of task always produces the same artefacts, list them here and a
+    # draft starts from them instead of an empty section. Lines that do not apply are
+    # dropped at the preview rather than left in.
+    done_defaults: []            # e.g. ["the spec entry is updated",
+                                 #       "the screens and states are drawn and handed over",
+                                 #       "the parent's links section is updated"]
+
+  # --- The contract ---------------------------------------------------------------
+  # Two sections decide when work is finished: what has to be true, and how somebody
+  # confirms it. They are not a copy of anything — the boxes are ticked where
+  # engineering works, so that is where they live, and the record keeps the context
+  # instead.
+  #
+  # Which level carries them is a real choice. On the task, where each piece is filed
+  # and closed. On the parent, where the whole feature is reviewed. Put them wherever
+  # review happens: a condition and the step confirming it, split across two tickets,
+  # cannot be checked against each other, and the coverage rule stops meaning anything.
+  contract:
+    level: task                # task | parent | none — none turns the contract off
+
+    # Headings for the two sections. At level task they are the task's own done and
+    # QA sections and ticket.sections.done is dropped, since there is only one.
+    sections:
+      done:  "Definition of done"
+      qa:    "QA checklist"
+      links: null                # where the contract's level also carries the shared
+                                 # links. null leaves that section alone
+    link_rows:                   # rows written under contract.sections.links
       spec:   "Spec"
       design: "Design"
-      record: "Change summary"
+
+    # The contract decides when work is finished. A ticket can still be filed before
+    # it exists — a board needs the row, a parent needs its child — but it has to say
+    # so rather than look finished. With this false the preview asks before taking
+    # that path; with it true it is taken without asking.
+    allow_tbd: false
+
+    # How a ticket filed that way says so. Written under the done heading in place of
+    # items, as a quote rather than a checkbox — a checkbox invites ticking, and that
+    # is how "TBD" came to mean nothing. {missing} is filled from what the coverage
+    # pass could not settle, {date} from today. Say in the note that the QA section
+    # follows too; its heading is not written.
+    incomplete_note: null    # e.g. "not settled — written before work starts. missing: {missing} (filed {date})"
+
+    # A label carrying the same fact, so the whole set is one filter away instead of a
+    # search through bodies. It has to already exist in the tracker — this skill never
+    # creates one, and a tracker whose own conventions are trimming unread labels is a
+    # reason to leave this null and rely on the column the ticket sits in.
+    incomplete_label: null   # e.g. "status: needs-spec"
+
+    # Appended to the done conditions where the design side handed something over and
+    # appearance is settled by looking at the design rather than by a sentence.
+    #
+    # {version} is the pinned version's label. It goes INSIDE the sentence rather than
+    # on a line of its own: the condition then reads as a verdict somebody can reach
+    # without looking elsewhere, and the list stays checkboxes with nothing else mixed
+    # in. Without a pin the line points at a moving target, so leave this null where
+    # your design side does not hand over pinned versions.
+    design_match_line: null  # e.g. "the build matches the {version} design"
 
   # --- Whatever your tracker needs and no other does -----------------------------
   # Board ids, custom field ids, issue-type ids. Written once, read back verbatim.

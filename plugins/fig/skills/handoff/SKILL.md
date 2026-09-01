@@ -46,7 +46,7 @@ preview → go.
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --js <fileKey>
 ```
 
-`handoff.dev_status` — off by default, and the skill hands over links without touching Figma; read the note at the top before turning it on. `handoff.ready_note` — the note on the status. `task_tracker.type` and `task_tracker.ui_section_heading` — where the one line goes; `none` writes none.
+`handoff.dev_status` — off by default, and the skill hands over links without touching Figma; read the note at the top before turning it on. `handoff.ready_note` — the note on the status. `handoff.version` — whether a handover pins a named version, and how that version is named, matched and written out. `task_tracker.type` and `task_tracker.ui_section_heading` — where the one line goes; `none` writes none.
 
 ## Procedure
 
@@ -75,17 +75,44 @@ For each candidate read `section.devStatus`:
 
 Show the candidates as a table — name, what lint said, current status — and ask which go: all, or some. One question. Sections that failed the gate appear below the table with their reasons, so the person sees why they are not offered.
 
-### 4. Preview → go
+### 4. Pin the version
+
+Only where `handoff.version.enabled`. With it off, skip to step 5 and the doc line carries the links and a date alone.
+
+**A handover names a moment in the file.** Without one, every later edit silently moves what "matches the design" means, and a ticket whose done conditions lean on that line is being checked against a target that shifted after it was written.
+
+Figma's named versions are that moment — a snapshot of the whole file, so every section going over in one run shares the label and differs only in the node. Nothing is copied, and no frozen duplicate of the file exists to fall out of date.
+
+**This skill cannot save one.** `use_figma`'s allowlist rejects the version API the same way it rejects `devStatus`. So:
+
+1. Ask which release this handover belongs to — a value the person has, never one inferred from the file
+2. Show the name `handoff.version.name` produces, and ask for it to be saved: in Figma, *File → Save to version history*, under exactly that name
+3. Read it back, newest first, and take the first entry matching `handoff.version.match`:
+
+```bash
+curl -s -H "X-Figma-Token: $FIGMA_TOKEN" \
+  "https://api.figma.com/v1/files/{fileKey}/versions?page_size=10"
+```
+
+That entry carries the label, its `created_at` — **the date in `handoff.version.ref` is the version's, not today's** — and its `id`, which is what a deeplink pins with.
+
+- **No token, or an expired one** (`{"status": 401, "err": "Token has expired"}`) → say so, and ask for the version's link to be pasted instead; `version-id` is in its query string. Never carry on unpinned, and never substitute today's date for the version's
+- **Nothing matches** → it was not saved, or was saved under another name. Show what the newest few are actually called and stop, rather than pinning the wrong moment
+
+Every section link from here on carries the pin: `…/?node-id={id}&version-id={version id}`.
+
+### 5. Preview → go
 
 One preview with everything this run will do:
 
 - the sections and the note each will carry — `handoff.ready_note` with `{date}` filled in, or the `note` given
 - the section links: `https://figma.com/design/{fileKey}/?node-id={section id with : replaced by -}` — the same links `/fig:prep` hands over, because engineering opens sections, not frames
-- where `task_tracker.type` is not `none`: the one line that goes into the task doc — the links and "handed over {date}, {n} sections" — under `task_tracker.ui_section_heading`, appended after what is already there, by the method `/fig:diff` uses for that tracker
+- where a version was pinned: the label, its date, and the `&version-id=` every link now carries
+- where `task_tracker.type` is not `none`: the one line that goes into the task doc — the links, "handed over {date}, {n} sections", and the pinned version written as `handoff.version.ref` — under `task_tracker.ui_section_heading`, appended after what is already there, by the method `/fig:diff` uses for that tracker. **That line is what `/pm:task-publish` reads to fill a ticket's referenced-version row**, so the label and the date go in as they came back from the file, not as they were typed
 
 Then the go.
 
-### 5. Write
+### 6. Write
 
 Only where `handoff.dev_status` was turned on. Through `use_figma` this throws — see the note at
 the top. The call is kept as written because it is correct against the Plugin API, and a runtime
@@ -98,7 +125,7 @@ section.devStatus = { type: "READY_FOR_DEV", description: "{note}" };
 
 Then the task-doc line, where configured.
 
-### 6. Read back
+### 7. Read back
 
 Re-read `devStatus` on every section written. The status is not visible in a screenshot, so the check is the property. A mismatch is reported, not retried.
 
@@ -114,6 +141,7 @@ Re-read `devStatus` on every section written. The status is not visible in a scr
 [not offered]
 · 03. Account - Recovery   lint: 2 frames outside any section · Recovery-Error missing
 
+[version]    {label} · {date} · version-id {id}   (or "not pinned — handoff.version is off")
 [task doc]   {where the line went, or "no tracker configured"}
 [status]     not set — mark these by hand in Dev Mode on each section (handoff.dev_status is off)
 ```
@@ -122,6 +150,8 @@ Re-read `devStatus` on every section written. The status is not visible in a scr
 
 - Writes are the status and the one doc line. Frames, sections, names and positions are never touched
 - A section that fails lint is never marked, whoever asks
+- **Never hand over unpinned where `handoff.version.enabled`.** An unpinned handover reads as pinned to whoever gets it, and that is worse than stopping
+- Never save a version, rename one, or write a date that is not the version's own
 - Status goes on sections only
 - A section already `COMPLETED` is not touched without its own confirmation
 - Where the status write is rejected, report the error as it came — do not retry it, and do not read it as a seat problem

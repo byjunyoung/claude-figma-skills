@@ -1,5 +1,11 @@
 # fig
 
+## 3.12.0 — 2026-09-01
+- `/fig:handoff` pins the moment it hands over. A handover names a Figma named version, every section link goes out with `&version-id=`, and the task-doc line carries the label and the version's own date — which is what `/pm:task-publish` reads to fill a ticket's referenced-version row. Without a pin, "matches the design" moves the next time somebody edits the file, and a ticket leaning on it is checked against a target that shifted after it was written
+- The version is Figma's own snapshot, so nothing is copied and no frozen duplicate of the file has to be kept current. Saving one stays manual — `use_figma`'s allowlist rejects the version API the same way it rejects `devStatus` — so the skill asks, the person saves, the skill reads it back over REST and stops rather than guessing when the token is missing or nothing matches
+- New keys: `handoff.version.enabled`, `.name`, `.match`, `.ref`. Off by default
+- `/fig:lint` now reads component sets. A set with no layout drops each new variant on the last one's coordinates, so several states render as a single component — the top variant draws fine and the rest are simply not there, which is why review keeps letting it through (`[variant stack]`). A set that grew past the gap it was placed with and buried its neighbour is caught too (`[library overlap]`) — the existing frame-overlap check looks at frames only, so a component page passed it. Both read coordinates alone and run without any convention configured
+
 ## 3.11.2 — 2026-08-31
 - `/fig:handoff`'s own one-line description still promised the Ready-for-dev mark 3.11.1 had just turned off — the one line an agent reads before deciding to run it. It now says what the skill does and that the mark is off; `whoami` leaves its tool list with the seat check that is gone
 

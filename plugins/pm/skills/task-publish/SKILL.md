@@ -1,7 +1,7 @@
 ---
 name: task-publish
-description: Files one task record as a ticket in the engineering tracker, or updates the ticket already there. The ticket carries a summary and links rather than a copy of the body, so the record stays the single place anything is edited. Missing fields are filled by one grouped interview, the parent is resolved before writing, and the link back into the record is what matching relies on afterwards. Reconciling many tasks at once belongs to /pm:task-sync. Triggers - "/pm:task-publish", "file this task as a ticket", "update the GitHub task", "깃헙에 일감 등록해줘", "이 일감 티켓 만들어줘", "티켓 갱신해줘".
-allowed-tools: AskUserQuestion, Bash, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__add_issue_comment, mcp__plugin_github_github__sub_issue_write, mcp__plugin_github_github__list_issues, mcp__plugin_github_github__search_issues
+description: Files one task record as a ticket in the engineering tracker, or updates the ticket already there. The ticket carries a summary and links rather than a copy of the body, and it carries the two sections that decide when the work is finished — the done conditions and the QA checklist — drafted from the spec and the design rather than left as a placeholder. Missing fields are filled by one grouped interview, the parent is resolved before writing, and the link back into the record is what matching relies on afterwards. Reconciling many tasks at once belongs to /pm:task-sync. Triggers - "/pm:task-publish", "file this task as a ticket", "update the GitHub task", "깃헙에 일감 등록해줘", "이 일감 티켓 만들어줘", "티켓 갱신해줘".
+allowed-tools: AskUserQuestion, Bash, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_design_context, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__add_issue_comment, mcp__plugin_github_github__sub_issue_write, mcp__plugin_github_github__list_issues, mcp__plugin_github_github__search_issues
 ---
 
 # task-publish — one task record into one tracker ticket
@@ -9,6 +9,10 @@ allowed-tools: AskUserQuestion, Bash, mcp__claude_ai_Notion__notion-fetch, mcp__
 Files a single task record as a ticket in the engineering tracker, or updates the one already there.
 
 **The ticket carries a summary and links, not a copy of the body.** Detail — the spec, the design, the description of what changed — stays in the record, and the ticket points at it. Two copies means one gets edited and they drift; there is also no reliable way to carry embedded images across, so a copied body arrives broken.
+
+**Two sections are the exception, and they originate here.** The done conditions and the QA checklist are not a copy of anything. They are the contract the work is finished against, and the boxes are ticked where engineering works, so that is where they live. The record answers *why this is being done*; the tracker answers *what counts as done*. Writing them on both sides would be the drift this rule exists to prevent.
+
+**`task.contract.level` decides which ticket carries them** — the task itself, or the parent the task hangs under. Put them wherever review happens. Where a tracker closes tasks on a merge and reviews the feature at the parent, the contract belongs at the parent: a condition and the step confirming it, split across two tickets, cannot be checked against each other, and the coverage rule in step 2 stops meaning anything. With `level: none` there is no contract and this skill files a summary and links only.
 
 ## What decides where things go
 
@@ -22,6 +26,13 @@ With `mirror.type` anything but `none`, `task.mirror.ref` belongs on that list t
 
 **Matching runs on `task.link_property` alone** — the property on the record that holds the ticket's url. A back-link written in the ticket body is for a human to click, never for matching: it can point at a source that was already discarded, which is how duplicates and resurrected tickets happen.
 
+## Inputs
+
+- `record` (required): the task record's url
+- `mode` (optional): `task` files or updates the task's ticket — the default. `contract` writes only the two binding sections, to whichever level `task.contract.level` names. Omitted with `level: parent`, a run that files a task says at the end whether its parent already has a contract, and offers to write it as a separate run
+
+**Why the contract is its own run at `level: parent`.** One parent holds many tasks. Rewriting its contract every time a sibling is filed puts a large diff behind a preview nobody reads closely, and the moment the contract is actually written is a different moment — it is what lets the parent leave the planning column. Keeping it separate makes that moment visible.
+
 ## When NOT to invoke
 
 - Filling the record's context table → `/pm:task-draft`
@@ -34,11 +45,20 @@ With `mirror.type` anything but `none`, `task.mirror.ref` belongs on that list t
 
 Take the record's URL from the argument, or ask for it.
 
-### 1. Read the record (zero writes)
+### 1. Read the record and its materials (zero writes)
 
-Read its properties — title, project, group, priority, assignee, status, schedule, the link property, and any link to a published spec.
+Read the record's properties — title, project, group, priority, assignee, status, schedule, the link property, and any link to a published spec.
 
 **Read the body too.** The change summary, the design links, and the spec links inside it are the defaults the interview starts from. Reading them first is what keeps the interview short.
+
+Then read the two things step 2 is drafted from:
+
+- **The spec entry the record links to** — its behaviour table, its states and cases, its rules and exceptions. This is where most done conditions already exist as sentences somebody wrote on purpose
+- **The design the record links to**, where the tool can be read — **structure only**: which state variants are actually drawn, what the screens are called, and where the flow goes
+
+**Read the design for what exists, not for how it looks.** Colour, spacing and size never become conditions — step 2 says why. Copy is taken from the spec first: a design still carrying placeholder text would otherwise freeze a wrong string into the contract, and reading a screen in full costs far more than reading its structure. Go deeper on one screen only where the spec left its copy blank.
+
+Where the record's design section carries a handover line — the links, the date, and the version the handover was pinned to — **that line is what the referenced-version row is built from, verbatim.** Do not restate it in your own words and do not substitute today's date: the point of the pin is that it names a moment somebody else can go back to.
 
 Then branch:
 
@@ -46,25 +66,111 @@ Then branch:
 - **The link property is empty** → create
 - **The link property is filled** → update
 
-### 2. Interview, once (grouped)
+### 2. Draft the two binding sections
 
-Ask everything missing in one `AskUserQuestion` round. **Never ask for what the record already answers.**
+**These are the only sections that bind engineering.** Everything else in the ticket is a pointer, and a disagreement about it is settled wherever your team settles such things — not by this document.
+
+They are drafted the same way whatever level carries them. What changes with `task.contract.level` is only where they are written and what the materials are read at: at `task`, this record's own spec entry and design; at `parent`, the spec entries of every task under it, so the contract covers the feature rather than one slice of it.
+
+**Draft, do not invent.** Every line traces back to a sentence in the spec, a row of its states table, or a state variant that is actually drawn. Where the materials settle nothing, the line is not written. Where they settle nothing at all, step 6 stops rather than filing a placeholder.
+
+#### Cover the materials first, then write
+
+**Work the materials row by row.** A draft written from a general sense of the feature comes out short and plausible, and what it left out is invisible — which is the failure this section exists to prevent. Go through, in order:
+
+- **Every row of the spec's behaviour table.** Each is a condition unless another line already covers it
+- **Every row of its states and cases** — empty, loading, error, no permission, and whatever else that table carries
+- **Every rule and exception** — inheritance, defaults, value constraints, and what happens where two rules meet
+- **Every state variant actually drawn** in the design that the spec did not already produce a line for
+- **The round trip.** After a create, edit or delete, where the result has to appear: the list it came from, and the other screens reading the same value
+
+Four kinds have to be present or explicitly not applicable: **happy path, states and cases, rules and exceptions, round trip.** A fifth is required whenever `contract.design_match_line` is in play: **the side-by-side comparison**, enumerated by screen. A draft missing one of them is nearly always incomplete rather than small.
+
+**A row that produces no condition is named, not dropped.** Carry it into the preview as skipped with its reason — outside this ticket, already covered by another line, or nothing in the materials settles it. Silence is what lets a thin draft look finished.
+
+**Where the materials settle nothing at all, draft nothing.** A ticket can legitimately come before its requirement — a board needs the row, a parent needs its child, a date is already agreed — and step 6 has a path for that. Padding the section to avoid an empty one is the failure that path exists to prevent.
+
+#### Done conditions
+
+One checkbox per line.
+
+- The subject is the user or the screen, and the result is something a checker can see
+- **One condition per line.** Nothing joined by "and"
+- **It has to come out true or false.** "Works properly", "displays correctly", "behaves naturally" cannot be checked, and a line containing one is not a condition
+- **Behaviour, state, thresholds and copy are written as words.** These are exactly what a design cannot settle on its own — a toast that disappears after three seconds is not visible in a still frame, and two people read the same empty screen differently
+- **What is confirmed by comparing a value against the design is not written.** `contract.design_match_line` covers all of it in one line
+- How it is built is not written
+
+The line to draw is not appearance versus behaviour. It is **decided by looking versus decided by measuring**:
+
+| Written | Not written |
+|---|---|
+| Used items appear with no background box | The box fill is `#F5F5F5` |
+| The toast disappears after three seconds | The toast sits 16 above the bottom |
+| With no items, "Nothing here yet" is shown | The empty-state text is 14 regular |
+| The list is ordered most recent first | Cards are 8 apart |
+
+The left column is presence, order, copy and timing — checkable without a ruler. The right column is a value to compare against, and the design is where that comparison belongs.
+
+Three reasons it belongs there and not here, worth knowing because they decide the edge cases:
+
+1. **A value written twice goes stale.** Change it in the design and the ticket still says the old number, and now somebody has to work out which one is authoritative
+2. **The list can never be complete, and what is missing reads as exempt.** Ten of a screen's hundred values written down does not mean ninety are free — but that is how it gets read
+3. **Nobody performs the measurement.** "16 of padding" is verified by eye in practice; two screens side by side catch the same error faster and catch the other ninety with it
+
+`contract.design_match_line` is appended **only where the design side is handing something over**. A ticket the engineering side filed for itself does not carry it — that side writes its own QA checklist too. And the line only means something against a pinned version, which is why it travels with the referenced-version row in step 5.
+
+**Where that line is present, the QA section must carry the step that checks it, and that step names every screen to compare.** It is the one condition with no click path of its own, so it is the one that gets read past — and a checklist saying only "confirm it matches the design" is confirmed by a glance. Written as an enumeration it is confirmed by going through a list, and a screen nobody looked at is visible as a screen nobody looked at:
+
+```
+- [ ] compare each screen against the referenced version, side by side:
+      {screen} · {screen} · {screen} · {screen}
+```
+
+The screens come from the design's structure — every frame in the handed-over section that this contract's conditions touch, state variants included. An empty state that only exists as a variant is exactly the kind of screen a hurried comparison skips.
+
+#### QA checklist
+
+Derived from the done conditions, **after** those are settled.
+
+- Entry path → action → expected result, in that order
+- A precondition, where one is needed, goes on the first line
+- **Every done condition has at least one step that confirms it.** They need not be one to one, but a done condition no step reaches is the gap this section exists to close
+- **Write the whole path every time.** "Same as above" hides the step that actually differs. The one exception is a variant sitting on a path already written out in full and differing by a single value — there, name the variant and that value
+- **The expected result is what gets looked at, not a verdict.** "The tab opens" is not one. "The tab lists only used items" is
+- A condition reachable several ways — another role, another device, an empty account — is several steps, not one step with a list inside it
+- Device or OS goes last, and only where it changes the verdict
+- **Nothing that needs internal state or a server response.** That is engineering's own verification, not an acceptance step
+
+Entry paths come from the design's flow where it has one, and from the spec's behaviour table otherwise.
+
+#### Granularity
+
+Several conditions coming out of one spec entry grow lines here rather than splitting the entry. The ticket number is the identifier; there is no second version axis to maintain.
+
+Where the lines turn out to be describing different screens, that is the signal to split the ticket — not to trim the lines. There is no target line count: a ticket carries as many as the work it covers.
+
+### 3. Interview, once (grouped)
+
+Ask everything still missing in one `AskUserQuestion` round. **Never ask for what the record, the spec or step 2 already answers.**
 
 | Item | Where it comes from |
 |---|---|
 | Summary | The record's title by default, with an option to type another |
-| What changed | The body's change summary if it has one. Empty → ask, and write it back in step 8 |
+| Done conditions | Drafted in step 2. Ask only to confirm, or for a line the materials left blank |
+| QA checklist | Drafted in step 2, the same way |
+| What changed | The body's change summary if it has one. Empty → ask, and write it back in step 9 |
 | Spec link | The record's spec property if set. Empty → ask, and store it back so the next run has it |
 | Design link | The design section of the body, else ask |
+| Referenced design version | The handover line in the record's design section, where the design side pinned one. Ask only where the line has no version, and drop the row where nobody can supply one — an invented label is worse than an absent row |
 | Other links | Ask — dependencies, policies |
-| Definition of done | `TBD` by default, with an option to type one |
-| Version | Only where `task.hierarchy.milestone_on` is not `none`, and only for a project listed in `milestone_projects` |
+| Milestone | Only where `task.hierarchy.milestone_on` is not `none`, and only for a project listed in `milestone_projects` |
 
 Project, group, priority, assignee and dates come from the record and are not asked. Where the record has several assignees and the tracker takes one, ask which.
 
-### 3. Resolve the parent
+### 4. Resolve the parent
 
-Only where `task.hierarchy.parent_kind` is set. With it `null`, tasks are a flat list — skip to step 4.
+Only where `task.hierarchy.parent_kind` is set. With it `null`, tasks are a flat list — skip to step 5.
 
 Search the mirror for open parents **of this task's project**, and read their titles to find
 the one this task belongs under.
@@ -79,39 +185,91 @@ duplicate of one that already exists.
 - **None** → ask: create one / name an existing one / stop. Creating one is its own preview → go
 - **Several plausible** → let the user pick. Do not break the tie yourself
 
-A newly created parent is titled by `task.hierarchy.parent_title` and carries whatever `task.mirror_extras` specifies for its type and board placement. Where the project uses milestones, the milestone is set **on the parent** — see step 7.
+A newly created parent is titled by `task.hierarchy.parent_title` and carries whatever `task.mirror_extras` specifies for its type and board placement. Where the project uses milestones, the milestone is set **on the parent** — see step 8.
 
-### 4. Assemble the ticket body
-
-Sections come from `task.ticket.sections`; the link rows from `task.ticket.link_rows`. A row whose value is missing is dropped rather than written as an empty bullet.
+### 5. Assemble the ticket body
 
 ```
-> Parent: #{parent}
+### {sections.summary}
+{what this task covers, and where it stops. see below}
 
-### Project / version
-- Project: {project label}
-- Version: {milestone, or "Not set"}
+### {sections.done}
+{this task's own completion — what its holder has to produce}
 
-### Summary
-{from the interview — the record's title by default}
-
-### Links
-- Spec: {spec url, or "TBD"}
-- Design: {design url}            ← dropped when absent
-- Change summary: {record url}
+### {sections.links}
+- {link_rows.spec}: {entry name} ({url})
+- {link_rows.design}: {screen name} — {url}
+- {link_rows.version}: {referenced version}     ← dropped when absent
+- {link_rows.record}: {record url}
 {any other links from the interview}
 
-### Definition of done
-{from the interview, or "TBD"}
-
-## Schedule
+## {sections.schedule}
 - Start: {date, or "Not set"}
 - End: {date, or "Not set"}
 ```
 
-The record link under Links is **for a person to click**. It is not what matching reads.
+Headings come from `task.ticket.sections`, written in the order that map is written; a slot set to `null` is dropped — and slots worth dropping are more common than they look. **Project and version are usually already carried by a label and a milestone**, and a body that restates them gives a second place to go stale.
 
-### 5. Preview → "go"
+**No pointer to the parent is written either.** Where the tracker links a task to its parent, the parent is already on the screen, and a line naming it only adds a second thing to keep correct. It is also where an in-house word for the two binding sections tends to get invented — the ticket is read by people who were not in the conversation that coined it. Link rows come from `task.ticket.link_rows`, and a row whose value is missing is dropped rather than written as an empty bullet.
+
+#### The summary is a scope boundary, not a restated title
+
+The one thing a task says that nothing else can. The parent describes the whole feature; this section says which slice is this one's, and where the neighbours start.
+
+- Where the title already settles the scope, **write nothing**. A sentence repeating the title is worse than an empty section — it looks like content
+- Where it does not, say what is in, what is out, and which ticket has the part that is out. A task that only says what it includes leaves the gap between siblings invisible until QA
+- The split is known: drafting the contract reads every task under the parent, so which condition belongs to which task is already worked out
+
+#### A task's own done conditions are not the contract
+
+The contract says the feature behaves correctly. A task's done conditions say **this slice of work is finished** — what its holder has to produce. They sit at different levels and do not overlap, and a task whose done conditions restate the contract is the copy this whole design avoids.
+
+The two kinds look different in practice:
+
+| Task | Its done conditions are about |
+|---|---|
+| One that produces the requirement — spec, design, handover | The artefacts: the spec entry updated, screens and states drawn, the section handed over, the parent's links and contract filled in |
+| One that builds against it | That slice built, and anything the slice touches that no sibling covers |
+
+`task.ticket.done_defaults` lists the artefacts a recurring kind of task always produces, so a draft starts from them. Lines that do not apply are dropped at the preview, not left in.
+
+**The task that fills the parent's contract is ordinary work with ordinary done conditions.** It is also what lets the parent leave the planning column, so those lines are the ones worth being exact about.
+
+**The spec row carries the entry's name, not only its url.** A bare link says nothing about which requirement this ticket answers, and the reader has to open it to find out.
+
+**The design link goes in exactly as it was handed over.** Where it is pinned to a specific version of the file, that pin is what makes the design-match line checkable at all; rewriting the link to a plain one silently unpins the contract. The referenced version is a file-level label, so tickets out of one handover share it and differ only in which screen they point at.
+
+The record link is **for a person to click**. It is not what matching reads.
+
+#### The contract block
+
+Written into whichever ticket `task.contract.level` names — this one, or the parent.
+
+```
+### {contract.sections.done}
+- [ ] {one condition per line}
+- [ ] {contract.design_match_line}              ← design-side only
+- {link_rows.version}: {referenced version}     ← directly beneath it, when pinned
+
+### {contract.sections.qa}
+- [ ] {entry path → action → expected result}
+```
+
+**The version goes inside the match line, not on a line of its own.** `contract.design_match_line` takes `{version}`, so the condition reads as a verdict somebody can reach without looking elsewhere, and the section stays checkboxes with nothing else mixed in. The same label goes into the comparison step in the QA section. Because the version is file-level, every ticket out of one handover carries the same label and only the node differs — which is why the link itself lives once, in the contract's links rows, rather than beside every task.
+
+#### When the requirement does not exist yet
+
+```
+### {contract.sections.done}
+> {contract.incomplete_note}
+
+  ← {contract.sections.qa} is not written. The note says it is coming, and an
+    empty heading reads as something that got deleted
+```
+
+The note goes in **as a quote, never as a checkbox.** A checkbox invites ticking, which is how a placeholder ends up looking satisfied — the same failure that made "TBD" stop meaning anything. `{missing}` is filled from what the coverage pass could not settle, named specifically: a bare "not decided" tells the next reader nothing about what would unblock it.
+
+### 6. Preview → "go"
 
 ```
 [ticket preview]
@@ -120,9 +278,14 @@ Parent       : #{n} {title}
 Title        : {task.ticket.title, filled in}
 Labels       : {default_labels} + {project label} + {priority label}
 Assignee     : {mapped username}
+Contract     : {level} → #{n} {title}   (or "this ticket", or "off")
+Drafted from : {spec entry} · {design, or "no design"}
+Coverage     : behaviour {n}/{n} · states {n}/{n} · rules {n}/{n} · round trip {n}
+               skipped: {row} — {reason}
+Sections     : {n} done · {n} QA
 
 --- body ---
-{step 4 in full}
+{step 5 in full}
 --- end ---
 
 {if the interview produced a new change summary:}
@@ -132,17 +295,30 @@ Assignee     : {mapped username}
 shall I proceed? (go / changes)
 ```
 
+**Where the done conditions came out empty, this is the fork.** Say which materials were read and what they did not settle, then offer both:
+
+- **File it as a placeholder** — the contract block takes the form in step 5, `contract.incomplete_label` goes on where one is configured, and step 8 seats it in the backlog whatever `task.status_map` says. A ticket nobody can start yet does not belong in a column somebody picks work up from
+- **Stop, and write the requirement first** — the right answer whenever nothing is waiting on the ticket existing
+
+Where the tracker already gates on the sections existing — a column a ticket cannot leave without them — say so and prefer leaving `incomplete_label` unset. The gate does the same job without a label somebody has to remember to remove.
+
+`contract.allow_tbd: true` takes the first without asking. It is not permission to file a bare ticket: the note and the seating happen either way, and the only difference is whether the fork is put to a person.
+
+**A placeholder is never filed silently.** The report says what it is, and the run says plainly that `/pm:task-publish` has to be run again before work starts.
+
 **No external write happens before "go"** — not the ticket, not the write-back into the record. Both are in this one preview because both are writes.
 
 **Title**: `task.ticket.title` as configured. Do not append your own qualifiers; add a short one only where the task's name alone leaves the kind of work unclear.
 
-### 6. Create the ticket
+### 7. Create the ticket
 
 Create it with the assembled title, body, labels and assignee.
 
+**At `contract.level: parent` the contract is a body edit on a ticket that already exists**, never a creation. Read the parent's current body, replace only the sections `contract.sections` names — the two binding ones, and the shared links section where `contract.sections.links` is set — and leave every other section of it byte for byte — a parent carries scenario, scope and links somebody else wrote, and this skill has no business rewriting them. Where the parent has no such sections yet, insert them where `contract.sections` orders them relative to what is already there, rather than appending to the end.
+
 **A milestone is not set on the task** where `task.hierarchy.milestone_on` is `parent` — that level owns it.
 
-### 7. Attach it
+### 8. Attach it
 
 - Link it under the parent, where the tracker has a parent-child relation
 - Add it to the board named in `task.mirror_extras`, capturing the returned item id
@@ -150,7 +326,8 @@ Create it with the assembled title, body, labels and assignee.
 - Dates go **on the task only**. A parent's schedule is managed separately and is never touched here
 - **Seat it in the right column.** Where `task.status_map` has an entry for the record's current
   status, set the board's status field to it. Without an entry, leave the board's own default
-  alone rather than guessing a column
+  alone rather than guessing a column. **A placeholder ticket overrides this and goes to the
+  backlog**, whatever the record's status maps to — the seating is what stops it being picked up
 
 Seating is not ownership. `task.field_owner.status` still says which side wins afterwards — with
 it `mirror`, this is the only time this skill touches the status, and every later move belongs to
@@ -159,7 +336,7 @@ lands in the backlog column otherwise, and the mirror's readers act on that.
 
 Anything under `task.mirror_extras` is read verbatim. This skill does not interpret it, which is what lets a tracker it has never seen still work.
 
-**The calls themselves live per tracker**, not in this document. Two copies of a command means one gets fixed. Read the mirror's adapter before this step and the record's before step 8:
+**The calls themselves live per tracker**, not in this document. Two copies of a command means one gets fixed. Read the mirror's adapter before this step and the record's before step 9:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventions.yaml --kind trackers --type {task.mirror.type} --role mirror
@@ -168,18 +345,22 @@ python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/adapter.py --name pm-conventio
 
 It prints the file to read — the bundled one, or yours from `adapters.dirs` where you drafted one. **Exit 3 means no adapter exists for that type.** Stop and say so; `/pm:setup` drafts one from the tools connected on this machine. Do not improvise the calls. **Exit 4 means the adapter exists but answers for the other side** — a mirror-only file asked for the record, say. Stop the same way; 3b drafts the side that is missing. Say what it means in the person's words — "this tool isn't supported yet; `/pm:setup` can add it from what's connected here" — never the exit code or the file path.
 
-### 8. Write back into the record
+### 9. Write back into the record
 
 - **The link property** — always. This is what every later run matches on
 - **The spec link** — only where the interview produced a new one
 - **The change summary** — only where the interview produced a new one. Where the record already had it, leave it alone. Append rather than replace, so the history survives: one dated line under what is already there
 
-### 9. Report
+**The done conditions and the QA checklist are not written back.** They live in the ticket, where they are ticked. Copying them into the record is the second source this design exists to avoid.
+
+### 10. Report
 
 ```
 [done]
 Ticket        : {url}
 Parent        : #{n}
+Contract      : {n} conditions · {n} steps · {n} rows skipped → #{n} {level}
+                (or "placeholder — run again before work starts", or "off")
 Link property : written
 {spec link stored, where applicable}
 {change summary written, where applicable}
@@ -191,17 +372,25 @@ Link property : written
 
 Taken when the link property was already filled.
 
-1. Read the current ticket body
-2. Steps 2–4 as before. **Skip resolving the parent** — it is already attached. Ask whether to replace the whole body or only the summary and links sections. The change summary is the point of most updates: read it from the record, and ask only when it is new
-3. Preview → go → edit the ticket, keeping the record link row intact
-4. Write back into the record — the spec link only where newly given; the link property is already there. Append the new change summary under the existing one
+1. **Read the current ticket body first**, including which boxes are already ticked
+2. Steps 2–5 as before. **Skip resolving the parent** — it is already attached. Ask whether to replace the whole body or only the summary and links sections. The change summary is the point of most updates: read it from the record, and ask only when it is new
+3. **A placeholder being filled is the ordinary second pass.** The note comes out, the two sections go in, `contract.incomplete_label` comes off, and the board seating is handed back to `task.status_map`. Say in the report that the ticket now has a contract, because that is the moment it becomes startable
+4. **A ticket already in progress is the delicate case.** Re-draft the two binding sections from the current materials, then reconcile rather than overwrite: a line that survives unchanged keeps its tick, a line the spec dropped is removed and said so in the preview, and a new line arrives unticked. Silently resetting a checklist somebody has been working down destroys the only record of what was verified
+5. Preview → go → edit the ticket, keeping the record link row intact
+6. Write back into the record — the spec link only where newly given; the link property is already there. Append the new change summary under the existing one
 
 ---
 
 ## Constraints
 
 - **Never invent a mapping.** A project, priority or assignee with no entry in the config stops the run with a message. A wrong label is harder to find later than a missing ticket
+- **Never write the contract at two levels.** `task.contract.level` names one. A copy on the other side is the drift the whole design avoids
+- **Never rewrite a parent beyond its contract sections.** Read its body, replace those two, leave the rest untouched
+- **Never file an empty ticket that looks complete.** Filing before the requirement exists is allowed and sometimes necessary; doing it without the note, the label and the backlog seating is not
+- **Never draft a condition the materials do not support.** A plausible-sounding line nobody agreed to is worse than a short list, because it will be built
+- **Never let a thin draft pass as a finished one.** The coverage line in the preview names every row that produced nothing and why. A short list is fine when the work is short, and visibly wrong when it is not
+- **Never write a done condition that sends the reader to the design for behaviour.** Behaviour, state, thresholds and copy are words; only what is checked by comparing a value belongs to the design, under one line
 - **Read the tracker's current schema before writing** rather than trusting ids pinned in the config — options get renamed
 - **Every external write waits for "go"**, including the write-back into the record
-- **Never copy the body across.** The record stays the single source; the ticket links to it
+- **Never copy the body across.** The record stays the single source, and the ticket links to it — apart from the two binding sections, which have no copy on the other side
 - Verify after writing, and report what was actually written rather than what was intended

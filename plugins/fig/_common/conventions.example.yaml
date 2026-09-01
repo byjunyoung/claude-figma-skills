@@ -165,6 +165,22 @@ handoff:
   dev_status: false                           # Dev Mode status on sections — READY_FOR_DEV after prep, COMPLETED after sync
   ready_note: "prep · {date}"                 # the note carried on a READY_FOR_DEV status
 
+  # --- The moment a handover points at -------------------------------------------
+  # A handover has to name a moment in the file. Without one, "matches the design"
+  # moves as soon as somebody edits it again, and a ticket leaning on that line is
+  # checking against a target that shifted after it was written.
+  #
+  # Figma's own named versions are that moment — a file-level snapshot a deeplink
+  # pins with version-id — so nothing is copied and no frozen duplicate exists.
+  # Saving one is done by hand: use_figma's allowlist rejects the version API the
+  # same way it rejects devStatus (checked on a live file, 2026-08-31). The skill
+  # asks, the person saves, the skill reads it back.
+  version:
+    enabled: false                            # true where your handovers pin a version
+    name:  "{release} handover"               # what the person types into Figma's version history
+    match: '^(.+) handover$'                  # picks handovers out of the autosaves. group 1 is the release
+    ref:   "{label} · {date}"                 # how it is written into the task doc and the ticket
+
 # --- Task tracker --------------------------------------------------------------
 # With none, /fig:diff stops at the Figma annotations and emits the table as markdown.
 task_tracker:
