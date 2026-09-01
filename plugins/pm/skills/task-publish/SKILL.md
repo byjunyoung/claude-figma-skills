@@ -190,6 +190,10 @@ A newly created parent is titled by `task.hierarchy.parent_title` and carries wh
 ### 5. Assemble the ticket body
 
 ```
+### {sections.project}
+- Project: {project label}
+- Version: {milestone, or "Not set"}
+
 ### {sections.summary}
 {what this task covers, and where it stops. see below}
 
@@ -208,7 +212,9 @@ A newly created parent is titled by `task.hierarchy.parent_title` and carries wh
 - End: {date, or "Not set"}
 ```
 
-Headings come from `task.ticket.sections`, written in the order that map is written; a slot set to `null` is dropped — and slots worth dropping are more common than they look. **Project and version are usually already carried by a label and a milestone**, and a body that restates them gives a second place to go stale.
+Headings come from `task.ticket.sections`, written in the order that map is written; a slot set to `null` is dropped.
+
+**Take the names from the tracker's own template rather than choosing your own.** A ticket template is usually shared with everyone who files tickets, most of whom have nothing to do with this workflow, so renaming its sections to suit one process is a cost paid by people who get no benefit. What goes *inside* a section is yours to decide; what the section is called is not.
 
 **No pointer to the parent is written either.** Where the tracker links a task to its parent, the parent is already on the screen, and a line naming it only adds a second thing to keep correct. It is also where an in-house word for the two binding sections tends to get invented — the ticket is read by people who were not in the conversation that coined it. Link rows come from `task.ticket.link_rows`, and a row whose value is missing is dropped rather than written as an empty bullet.
 

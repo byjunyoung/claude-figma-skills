@@ -1,5 +1,8 @@
 # pm
 
+## 0.15.2 — 2026-09-01
+- A ticket's section names come from the tracker's own template, not from this skill's preference. That template is shared with everyone who files a ticket, most of whom have nothing to do with this workflow, so renaming its sections to suit one process is a cost paid by people who get no benefit. What goes inside a section is ours to decide; what the section is called is not — and the project and version block is written again for the same reason, where the template asks for one
+
 ## 0.15.1 — 2026-09-01
 - `task.hierarchy.milestone_format` takes a map keyed by project name, not one string only. A team whose projects run on different milestone axes — one on the month, another on a release version — had no way to write that down, and `verify` counted each project's entry as a key the schema did not know. Key it by the name the tracker shows, since that is what makes an existing milestone come up as a candidate
 
