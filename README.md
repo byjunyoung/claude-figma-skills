@@ -173,7 +173,7 @@ flowchart TD
 | `/fig:prep` | Normalize names · place into sections · stub missing screens |
 | `/fig:arrows` | Create and re-sync flow arrows |
 | `/fig:lint` | Read-only audit gate (zero writes) |
-| `/fig:handoff` | Pick from the lint-passed sections · hand over the links · one line in the task doc |
+| `/fig:handoff` | Pick from the lint-passed sections · pin the version · hand over the links · one line in the task doc |
 | `/fig:tokens` | Audit design system token binding for colors |
 | `/fig:sync` | Full canonical-page audit → apply → archive |
 | `/fig:diff` | Annotate changes · write up the task doc |
@@ -189,13 +189,15 @@ flowchart TD
 |---|---|
 | Structure | Screens outside any section · screens past section bounds · overlapping screens · naming violations · section number vs. placement mismatch |
 | Flow | Arrows cutting through unrelated screens · arrowheads pointing at empty space · screens on no flow at all · labels covering an arrowhead or another line |
-| Components | Settings that tagged along in a duplicate, leaving an empty slot rendered |
+| Components | Variants stacked on top of one another inside a set · a component buried under the one placed beside it · settings that tagged along in a duplicate, leaving an empty slot rendered |
 
 <img src=".github/lint-catches.png" alt="A tidy-looking section with three numbered violations marked: an arrow crossing an unrelated screen, an arrowhead in empty space, and a screen on no flow" width="100%">
 
 Arrowhead direction isn't catchable by distance alone. An arrow can sit 12px away and still point into empty space if its last segment runs parallel to the target edge. So the audit checks perpendicularity separately.
 
 The component audit works without any written convention. It derives the usage distribution from how other screens in the same file use that component, and compares against it.
+
+The two overlap checks read coordinates alone, so they run on a file with no config at all — and they run on a component page, which the frame-overlap check above never looked at. A set with no auto-layout drops each new variant on the last one's coordinates: the top variant draws fine and the rest are simply not visible, which is why review keeps letting it through.
 
 ---
 
@@ -228,6 +230,8 @@ A separate plugin covering the document and the work that comes out of it.
 <img src=".github/context-table.png" alt="A request thread on the left, sorted into named context rows on the right, with fact, assumed and TBD labelled apart" width="100%">
 
 `task-publish` takes one task and `task-sync` takes the list, because the two fail differently. One task fails by being filed wrong. A list fails by drifting — unfiled, duplicated, wrong parent, resurrected. Diagnosing drift means reading both sides first, which is why `sync` shows you the diagnosis and waits rather than writing.
+
+**A ticket carries what counts as done.** Two sections decide it — the done conditions and the QA checklist — and they start life in the ticket rather than as a copy of the record: the record answers why the work is happening, the ticket answers what finishes it, and the boxes are ticked where engineering works. `/pm:task-publish` drafts both from the spec entry and the design before it asks anything, and it drafts them as a coverage pass — every row of the behaviour table, every state and case, every rule and exception either produces a condition or is named in the preview as skipped, so a thin draft is visible instead of silent. `task.contract.level` says which ticket carries them, the task or the parent it hangs under; put them where review happens, because a condition and the step confirming it, split across two tickets, cannot be checked against each other. A ticket filed before its requirement exists says so in that section rather than looking finished.
 
 **The task side assumes nothing about your tracker.** A team that plans and builds in one place sets `task.mirror.type: none`, and `/pm:task-sync` says there is nothing to reconcile — which is the right answer, not an error. A team that plans in one tool and builds in another names both, and matching runs on one property holding the ticket's url. A back-link in the ticket body is never trusted for matching: it can point at a source that was already discarded, and that is how duplicates and resurrected tickets happen.
 
@@ -273,9 +277,11 @@ The two plugins never call each other. What they share is two objects, each name
 | The requirements doc | `qa.baseline.prd` | `prd.target`, and the `prd.notion` block |
 | The task record | `task_tracker.ref` | `task.record.ref` |
 
-That is the entire contract, and each half of it exists for a reason. `/fig:qa` needs the spec because a defect report is only worth handing over when it reads *this breaks rule X in document Y* — and `/pm:prd` is what wrote document Y. `/fig:diff` needs the task record because an AS-IS/TO-BE table belongs beside the request that caused it — and `/pm:task-draft` is what opened that record.
+Those two are the whole of the configuration, and each half of it exists for a reason. `/fig:qa` needs the spec because a defect report is only worth handing over when it reads *this breaks rule X in document Y* — and `/pm:prd` is what wrote document Y. `/fig:diff` needs the task record because an AS-IS/TO-BE table belongs beside the request that caused it — and `/pm:task-draft` is what opened that record.
 
 Neither link is required. Leave `qa.baseline.prd` at `null` and `/fig:qa` files everything as needs-checking rather than as a defect. Leave `task_tracker.type` at `none` and `/fig:diff` prints its table as markdown instead. You lose the linkage, not the skill.
+
+**One more thing crosses, and it travels as data rather than as config.** Where `handoff.version` is on, `/fig:handoff` pins the moment it hands over — a Figma named version — and writes its label and date into the task doc. `/pm:task-publish` reads that line to fill the ticket's referenced-version row, and where `contract.design_match_line` is set, the done condition reads *the build matches the {version} design*. Without the pin that condition points at a target that moves the next time somebody opens the file.
 
 Drawn out, one feature goes round like this.
 
@@ -295,7 +301,7 @@ And the next request starts it again, against a canonical page that is now curre
 | **The Figma MCP plugin** (`plugin:figma`) | Every `fig` skill reads and writes Figma through it. Confirm it answers before going further |
 | **A Figma file** | `/fig:setup` infers conventions by measuring a file you already work in. An empty one, or a first one, takes the starter path instead — four rules proposed in plain words, then the first skeleton laid on a page |
 | **`python3` with PyYAML, and `node`** | Config resolution runs on the host, and the audit scripts are syntax-checked with `node --check` |
-| **A Figma personal access token** *(optional)* | Only `/fig:read` needs one, to enumerate every page over the REST API. Without it, it falls back to the MCP and may see only some pages |
+| **A Figma personal access token** *(optional)* | `/fig:read` enumerates every page over the REST API with one; without it, it falls back to the MCP and may see only some pages. `/fig:handoff` reads a saved version back through the same API where `handoff.version` is on — with no token it asks for the version's link to be pasted instead, and never hands over unpinned |
 | **The `gh` command** *(pm, where the tracker is GitHub)* | The GitHub side runs on it, not on Claude's connection. Log in with the account that can see the tracker — a personal account looking at a company repository sees nothing — and give it board access once with `gh auth refresh -s read:project` |
 
 `pm` needs none of the Figma side. If you only write specs, install it alone.
@@ -334,7 +340,12 @@ claude plugin install fig@byjunyoung
 claude plugin install pm@byjunyoung      # only if you write specs
 ```
 
-`claude plugin list` should now show `fig@byjunyoung`. To update later: `claude plugin marketplace update byjunyoung`.
+`claude plugin list` should now show `fig@byjunyoung`. Updating later takes both halves — the catalogue, then the copy you have installed, which stays pinned to its version until you say so:
+
+```bash
+claude plugin marketplace update byjunyoung
+claude plugin update fig        # and pm, if it is installed. restart to apply
+```
 
 ### 2. Point it at your work
 

@@ -14,7 +14,7 @@ claude plugin install fig@byjunyoung
 | `/fig:prep` | Unifies names · places sections · stubs missing screens |
 | `/fig:arrows` | Creates and re-syncs flow arrows |
 | `/fig:lint` | The read-only audit gate (zero writes) |
-| `/fig:handoff` | Marks lint-passed sections Ready for dev · hands over the links |
+| `/fig:handoff` | Gates on lint · pins the version handed over · hands over the links |
 | `/fig:tokens` | Audits colour bindings against design-system tokens |
 | `/fig:sync` | Exhaustive audit against the canonical page → apply → migrate |
 | `/fig:diff` | Annotates what changed · writes up the task doc |

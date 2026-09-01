@@ -27,6 +27,14 @@ git        written as markdown, then a branch and a PR
 notion     a Notion page. Requires the prd.notion section filled in
 ```
 
+## What a ticket carries
+
+The detail stays in the record and the ticket links to it, so there is one place to edit. Two sections are the exception — the done conditions and the QA checklist. They start life in the ticket, because the record answers why the work is happening while the ticket answers what finishes it, and the boxes are ticked where engineering works.
+
+`/pm:task-publish` drafts both from the spec entry and the design before it asks anything, as a coverage pass: every row of the behaviour table, every state and case, every rule and exception either produces a condition or is named in the preview as skipped. `task.contract.level` decides which ticket holds them — the task, or the parent it hangs under — and `none` files a summary and links alone. Where the design side hands over a pinned version, `contract.design_match_line` writes the one condition that is settled by looking rather than by measuring.
+
+A ticket filed before its requirement exists says so, as a quote rather than a checkbox, and names what is missing.
+
 ## Tools it has never seen
 
 How to work with one tool is written in one file, and the tool's name in your settings picks it. Notion, GitHub, markdown, Slack and Google Calendar come built in. Name anything else — Linear, Jira, Teams — and `/pm:setup` writes the support for it from the tools connected on your machine, into `pm-adapters/` next to your settings, marking what it could not verify. Until that file exists, the skills stop and say the tool is not supported yet, rather than guessing. What such a file has to cover is in [`trackers/README.md`](_common/trackers/README.md) and [`sources/README.md`](_common/sources/README.md).
