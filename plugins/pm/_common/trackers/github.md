@@ -10,6 +10,19 @@ whose `task.mirror.type` is `github`. Every placeholder in braces comes from the
 **These are recovered from a working setup, gotchas included.** Where a line carries a warning,
 the warning is there because it was hit.
 
+## The rule document
+
+Where `task.policy.doc` is set, read it before the first write of the session. A private repo
+serves nothing over the plain URL, so go through the API — the same credentials the writes use:
+
+```bash
+# from a github.com/{owner}/{repo}/blob/{ref}/{path} url
+gh api "repos/{owner}/{repo}/contents/{path}?ref={ref}" --jq '.content' | base64 -d
+```
+
+**A 404 here is usually the token, not the path** — a doc in another repo needs a token scoped
+to that repo. Say which document could not be read rather than proceeding as if none was named.
+
 ## Reading
 
 ```bash
@@ -102,10 +115,15 @@ reports as `Policy`.
 ```bash
 gh issue create --repo {repo} \
   --title "{task.hierarchy.parent_title, filled in}" \
-  --body  "## Definition of done"$'\n'"- every child task done" \
+  --body  "{one line: what this parent covers}" \
   --label "{default_labels},{priority label},{project label}" \
   --assignee "{mapped usernames}"
 ```
+
+**Seed it with a sentence, never with headings of your own.** The contract arrives later under
+the names `contract.sections` gives, and the writer leaves every section it does not own byte
+for byte — so a heading invented by this call outlives all of it, sitting beside the real ones.
+Where the tracker has an issue template for parents, its headings are the ones to start from.
 
 The issue **type** is not a CLI flag — it is a GraphQL mutation, and it must be set or the
 item shows up untyped on the board:
@@ -175,13 +193,22 @@ Only where the project appears in `task.hierarchy.milestone_projects`.
 gh api repos/{repo}/milestones --paginate \
   -q '.[] | select(.title | startswith("{prefix}")) | select(.state=="open") | .title'
 
-# create one, after a preview
+# create one, after a preview — ONLY where milestone_format has an entry for this project
 # a map keyed by project name takes this project's entry; one string serves every project
 gh api -X POST repos/{repo}/milestones -f title="{task.hierarchy.milestone_format, filled in}"
 
 # set it on the parent
 gh issue edit {parent number} --repo {repo} --milestone "{title}"
 ```
+
+**A project in `milestone_projects` with no `milestone_format` entry still uses milestones** —
+it is another team's naming, not an omission. Offer the open ones the listing returned and
+create nothing. A milestone invented in that project's name sits beside theirs looking official,
+and label derivation reads the title's prefix, so a wrong one mislabels every issue under it.
+
+**`{prefix}` is the project's own name as the tracker spells it**, which is not always the
+project label's — a listing filtered on the wrong spelling comes back empty and reads as "this
+project has no milestones", which is how the invented one gets created.
 
 ## Updating an existing ticket
 

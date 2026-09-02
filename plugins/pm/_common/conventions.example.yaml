@@ -128,6 +128,18 @@ task:
   # duplicates and resurrected tickets happen.
   link_property: null
 
+  # --- The rule document the tracker is governed by ------------------------------
+  # Some trackers are run by written conventions of their own — what may carry a
+  # version, who may close what, how long a parked ticket keeps its place. Those
+  # rules outrank everything in this file, and they change without this file being
+  # told. Name the document here and the skills read it once per session, before the
+  # first write, rather than acting on a copy of it that quietly went stale.
+  #
+  # A URL is enough where the doc is public. Where it is not, the mirror's adapter
+  # says how to fetch it — that is the side that already holds the credentials.
+  policy:
+    doc: null                    # e.g. "https://github.com/{org}/{repo}/blob/main/docs/ticket-policy.md"
+
   # --- The context table written into a task record ------------------------------
   # Rename these to whatever your team actually asks. Order is the order written.
   context_rows: [Request source, Initial request, Background (AS-IS),
@@ -161,11 +173,19 @@ task:
   hierarchy:
     parent_kind:   null          # Epic, Project, Milestone — whatever your tracker calls it
     parent_title:  null          # e.g. "[EPIC] [{group}] {name}"
+    parent_required: true        # false where the tracker accepts a task with no parent —
+                                 # a one-off fix, a ticket a merge opened by itself. Forcing
+                                 # a parent onto those is what breeds the empty umbrella
+                                 # ticket everything then hangs under
     milestone_on:  none          # parent | task | none — which level carries a milestone
     milestone_format: null       # e.g. "{project} YYYY-MM". Where the milestone axis differs
                                  # by project — one on a month, another on a release version —
                                  # write a map keyed by project name instead of one string, and
-                                 # key it by the name the tracker shows, not the doc's own
+                                 # key it by the name the tracker shows, not the doc's own.
+                                 # A project in milestone_projects with no entry here still
+                                 # uses milestones: the ones already open are offered and none
+                                 # is created, which is the honest answer where another team
+                                 # owns that project's naming
     milestone_projects: []       # projects that use milestones; empty means none do
 
   # --- Which side wins, per field ------------------------------------------------
@@ -234,9 +254,15 @@ task:
   contract:
     level: task                # task | parent | none — none turns the contract off
 
-    # Headings for the two sections. At level task they are the task's own done and
-    # QA sections and ticket.sections.done is dropped, since there is only one.
+    # Headings for the sections, written in the order this map is written — a tracker
+    # whose template already orders them differently is followed rather than argued
+    # with. At level task they are the task's own done and QA sections and
+    # ticket.sections.done is dropped, since there is only one.
     sections:
+      requirements: null         # what the work has to do, as against when it is done.
+                                 # Set it where the tracker's template carries the two
+                                 # apart; it holds pointers into the spec, never a copy
+                                 # of it
       done:  "Definition of done"
       qa:    "QA checklist"
       links: null                # where the contract's level also carries the shared

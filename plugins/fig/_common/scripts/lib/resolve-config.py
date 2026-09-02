@@ -25,6 +25,7 @@ missing keys are filled by the defaults, and only what is written gets covered.
     3. ./<name>                              per project (strongest)
 
 Deleting a key does not switch a check off — write null for that. Deleting restores the default.
+A map keeps the order the schema declares; write every one of its keys to reorder it.
 """
 import json, os, sys
 
@@ -52,10 +53,19 @@ def load(path):
 
 
 def merge(base, over):
-    """over covers base. Dicts merge deeply, everything else wholesale."""
+    """over covers base. Dicts merge deeply, everything else wholesale.
+
+    Key order is the base's, so a partial override cannot shuffle a map whose order is read
+    out — ticket.sections is written into a ticket in the order it is written down here, and
+    a team naming one section should not move it to the front. Writing the map ENTIRE is how
+    that order is changed: name every key the schema declares, in the order your tracker's
+    own template puts them, and that order is what comes out.
+    """
     out = dict(base)
     for k, v in (over or {}).items():
         out[k] = merge(base[k], v) if isinstance(v, dict) and isinstance(base.get(k), dict) else v
+    if over and set(over) >= set(base):
+        out = {k: out[k] for k in list(over) + [x for x in out if x not in over]}
     return out
 
 

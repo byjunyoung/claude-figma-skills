@@ -28,10 +28,12 @@ With `mirror.type` anything but `none`, `task.mirror.ref` belongs on that list t
 
 **Matching runs on `task.link_property` alone** — the property on the record that holds the ticket's url. A back-link written in the ticket body is for a human to click, never for matching: it can point at a source that was already discarded, which is how duplicates and resurrected tickets happen.
 
+**Where `task.policy.doc` names a rule document, read it before the first write of the session.** It holds the tracker's own conventions — what may carry a version, who may close what, how a ticket with no parent is treated — and where it disagrees with a default in the config or in this file, **it wins**. Read it once and work from it for the rest of the session; read it again only where a write is refused, or where a ticket comes back changed by whatever enforces those rules. The mirror's adapter says how to fetch it. With the key null there is no such document and the config alone decides.
+
 ## Inputs
 
 - `record` (required): the task record's url
-- `mode` (optional): `task` files or updates the task's ticket — the default. `contract` writes only the two binding sections, to whichever level `task.contract.level` names. Omitted with `level: parent`, a run that files a task says at the end whether its parent already has a contract, and offers to write it as a separate run
+- `mode` (optional): `task` files or updates the task's ticket — the default. `contract` writes only the contract's own sections — the two binding ones, plus the requirements section where `contract.sections.requirements` is set — to whichever level `task.contract.level` names. Omitted with `level: parent`, a run that files a task says at the end whether its parent already has a contract, and offers to write it as a separate run
 
 **Why the contract is its own run at `level: parent`.** One parent holds many tasks. Rewriting its contract every time a sibling is filed puts a large diff behind a preview nobody reads closely, and the moment the contract is actually written is a different moment — it is what lets the parent leave the planning column. Keeping it separate makes that moment visible.
 
@@ -177,7 +179,7 @@ Ask everything still missing in one `AskUserQuestion` round. **Never ask for wha
 | Design link | The design section of the body, else ask |
 | Referenced design version | The handover line in the record's design section, where the design side pinned one. Ask only where the line has no version, and drop the row where nobody can supply one — an invented label is worse than an absent row |
 | Other links | Ask — dependencies, policies |
-| Milestone | Only where `task.hierarchy.milestone_on` is not `none`, and only for a project listed in `milestone_projects` |
+| Milestone | Only where `task.hierarchy.milestone_on` is not `none`, and only for a project listed in `milestone_projects`. With no `milestone_format` entry for that project, the options are the milestones already open and none is created |
 
 Project, group, priority, assignee and dates come from the record and are not asked. Where the record has several assignees and the tracker takes one, ask which.
 
@@ -195,8 +197,10 @@ on the group hides them, and the run then concludes there is no parent and offer
 duplicate of one that already exists.
 
 - **One obvious match** → use it, and say which, so a wrong read is visible
-- **None** → ask: create one / name an existing one / stop. Creating one is its own preview → go
+- **None** → ask: create one / name an existing one / leave it without one, where `task.hierarchy.parent_required` is `false` / stop. Creating one is its own preview → go
 - **Several plausible** → let the user pick. Do not break the tie yourself
+
+**A task with no parent is a real answer where the config allows it.** A one-off fix, a chore, a ticket somebody's merge opened by itself — none of those has a feature to hang under, and inventing a parent for them is what produces the empty umbrella ticket everything unrelated then collects under. Say what it costs at the same time: with `milestone_on: parent` a task with no parent cannot carry a version, so it is invisible to anything reading the milestone. Where the work does belong to a feature, the parent is still the right answer. With `parent_required` `true` the option is not offered — the tracker requires one.
 
 A newly created parent is titled by `task.hierarchy.parent_title` and carries whatever `task.mirror_extras` specifies for its type and board placement. Where the project uses milestones, the milestone is set **on the parent** — see step 8.
 
@@ -273,6 +277,9 @@ The record link is **for a person to click**. It is not what matching reads.
 Written into whichever ticket `task.contract.level` names — this one, or the parent.
 
 ```
+### {contract.sections.requirements}            ← only where the key is set
+- {spec entry name} — {one line of what it has to do} ({url})
+
 ### {contract.sections.done}
 - [ ] {one condition per line}
 - [ ] {contract.design_match_line}              ← design-side only
@@ -282,6 +289,19 @@ Written into whichever ticket `task.contract.level` names — this one, or the p
 - [ ] {entry path → action → expected result}
 - [ ] {contract.design_match_step, one per screen}   ← design-side only, last
 ```
+
+**The sections go in the order `contract.sections` writes them**, which is the order the tracker's own template puts them in — not the order they were drafted. Drafting runs done first and QA from it; where the template reads QA before done, that is how it is written out.
+
+#### The requirements section
+
+Only where `contract.sections.requirements` is set. It answers a different question from the done conditions: **what the work has to do**, as against when it is finished. Trackers that gate a column on this section's presence are asking whether anybody wrote the requirement down at all.
+
+- **One line per spec entry this contract answers** — the entry's name, one line of what it has to do, and the link
+- **Never a copy of the entry.** The requirement has a source, and pasting it here makes a second one that will be edited on only one side. A pointer answers the gate honestly; a paste answers it by creating the drift this whole design avoids
+- **The entries are the ones step 2 was drafted from**, so this section and the done conditions cannot name different requirements
+- Where nothing is settled yet, the section says what is being waited on, the same way the placeholder's links rows do — an empty heading reads as something that got deleted
+
+A section written to satisfy a gate and nothing else is worth noticing rather than filling: where there is no entry to point at, the requirement does not exist yet, and step 6's fork is the honest path.
 
 **The version goes inside the match line, not on a line of its own.** `contract.design_match_line` takes `{version}`, so the condition reads as a verdict somebody can reach without looking elsewhere, and the section stays checkboxes with nothing else mixed in. The same label goes into each comparison step in the QA section, and those steps go last — they are the only ones with no click path, so putting them among the click-through steps breaks the reading order. Because the version is file-level, every ticket out of one handover carries the same label and only the node differs — which is why the link itself lives once, in the contract's links rows, rather than beside every task.
 
@@ -321,6 +341,7 @@ Materials    : {entry name} ({entry kind})
                {kind}: {why nothing came out — "rules table carries it", or
                         "nothing in the materials settles it"}
 Sections     : {n} done ({n} specific · {n} from defaults) · {n} QA
+               {n} requirements rows (where the section is set)
                comparison: {n} screens (or "no design handed over")
 
 --- body ---
@@ -359,7 +380,7 @@ Where the tracker already gates on the sections existing — a column a ticket c
 
 Create it with the assembled title, body, labels and assignee.
 
-**At `contract.level: parent` the contract is a body edit on a ticket that already exists**, never a creation. Read the parent's current body, replace only the sections `contract.sections` names — the two binding ones, and the shared links section where `contract.sections.links` is set — and leave every other section of it byte for byte — a parent carries scenario, scope and links somebody else wrote, and this skill has no business rewriting them. Where the parent has no such sections yet, insert them where `contract.sections` orders them relative to what is already there, rather than appending to the end.
+**At `contract.level: parent` the contract is a body edit on a ticket that already exists**, never a creation. Read the parent's current body, replace only the sections `contract.sections` names — the two binding ones, the requirements section where it is set, and the shared links section where `contract.sections.links` is set — and leave every other section of it byte for byte — a parent carries scenario, scope and links somebody else wrote, and this skill has no business rewriting them. Where the parent has no such sections yet, insert them where `contract.sections` orders them relative to what is already there, rather than appending to the end.
 
 **A milestone is not set on the task** where `task.hierarchy.milestone_on` is `parent` — that level owns it.
 
@@ -429,6 +450,8 @@ Taken when the link property was already filled.
 ## Constraints
 
 - **Never invent a mapping.** A project, priority or assignee with no entry in the config stops the run with a message. A wrong label is harder to find later than a missing ticket
+- **Never overrule the tracker's own rule document.** Where `task.policy.doc` disagrees with a default here, the document wins, and a write it forbids is reported rather than attempted
+- **Never name a milestone for a project whose naming somebody else owns.** No `milestone_format` entry means offering what is already open, and nothing more
 - **Never write the contract at two levels.** `task.contract.level` names one. A copy on the other side is the drift the whole design avoids
 - **Never rewrite a parent beyond its contract sections.** Read its body, replace those two, leave the rest untouched
 - **Never file an empty ticket that looks complete.** Filing before the requirement exists is allowed and sometimes necessary; doing it without the note, the label and the backlog seating is not

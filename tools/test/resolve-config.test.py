@@ -74,6 +74,23 @@ with tempfile.TemporaryDirectory() as tmp:
     check("two layers → sibling from home survives", cfg.get("task", {}).get("link_property") == "Ticket")
     check("two layers → three layers reported", len(cfg.get("meta", {}).get("layers", [])) == 3)
 
+    # 4b. Order — a partial override leaves the map's order alone; writing it whole sets it.
+    #     ticket.sections is written into a ticket in this order, so a team whose tracker
+    #     template runs QA before done has to be able to say so, and a team naming one
+    #     section must not have it jump to the front.
+    (home / ".claude" / NAME).write_text("task:\n  ticket:\n    sections:\n      summary: S\n")
+    (proj / NAME).write_text("meta:\n  profile: p\n")
+    cfg = parse(run(proj, home)) or {}
+    keys = list(cfg.get("task", {}).get("ticket", {}).get("sections", {}))
+    check("partial override → schema order kept", keys and keys[0] != "summary", str(keys))
+    whole = "task:\n  ticket:\n    sections:\n" + "".join(
+        f"      {k}: {k}\n" for k in ["schedule", "summary", "project", "done", "links"])
+    (home / ".claude" / NAME).write_text(whole)
+    cfg = parse(run(proj, home)) or {}
+    keys = list(cfg.get("task", {}).get("ticket", {}).get("sections", {}))
+    check("whole map written → that order comes out",
+          keys == ["schedule", "summary", "project", "done", "links"], str(keys))
+
     # 5. An explicit null in the stronger layer is a value, not an absence — it does not fall back
     (proj / NAME).write_text("task:\n  link_property: null\n")
     r = run(proj, home, "--need", "task.link_property")

@@ -27,6 +27,9 @@ With a mirror, `task.mirror.ref` belongs on that list too. A `null` named on std
 - **Fields have owners.** `task.field_owner` says which side wins for each. A field not listed there is reported as a difference and left alone. "Two-way" means reading both sides to reconcile *existence, closure and duplication* — it does not mean copying every field back and forth.
 - **Closed means closed.** A closed ticket, whatever the reason, and an archived record, are both terminal. **A terminal pair is never recreated.** Archive rather than delete on the planning side, so the id survives.
 - **The backlog boundary** is whatever `task.status_map` maps the initial status onto. No milestone means backlog; a milestone arrives when work starts, at the level `task.hierarchy.milestone_on` names.
+- **Where `task.policy.doc` names a rule document, read it before the first write of the session.** It holds the tracker's own conventions, and where it disagrees with a default here or in the config, **it wins**. It is also what tells this skill which of the two rules below are live on this tracker. The mirror's adapter says how to fetch it; with the key null there is no such document.
+- **Closing is not always this skill's to do.** Where the rules gate closing a parent on a person's sign-off — a comment, an approval, a named role — a close from here is reverted by whatever enforces them, and the reopen carries no record of why it was closed. Report it, say who can close it, and leave it open.
+- **A ticket the tracker's own automation closed is not a decision.** Rules that close a ticket for going stale, or for breaking a convention, say nothing about whether the work is still wanted. The rule document names how such a close is marked; those never drive a record to closed on their own.
 
 ## When NOT to invoke
 
@@ -80,11 +83,12 @@ It prints the file to read — the bundled one, or yours from `adapters.dirs` wh
 | Duplicate | The same task filed twice in the mirror | Keep one, close the rest, consolidate the link |
 | Parent | Task orphaned, multi-parented, or under the wrong one | Offer the right parent — **never change it silently** |
 | Broken link | The link property points at a dead or wrong ticket | Re-infer the pair from title and content, then correct the link |
-| Resurrected | Ticket closed but record still open | Reconcile to closed. **Do not recreate** |
+| Resurrected | Ticket closed but record still open | Reconcile to closed. **Do not recreate.** Closed by the tracker's own automation rather than by a person → ask first, and say which rule closed it |
 | Ahead of the mirror | Record terminal, ticket still open | **Report, propose nothing.** Where `field_owner.status` is `mirror`, this is what a finished spec waiting on engineering looks like — the normal state, not a drift. Only raise it when the ticket has been open long enough to look forgotten |
 | Record deleted | Ticket exists, record gone | Ask. Work may be in progress, so never auto-close |
 | Field mismatch | The owning side disagrees with the other | Correct toward `task.field_owner` |
-| Policy | Milestone on the wrong level, or missing where required | Correct per `task.hierarchy` |
+| Policy | Milestone on the wrong level, or missing where required | Correct per `task.hierarchy`, and per the rule document where one is configured |
+| Held by the rules | The tracker's enforcement has flagged the ticket — a violation, a decision it is waiting on | **Report, propose nothing.** It is waiting on a person, and that person is usually not the one running this |
 
 ### 3–4. Propose → approve, in two tiers
 
@@ -121,5 +125,7 @@ The coverage line comes first on purpose. A count with no coverage reads as "eve
 - **No automatic writes.** Diagnose → propose → approve → apply, always in that order
 - **Never change a parent on your own.** Propose it and wait
 - **Never recreate a terminal pair.** That is the resurrection this design exists to stop
+- **Never close a parent where closing is gated on somebody's sign-off.** Name who can, and stop there
+- **Never read an automated close as a cancelled task.** Ask, and say which rule closed it
 - **Never invent a mapping.** An unmapped project, priority or assignee is skipped and reported
 - **Never state coverage you did not have.** Where the read was best-effort, the result says so

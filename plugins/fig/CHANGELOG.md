@@ -1,5 +1,8 @@
 # fig
 
+## 3.13.1 — 2026-09-02
+- A map keeps the order the schema declares, and writing every one of its keys is how that order is changed. Ordering was silently the bundled file's — a config that wrote a map out in its own order got the default's back, which for a map whose order is read out is a wrong answer with nothing to show for it. Partial overrides are untouched: naming one key must not move it to the front (shared resolver, same fix as `pm` 0.18.0)
+
 ## 3.13.0 — 2026-09-02
 - The named version can be saved through the browser instead of being handed to a person. `use_figma` still rejects the version API, but the web app's *File → Save to version history* is ordinary DOM, so where a browser is connected and signed in on the right profile the pin happens inside the run. It stays a write to a shared file — same preview → go — and the label goes in through the clipboard rather than synthesized keystrokes, since mangled multi-byte text produces a pin nothing can match afterwards. No browser, or the wrong account signed in, falls back to asking
 
