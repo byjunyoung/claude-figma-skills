@@ -1,6 +1,6 @@
 ---
 name: prd
-description: Writes a product requirements document against a format, or fills out an existing one. Gathers and analyzes code repos, docs, designs, and chat history first, then proposes recommended answers so the interview can be settled with a single "go". Before writing anything it verifies read-only for vague wording, empty definitions, and engineering terms that do not belong in a product doc. Where the doc lives — markdown files, a git repo, or Notion — is decided by config. Triggers - "/pm:prd", "write the PRD", "draft the requirements", "PRD 작성", "PRD 만들어줘", "기능 항목 추가", "PRD 보강", "사용자 그룹 추가".
+description: Writes a product requirements document against a format, or fills out an existing one. Gathers and analyzes code repos, docs, designs, and chat history first, then proposes recommended answers so the interview can be settled with a single "go". Before writing anything it verifies read-only for vague wording, empty definitions, and engineering terms that do not belong in a product doc, then reads the entries against each other for roles nobody defined, entries that contradict, cases nobody wrote, and thresholds nobody can count. Where the doc lives — markdown files, a git repo, or Notion — is decided by config. Triggers - "/pm:prd", "write the PRD", "draft the requirements", "PRD 작성", "PRD 만들어줘", "기능 항목 추가", "PRD 보강", "사용자 그룹 추가".
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Notion__notion-duplicate-page, mcp__claude_ai_Notion__notion-create-pages, mcp__claude_ai_Notion__notion-update-page, mcp__claude_ai_Notion__notion-query-data-sources
 ---
 
@@ -115,7 +115,7 @@ A status of 'under review' means *a concrete proposal has been put up for review
 
 ### 2.3 Interview principles
 
-Ask about the gaps **together, in one pass**. Do not scatter the questions. Attach a material-backed recommendation to each, marked (recommended), so a short answer finishes it. If new ambiguity turns up mid-write, do not settle it yourself — ask again, or mark it TBD.
+Ask about the gaps **together, in one pass**. Do not scatter the questions. (The exception is 3.1: where one answer changes the next question, they go one at a time.) Attach a material-backed recommendation to each, marked (recommended), so a short answer finishes it. If new ambiguity turns up mid-write, do not settle it yourself — ask again, or mark it TBD.
 
 ---
 
@@ -132,6 +132,22 @@ Self-check, read-only. Anything caught sends it back to step 2.
 4. **Completeness** — the `structure.sections` skeleton is all present, and the user groups, domains, and feature entries are not empty. Every blank is explicitly a TBD
 5. **Vague-wording scan** — reject on 'appropriately', 'as the situation requires', 'if needed', 'etc.', a TBD with no reason; on an empty **target** for filtering, search, or sorting; on an undefined **unit** for judgement, dispatch, or aggregation. **One slot left TBD that the material could have settled is not a pass**
 6. **Language and notation** — as `meta.language` and `prd.emoji` have it. On `auto`, follow the conversation's language
+
+### 3.1 Does it hold together
+
+The six above find what is missing or malformed. They do not find a document that is complete and wrong — and a spec with no blank left in it can still contradict itself, skip a case, or name a number nobody can count. Read the entries against each other, in this order.
+
+**0. Every role it names is defined.** Collect the roles, permissions and account words the entries actually use, and look each one up in the user-group table. A word with no row there is reported as exactly that — *this role is not defined anywhere* — and never as a contradiction.
+
+This one comes first because the rest cannot be judged without it. Two entries that look like they disagree may be naming the same role twice under different words, or two genuinely different roles; only the group table settles which. Judged without it, the report is confident and wrong, which costs more than saying nothing.
+
+**1. Entries that contradict each other.** One entry allows what another forbids, or two say different things about the same object. Quote both, and say which fact would settle it.
+
+**2. The case nobody wrote.** A condition with two branches and one outcome. A states-and-cases row left at `—` where the case plainly applies. Ask about the branch, not about the table.
+
+**3. A number with no rule around it.** A threshold, a count or a period that is stated but not countable — what resets it, what the boundary is, what unit it is in. "Locks after 3 failures" is not a requirement until it says when the counter goes back to zero.
+
+**What to do with what it finds.** Whatever the material settles, settle it and rewrite the entry. What needs a person becomes a question — asked together where the questions are independent, and **one at a time where one answer changes the next**, since resolving a contradiction usually moves other entries with it. What genuinely cannot be answered now becomes a TBD **carrying who decides it and by when**; without those two it does not pass, the same rule every other TBD in this document lives under.
 
 ---
 

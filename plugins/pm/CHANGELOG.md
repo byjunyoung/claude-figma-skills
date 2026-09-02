@@ -1,5 +1,10 @@
 # pm
 
+## 0.17.0 — 2026-09-02
+- **Verification reads the entries against each other, not just each one on its own.** The six checks it had all answer "is anything missing or malformed", and a spec with no blank left in it can still contradict itself, skip a case, or name a number nobody can count — which is the version that survives review and falls over mid-build. Three checks added, and one that has to run before them
+- **The roles have to be defined before anything else can be judged.** Every role, permission and account word an entry uses is looked up in the user-group table, and a word with no row is reported as undefined rather than as a contradiction. Two entries that look like they disagree may be naming one role twice or two different ones, and only that table settles which — judged without it the report comes out confident and wrong, which costs more than saying nothing
+- What the material settles is settled and rewritten. What needs a person is asked — together where the questions are independent, one at a time where an answer moves the other entries. What cannot be answered now becomes a TBD carrying who decides it and by when, and without those two it does not pass
+
 ## 0.16.0 — 2026-09-02
 - **The design comparison is one QA step per screen**, from the new `task.contract.design_match_step`. Naming every screen inside a single checkbox is still a single tick — the reader goes through the list, not through the screens — and the one condition with no click path of its own is exactly the one that gets read past. One box per screen makes the screen nobody opened visible as the box nobody ticked. The done-conditions side stays one line: that is the verdict, these are the work. `design_match_max` offers a ticket split past a screen count, since the screens are the work and the ticket is what got too big
 - **No pin, no line.** Where the record carries no handover line, the match line, the comparison steps and the version row all stay out and the ticket says the design has not been handed over. A condition naming a version nobody saved cannot come out true or false, so it reads as satisfied — worse than absent
