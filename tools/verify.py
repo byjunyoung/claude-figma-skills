@@ -205,6 +205,18 @@ def check_plugin(name, root, yaml):
                 fails.append(f"[{name}:{sk}] frontmatter name does not match the directory ({got.group(1) if got else 'missing'})")
             if "description:" not in fm:
                 fails.append(f"[{name}:{sk}] no description")
+            # Claude Code parses this frontmatter leniently; other installers do not. `npx skills`
+            # walked our repository and silently skipped the two skills whose description carried a
+            # bare `: ` — a colon and a space start a mapping in YAML, so the value stopped being a
+            # string. Skipped, not failed: the skill simply was not there, and nothing said why.
+            try:
+                yaml.safe_load(fm)
+            except yaml.YAMLError as e:
+                where = getattr(e, "problem_mark", None)
+                spot = f" (line {where.line + 1}, column {where.column + 1})" if where else ""
+                fails.append(f"[{name}:{sk}] frontmatter is not valid YAML{spot}"
+                             " — a strict parser drops the skill instead of reading it."
+                             " Usually a `: ` inside the description")
 
         for ref in set(cfg_ref.findall(s)):
             if ref.split(".")[0] not in schema:   # skip code expressions that are not config paths
