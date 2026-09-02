@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__p
 
 # fig:prep — prepare the page (tidy, section, stub missing cases)
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
+
 Like *mise en place* in a kitchen: before the design work and the arrows, every ingredient — every frame — gets cut and put where it belongs.
 
 Takes one page of a design file and (1) normalizes frame names to the convention, (2) groups them into feature-level sections and lays them out, and (3) reads what is actually on each screen to find missing cases and stub them as placeholder frames. A tidied page is only half done — connecting the flow with `/fig:arrows` completes the set.

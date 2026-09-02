@@ -1,5 +1,11 @@
 # fig
 
+## 3.13.0 — 2026-09-02
+- The named version can be saved through the browser instead of being handed to a person. `use_figma` still rejects the version API, but the web app's *File → Save to version history* is ordinary DOM, so where a browser is connected and signed in on the right profile the pin happens inside the run. It stays a write to a shared file — same preview → go — and the label goes in through the clipboard rather than synthesized keystrokes, since mangled multi-byte text produces a pin nothing can match afterwards. No browser, or the wrong account signed in, falls back to asking
+
+- Two skills were invisible to any installer with a strict YAML parser. `handoff` and `proto` carried a bare `: ` inside their description, and a colon followed by a space starts a mapping in YAML, so the frontmatter stopped being readable and `npx skills` skipped both without saying why — Claude Code's own parser is lenient enough that nothing ever showed. `verify` now parses every frontmatter the strict way
+- Every skill that runs bundled code says so at the top. Installed as a bare file — which is what a skill-level installer produces — `${CLAUDE_PLUGIN_ROOT}` does not resolve and the scripts are simply not there, so the skill stops and names the plugin install instead of improvising the checks
+
 ## 3.12.1 — 2026-09-01
 - The plugin's own README is written for the person who runs these commands, not for whoever wrote them. What each command does is said in plain words, the settings file is described as something Claude edits for you rather than something you open, and a Figma seat, a connected tool and an empty setting are each explained where they first come up
 

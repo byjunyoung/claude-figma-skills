@@ -1,10 +1,12 @@
 ---
 name: proto
-description: Rebuilds a Figma design as code so that input, validation, state, and branching actually work in a single HTML file. Not a click-through screenshot demo — something you press to check the UX and get a feel for the implementation spec. The pipeline: settle scope by interview, read Figma faithfully (structure, exact labels, visual tokens), build as vanilla single-file HTML, then verify real behavior in a browser. Triggers - "/fig:proto", "make a working prototype", "make this design actually clickable", "동작 프로토타입 만들어", "프로토타이핑 해줘", "실제로 눌러보고 입력되게".
+description: Rebuilds a Figma design as code so that input, validation, state, and branching actually work in a single HTML file. Not a click-through screenshot demo — something you press to check the UX and get a feel for the implementation spec. The pipeline runs as settle scope by interview, read Figma faithfully (structure, exact labels, visual tokens), build as vanilla single-file HTML, then verify real behavior in a browser. Triggers - "/fig:proto", "make a working prototype", "make this design actually clickable", "동작 프로토타입 만들어", "프로토타이핑 해줘", "실제로 눌러보고 입력되게".
 allowed-tools: AskUserQuestion, Bash, Read, Write, Edit, mcp__plugin_figma_figma__get_design_context, mcp__plugin_figma_figma__get_screenshot, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__use_figma, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__browser_batch, mcp__claude-in-chrome__read_console_messages
 ---
 
 # fig:proto — Figma design → working prototype (rebuilt in code)
+
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
 
 **Rebuilds in code** what is drawn in Figma, producing a single HTML prototype where form input, validation, state changes, and dynamic branching actually work. Not a click-through demo of screenshots but something for **checking behaviour and getting a feel for the implementation spec** — you type a real value and watch the save land in the list.
 

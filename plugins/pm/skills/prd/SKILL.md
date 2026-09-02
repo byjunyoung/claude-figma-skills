@@ -6,6 +6,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, mcp__claude
 
 # prd — writing and extending a format-based requirements document
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install pm@byjunyoung`), rather than improvising what the scripts do.
+
 When a PRD is being written or worked on, the material is gathered and analysed first, and the result becomes a **recommended answer**. The user adopts it with a single "go", or writes a different answer instead. Every question carries the option judged most fitting, marked (recommended).
 
 A PRD keeps growing. Keep the body thin and push the detail out into the entry list, the tickets, and the design file.

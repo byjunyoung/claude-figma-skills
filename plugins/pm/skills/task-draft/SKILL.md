@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Read, Write, Bash, mcp__claude_ai_Notion__notion
 
 # task-draft — a request source into a task's context table
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install pm@byjunyoung`), rather than improvising what the scripts do.
+
 Takes a **request source** — a chat thread, a document, a conversation someone relayed — and fills the context table of a task record. It sorts what was said into the rows your team uses, and keeps **fact, inference, and undecided** visibly apart. With no existing record it creates one; with one that exists it fills only what is empty. Filing the task in an engineering tracker is out of scope — that is `/pm:task-publish`.
 
 ## Principles

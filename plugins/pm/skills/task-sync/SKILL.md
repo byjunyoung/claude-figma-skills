@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Bash, Agent, mcp__claude_ai_Notion__notion-fetch
 
 # task-sync — reconcile the planning list against the engineering tracker
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install pm@byjunyoung`), rather than improvising what the scripts do.
+
 Brings a planning-side task list and the engineering tracker that mirrors it back to the same state, every run. This is not a bulk create: it reads both sides, diagnoses how they drifted, and writes only **after** a proposal has been approved. **Nothing is written automatically.**
 
 Where `task.mirror.type` is `none` there is no second side and nothing to reconcile. Say so and stop — that is the correct answer for a single-tracker team, not an error.

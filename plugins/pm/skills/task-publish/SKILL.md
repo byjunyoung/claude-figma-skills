@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Bash, mcp__claude_ai_Notion__notion-fetch, mcp__
 
 # task-publish — one task record into one tracker ticket
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install pm@byjunyoung`), rather than improvising what the scripts do.
+
 Files a single task record as a ticket in the engineering tracker, or updates the one already there.
 
 **The ticket carries a summary and links, not a copy of the body.** Detail — the spec, the design, the description of what changed — stays in the record, and the ticket points at it. Two copies means one gets edited and they drift; there is also no reliable way to carry embedded images across, so a copied body arrives broken.
@@ -84,9 +86,13 @@ They are drafted the same way whatever level carries them. What changes with `ta
 - **Every state variant actually drawn** in the design that the spec did not already produce a line for
 - **The round trip.** After a create, edit or delete, where the result has to appear: the list it came from, and the other screens reading the same value
 
-Four kinds have to be present or explicitly not applicable: **happy path, states and cases, rules and exceptions, round trip.** A fifth is required whenever `contract.design_match_line` is in play: **the side-by-side comparison**, enumerated by screen. A draft missing one of them is nearly always incomplete rather than small.
+Four kinds have to be present or explicitly not applicable: **happy path, states and cases, rules and exceptions, round trip.** A fifth is required whenever `contract.design_match_line` is in play: **the side-by-side comparison**, one step per screen. A draft missing one of them is nearly always incomplete rather than small.
+
+**Read what kind of entry it is before calling a kind absent.** A policy entry keeps its states inside its rules table rather than in a states table of its own, so "no states and cases" there is the entry's shape and not a gap. A behaviour entry with no states table *is* a gap. Reporting the two the same way is how a thin entry passes as a covered one.
 
 **A row that produces no condition is named, not dropped.** Carry it into the preview as skipped with its reason — outside this ticket, already covered by another line, or nothing in the materials settles it. Silence is what lets a thin draft look finished.
+
+**Those reasons are not equivalent, so the preview keeps them apart.** A row another line covers is bookkeeping. A kind that is empty because nothing anywhere says what should happen is a hole in the requirement — it will surface as a defect argument long after this ticket is closed, and the entry, not the ticket, is where it gets fixed. Count those separately, name each one, and where two or more kinds are empty for that reason, offer in step 6 to fill the entry first. The offer does not block: a coverage count that only measures how well somebody else wrote the entry should at least say so out loud.
 
 **Where the materials settle nothing at all, draft nothing.** A ticket can legitimately come before its requirement — a board needs the row, a parent needs its child, a date is already agreed — and step 6 has a path for that. Padding the section to avoid an empty one is the failure that path exists to prevent.
 
@@ -118,16 +124,23 @@ Three reasons it belongs there and not here, worth knowing because they decide t
 2. **The list can never be complete, and what is missing reads as exempt.** Ten of a screen's hundred values written down does not mean ninety are free — but that is how it gets read
 3. **Nobody performs the measurement.** "16 of padding" is verified by eye in practice; two screens side by side catch the same error faster and catch the other ninety with it
 
-`contract.design_match_line` is appended **only where the design side is handing something over**. A ticket the engineering side filed for itself does not carry it — that side writes its own QA checklist too. And the line only means something against a pinned version, which is why it travels with the referenced-version row in step 5.
+`contract.design_match_line` is appended **only where the design side is handing something over**. A ticket the engineering side filed for itself does not carry it — that side writes its own QA checklist too.
 
-**Where that line is present, the QA section must carry the step that checks it, and that step names every screen to compare.** It is the one condition with no click path of its own, so it is the one that gets read past — and a checklist saying only "confirm it matches the design" is confirmed by a glance. Written as an enumeration it is confirmed by going through a list, and a screen nobody looked at is visible as a screen nobody looked at:
+**The line and the pinned version travel together: neither is written without the other.** A condition naming a version that was never saved cannot come out true or false, and it reads as satisfiable, which is worse than absent — the checker ticks it because there is nothing to check against. So where the record's design section carries no handover line, the match line, the per-screen comparison steps and the referenced-version row all stay out, and the ticket says in its links section that the design has not been handed over yet. They go in on the update pass, once it has. Where the label can be read back from the design tool, confirm it exists before writing it rather than trusting the record's text; where it cannot, the record's handover line is the authority and an invented label is never a substitute.
+
+**Where that line is present, the QA section carries one step per screen** — `contract.design_match_step`, filled in for each:
 
 ```
-- [ ] compare each screen against the referenced version, side by side:
-      {screen} · {screen} · {screen} · {screen}
+- [ ] {design_match_step, screen 1}
+- [ ] {design_match_step, screen 2}
+- [ ] …
 ```
+
+The done-conditions side stays a single line. It is the verdict; these are the work. Splitting the two is the point: a checklist saying only "confirm it matches the design" is confirmed by a glance, and naming every screen *inside* one checkbox is still one tick — the reader looks at the list rather than at the screens. One box per screen makes the screen nobody opened visible as the box nobody ticked.
 
 The screens come from the design's structure — every frame in the handed-over section that this contract's conditions touch, state variants included. An empty state that only exists as a variant is exactly the kind of screen a hurried comparison skips.
+
+**Where the count runs past `contract.design_match_max`, say so in the preview and offer to split the ticket.** Twenty comparison steps is a ticket covering twenty screens, not a rule that grew too heavy, and splitting is the same signal the granularity section already names. With the value unset there is no ceiling and no prompt.
 
 #### QA checklist
 
@@ -239,6 +252,14 @@ The two kinds look different in practice:
 
 `task.ticket.done_defaults` lists the artefacts a recurring kind of task always produces, so a draft starts from them. Lines that do not apply are dropped at the preview, not left in.
 
+**A default is a seed, never the finished line.** Filed as written, every task of a kind carries the same five sentences, and a checklist that reads the same on each ticket stops being read at all — it gets ticked. Three rules keep them from arriving generic:
+
+- **Fill in the target, or drop the line.** "The spec entry is updated" becomes "the *sold-out and unavailable* entry gains its self-pickup rule"; "screens and states are drawn" becomes "the menu list's sold-out, unavailable and self-pickup states are drawn". Where the draft cannot name what is updated or drawn, the materials have not settled enough to claim the line, and it comes out
+- **Every undecided item in the record earns its own line.** They are the most concrete thing a planning task produces, and they are what the parent is waiting on
+- **At least one line has to be specific to this task.** Where none is, the preview says so rather than filing a ticket whose done conditions would fit any sibling
+
+The preview counts them apart — `{n} specific · {n} from defaults` — because that ratio is the readable signal, and a page of defaults is the failure mode this section exists to catch.
+
 **The task that fills the parent's contract is ordinary work with ordinary done conditions.** It is also what lets the parent leave the planning column, so those lines are the ones worth being exact about.
 
 **The spec row carries the entry's name, not only its url.** A bare link says nothing about which requirement this ticket answers, and the reader has to open it to find out.
@@ -259,9 +280,10 @@ Written into whichever ticket `task.contract.level` names — this one, or the p
 
 ### {contract.sections.qa}
 - [ ] {entry path → action → expected result}
+- [ ] {contract.design_match_step, one per screen}   ← design-side only, last
 ```
 
-**The version goes inside the match line, not on a line of its own.** `contract.design_match_line` takes `{version}`, so the condition reads as a verdict somebody can reach without looking elsewhere, and the section stays checkboxes with nothing else mixed in. The same label goes into the comparison step in the QA section. Because the version is file-level, every ticket out of one handover carries the same label and only the node differs — which is why the link itself lives once, in the contract's links rows, rather than beside every task.
+**The version goes inside the match line, not on a line of its own.** `contract.design_match_line` takes `{version}`, so the condition reads as a verdict somebody can reach without looking elsewhere, and the section stays checkboxes with nothing else mixed in. The same label goes into each comparison step in the QA section, and those steps go last — they are the only ones with no click path, so putting them among the click-through steps breaks the reading order. Because the version is file-level, every ticket out of one handover carries the same label and only the node differs — which is why the link itself lives once, in the contract's links rows, rather than beside every task.
 
 #### When the requirement does not exist yet
 
@@ -294,8 +316,12 @@ Assignee     : {mapped username}
 Contract     : {level} → #{n} {title}   (or "this ticket", or "off")
 Drafted from : {spec entry} · {design, or "no design"}
 Coverage     : behaviour {n}/{n} · states {n}/{n} · rules {n}/{n} · round trip {n}
-               skipped: {row} — {reason}
-Sections     : {n} done · {n} QA
+               covered elsewhere: {row} — {which line}
+Materials    : {entry name} ({entry kind})
+               {kind}: {why nothing came out — "rules table carries it", or
+                        "nothing in the materials settles it"}
+Sections     : {n} done ({n} specific · {n} from defaults) · {n} QA
+               comparison: {n} screens (or "no design handed over")
 
 --- body ---
 {step 5 in full}
@@ -318,6 +344,12 @@ Where the tracker already gates on the sections existing — a column a ticket c
 `contract.allow_tbd: true` takes the first without asking. It is not permission to file a bare ticket: the note and the seating happen either way, and the only difference is whether the fork is put to a person.
 
 **A placeholder is never filed silently.** The report says what it is, and the run says plainly that `/pm:task-publish` has to be run again before work starts.
+
+**Three lighter forks sit alongside it.** None of them blocks — each offers the cheaper fix while the ticket is still cheap to change:
+
+- **Two or more kinds empty for want of material** → offer to fill the spec entry first. Filing anyway is fine and often right, but a coverage count that is really measuring the entry should not pass as a measure of the ticket
+- **No line specific to this task** → say which defaults it would be filed with, and ask what this one actually produces. A done-conditions list that would fit any sibling is not one
+- **Comparison steps past `contract.design_match_max`** → offer to split the ticket. The screens are the work; the ticket is what is too big
 
 **No external write happens before "go"** — not the ticket, not the write-back into the record. Both are in this one preview because both are writes.
 
@@ -403,6 +435,8 @@ Taken when the link property was already filled.
 - **Never draft a condition the materials do not support.** A plausible-sounding line nobody agreed to is worse than a short list, because it will be built
 - **Never let a thin draft pass as a finished one.** The coverage line in the preview names every row that produced nothing and why. A short list is fine when the work is short, and visibly wrong when it is not
 - **Never write a done condition that sends the reader to the design for behaviour.** Behaviour, state, thresholds and copy are words; only what is checked by comparing a value belongs to the design, under one line
+- **Never name a version that was not pinned.** No handover line means no match line, no comparison steps and no version row — an unverifiable condition reads as satisfied
+- **Never file a task whose done conditions are defaults only.** A list that would fit any sibling says nothing about this one
 - **Read the tracker's current schema before writing** rather than trusting ids pinned in the config — options get renamed
 - **Every external write waits for "go"**, including the write-back into the record
 - **Never copy the body across.** The record stays the single source, and the ticket links to it — apart from the two binding sections, which have no copy on the other side

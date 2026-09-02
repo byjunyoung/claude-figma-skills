@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__p
 
 # fig:lint — read-only structure and flow audit (violations only)
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
+
 Takes one design page and **audits structure (placement), flow (arrows), and component usage in a single pass**, reporting only violations. Detection is separated from repair, the way a design lint should be — this skill **only detects**; fig:prep fixes structure and fig:arrows fixes flow.
 
 **Why it exists**: to keep verification logic in **one place behind one gate**. Whatever touched the canvas — prep, arrows, a duplicated form, a manual edit — running this one skill at the end covers all of it. When verification is scattered across the working skills you get a blind spot shaped like "I wasn't using that skill this time, so the audit never ran." Removing that blind spot is the reason it is separate.

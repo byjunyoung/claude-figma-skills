@@ -274,6 +274,17 @@ task:
     # your design side does not hand over pinned versions.
     design_match_line: null  # e.g. "the build matches the {version} design"
 
+    # The QA step that checks the line above — one per screen, not one listing every
+    # screen. A single step is confirmed by a glance, and an enumeration inside one
+    # checkbox is still one tick: the reader looks at the list rather than at the
+    # screens. One box per screen makes the screen nobody opened visible as the box
+    # nobody ticked. {screen} is the frame's name, {version} the pinned label.
+    design_match_step: null  # e.g. "compare {screen} against the {version} design"
+
+    # Above this many comparison steps, the preview offers to split the ticket. The
+    # screens are the work; the ticket is what got too big. Null means no ceiling.
+    design_match_max: null   # e.g. 12
+
   # --- Whatever your tracker needs and no other does -----------------------------
   # Board ids, custom field ids, issue-type ids. Written once, read back verbatim.
   # Nothing here is interpreted, so a tracker this plugin has never seen still works.

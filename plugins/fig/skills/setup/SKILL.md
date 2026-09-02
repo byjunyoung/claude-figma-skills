@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Bash, Read, Write, mcp__plugin_figma_figma__use_
 
 # fig:setup — infer a file's conventions, draft the config
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
+
 Every skill here reads `figma-conventions.yaml` as its source of rules. This skill **produces the first copy in an environment that has none.**
 
 It does not ask for the conventions, it **observes them in the file.** Section style, spacing tokens, arrow style — those are already sitting on the canvas, and asking a person makes it worse, because they answer from memory and memory is wrong. What only a person knows — which page is canonical, which states are mandatory — is asked rather than observed.

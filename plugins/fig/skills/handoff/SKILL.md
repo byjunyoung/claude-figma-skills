@@ -1,10 +1,12 @@
 ---
 name: handoff
-description: Hands finished sections to engineering. Runs /fig:lint as the gate, lets the person pick which passing sections go, hands over the section links, and writes one line into the task doc where a tracker is configured. Marking them Ready for dev in Figma is off by default: use_figma cannot write a dev status. Nothing else is touched. Triggers - "/fig:handoff", "hand this off", "mark these ready for dev", "send this to engineering", "개발 넘겨줘", "핸드오프 해줘", "Ready for dev 표시해줘", "이 섹션 개발팀에 넘겨".
-allowed-tools: AskUserQuestion, Bash, Read, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__add_issue_comment
+description: Hands finished sections to engineering. Runs /fig:lint as the gate, lets the person pick which passing sections go, hands over the section links, and writes one line into the task doc where a tracker is configured. Marking them Ready for dev in Figma is off by default — use_figma cannot write a dev status. Nothing else is touched. Triggers - "/fig:handoff", "hand this off", "mark these ready for dev", "send this to engineering", "개발 넘겨줘", "핸드오프 해줘", "Ready for dev 표시해줘", "이 섹션 개발팀에 넘겨".
+allowed-tools: AskUserQuestion, Bash, Read, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-update-page, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__add_issue_comment, mcp__claude-in-chrome__list_connected_browsers, mcp__claude-in-chrome__select_browser, mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__tabs_close_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__find
 ---
 
 # fig:handoff — hand finished sections to engineering
+
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
 
 The moment a feature's screens, states and arrows are drawn, somebody has to say "this is ready"
 where engineering looks. In Figma that place is Dev Mode, and the signal is a section's *Ready
@@ -83,10 +85,17 @@ Only where `handoff.version.enabled`. With it off, skip to step 5 and the doc li
 
 Figma's named versions are that moment — a snapshot of the whole file, so every section going over in one run shares the label and differs only in the node. Nothing is copied, and no frozen duplicate of the file exists to fall out of date.
 
-**This skill cannot save one.** `use_figma`'s allowlist rejects the version API the same way it rejects `devStatus`. So:
+**`use_figma` cannot save one** — its allowlist rejects the version API the same way it rejects `devStatus`. **The web app can**, so where browser automation is available this step does not have to be handed to a person:
+
+- In the design tool's web app, signed in on the profile that owns the file: main menu → *File → Save to version history*, then fill the name and description and save
+- Type the name through the clipboard rather than keystrokes where the label is not plain ASCII — synthesized typing mangles multi-byte text, and a mangled label is a pin nobody can match later
+- It is a write to a shared file, so it goes through the same preview → go as any other. What it writes is one entry in the history; the file's contents are untouched, and removing the entry's name undoes it
+- Where no browser is connected, or the account signed in there is the wrong one, hand it back: show the name and ask for it to be saved under exactly that name
+
+Either way:
 
 1. Ask which release this handover belongs to — a value the person has, never one inferred from the file
-2. Show the name `handoff.version.name` produces, and ask for it to be saved: in Figma, *File → Save to version history*, under exactly that name
+2. Settle the name `handoff.version.name` produces, and save it — through the browser, or by asking
 3. Read it back, newest first, and take the first entry matching `handoff.version.match`:
 
 ```bash

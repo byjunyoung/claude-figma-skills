@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__p
 
 # fig:arrows — draw and sync screen flow arrows
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
+
 Draws user flow between frames in a design file as arrow vectors with labels. Figma's magnetic connector (ConnectorNode) is FigJam-only, so in a design file these have to be plain vectors — this skill **stores the flow in the node name**, which makes re-syncing automatic even without magnetism.
 
 **Prerequisites**: always load the `figma:figma-use` skill before calling `use_figma`.

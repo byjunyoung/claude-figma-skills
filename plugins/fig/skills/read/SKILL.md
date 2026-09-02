@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__get_metadata, mcp
 
 # fig:read — collecting every frame in a Figma file
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
+
 Takes a single Figma file URL, walks the page → frame structure automatically, and collects every top-level frame on the pages you pick as metadata plus screenshots. It works without selecting anything in the desktop app.
 
 ## When to invoke

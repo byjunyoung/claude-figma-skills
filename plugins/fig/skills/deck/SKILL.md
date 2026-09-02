@@ -6,6 +6,8 @@ allowed-tools: Read, Write, Bash, AskUserQuestion, mcp__plugin_figma_figma__use_
 
 # deck — building a presentation deck (Figma Slides)
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install fig@byjunyoung`), rather than improvising what the scripts do.
+
 Moves one source into a presentation flow and builds a deck in **a Figma Slides file**. The slide count follows the source's volume and the presentation conditions (it is not fixed).
 
 The design comes from the local assets in `deck.assets_dir` — `template-spec.md` (values and the archetype catalog) and `template.js` (palette, constants, builders). It does not re-read a remote template on every run; it Reads these two.

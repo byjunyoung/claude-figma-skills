@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Read, Write, Edit, Bash, Glob, Grep
 
 # log-review — a period of logs into accomplishment statements
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install pm@byjunyoung`), rather than improvising what the scripts do.
+
 Reads the daily files `/pm:log` wrote over a period and produces the thing those files cannot be used as directly: a short list of what you accomplished, phrased so it survives being pasted into a self-review or a CV. It works from what is on disk. It does not go back to the tracker, and it does not go to chat — if something is not in the logs, it did not get captured, and the honest answer is that it is missing.
 
 **The judgement is yours, not the skill's.** A daily log knows that a status changed; it does not know whether that mattered, how much of it was your work, or what it can be measured by. Those three things are asked, never assumed. A period with no answers produces no statements, which is a correct outcome.

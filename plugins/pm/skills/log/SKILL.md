@@ -6,6 +6,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, mcp__claude_ai_Notion__notio
 
 # log — one day, one file
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install pm@byjunyoung`), rather than improvising what the scripts do.
+
 Assembles a day's work log from the tracker the task skills already use, plus a calendar and chat where you name them, and writes it as a single markdown file. Reads everywhere, writes one place: a file under `log.out.dir`. Nothing is written back to the tracker.
 
 Built for a scheduler. It runs with nobody watching, so the rules below lean hard on *say what you could not do* rather than *fill it in anyway*.

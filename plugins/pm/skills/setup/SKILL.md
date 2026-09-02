@@ -6,6 +6,8 @@ allowed-tools: AskUserQuestion, Read, Write, Bash, mcp__claude_ai_Notion__notion
 
 # pm:setup — read the schemas, draft the config
 
+**Part of a plugin.** The scripts this skill runs ship beside it under `${CLAUDE_PLUGIN_ROOT}`. If that path does not resolve, this file was installed on its own — stop and say the plugin itself is needed (`claude plugin install pm@byjunyoung`), rather than improvising what the scripts do.
+
 The `pm` skills read every value from `pm-conventions.yaml`. This is where that file comes from.
 
 **It reads schemas rather than inferring from samples.** A design file has no schema, so `/fig:setup` has to count occurrences and take the dominant value. A document database and an issue tracker both publish theirs — property names, select options, labels, field ids. So this skill queries, and only interviews for what a schema genuinely cannot answer.
