@@ -101,6 +101,41 @@ with tempfile.TemporaryDirectory() as tmp:
     r = run(proj, home, "--need", "task.label_map.project")
     check("empty map → --need passes", r.returncode == 0, r.stderr)
 
+    # 7. --authored sees what --need cannot: a key only the floor supplies resolves to a value,
+    #    so --need passes on it while --authored stops. This is the incident these two split over.
+    (home / ".claude" / NAME).write_text("meta:\n  profile: home\ntask:\n  link_property: Ticket\n")
+    (proj / NAME).unlink()
+    r = run(proj, home, "--need", "task.contract.level")
+    check("floor-only key → --need passes (it is not null)", r.returncode == 0, r.stderr)
+    r = run(proj, home, "--authored", "task.contract.level")
+    check("floor-only key → --authored exits 3", r.returncode == 3, f"rc={r.returncode}")
+    check("floor-only key → the key is named", "task.contract.level is not set" in r.stderr, r.stderr)
+    check("floor-only key → where the config came from is shown", ".claude" in r.stderr, r.stderr)
+    check("floor-only key → no JSON on stdout", r.stdout.strip() == "")
+
+    # 8. A key the person wrote passes --authored, whatever its value — including null, which is
+    #    a decision. --need is what reads that decision; the two do not overlap.
+    (proj / NAME).write_text("task:\n  contract:\n    level: parent\n")
+    r = run(proj, home, "--authored", "task.contract.level")
+    check("written key → --authored passes", r.returncode == 0, r.stderr)
+    (proj / NAME).write_text("task:\n  contract:\n    level: null\n")
+    r = run(proj, home, "--authored", "task.contract.level")
+    check("written null → --authored passes (somebody decided)", r.returncode == 0, r.stderr)
+    r = run(proj, home, "--need", "task.contract.level")
+    check("written null → --need still stops", r.returncode == 2, f"rc={r.returncode}")
+
+    # 9. --origin describes the strongest layer without asking it to declare anything
+    r = run(proj, home, "--origin")
+    check("--origin → names the layer in play", str(proj / NAME) in r.stdout, r.stdout)
+    check("--origin → not a symlink, so no arrow", "→" not in r.stdout, r.stdout)
+    empty = Path(tmp) / "empty"
+    empty.mkdir()
+    bare = Path(tmp) / "bare-home"
+    (bare / ".claude").mkdir(parents=True)
+    r = run(empty, bare, "--origin")
+    check("--origin → says so where there is no config of your own",
+          "every value came from the plugin's defaults" in r.stdout, r.stdout)
+
 print()
 if failures:
     print(f"{len(failures)} failed — " + ", ".join(failures))

@@ -15,7 +15,8 @@ Where `task.mirror.type` is `none` there is no second side and nothing to reconc
 ## Configuration
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml --need task.record.ref,task.link_property
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml \
+  --need task.record.ref,task.link_property --authored task.contract.level
 ```
 
 With a mirror, `task.mirror.ref` belongs on that list too. A `null` named on stderr is a config gap, not a tracker problem — `/pm:setup` writes it. Stop on it rather than reconciling against a side that was never named.

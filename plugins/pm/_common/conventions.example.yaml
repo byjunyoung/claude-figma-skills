@@ -12,6 +12,16 @@
 #
 # When you don't know a value, write null rather than deleting the key — null
 # means "skip that", while deleting brings the default back.
+#
+# A key you leave out still resolves — to this file's value. That is the point
+# of a floor, and for most keys it is what you want. For the few that decide the
+# shape of what a skill writes into somebody else's tool, it is not: the skill
+# refuses rather than write a shape your team never chose, and names the key.
+# Those keys are marked below.
+#
+# Sharing this file across a team: keep it in a repository and symlink it into
+# ~/.claude. Nothing here needs to change — the skills read where the file came
+# from and say when your copy has fallen behind. /pm:setup wires that up.
 # =============================================================================
 
 meta:
@@ -252,6 +262,9 @@ task:
   # review happens: a condition and the step confirming it, split across two tickets,
   # cannot be checked against each other, and the coverage rule stops meaning anything.
   contract:
+    # Marked: a skill will not write a contract on this key inherited. Which ticket
+    # carries the binding sections changes what lands in your tracker, and a default
+    # nobody chose is not an answer to that — /pm:task-publish stops and names it.
     level: task                # task | parent | none — none turns the contract off
 
     # Headings for the sections, written in the order this map is written — a tracker

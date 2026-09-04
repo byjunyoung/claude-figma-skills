@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/shared-config.py\"",
+            "shell": "bash",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}

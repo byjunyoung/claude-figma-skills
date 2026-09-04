@@ -13,10 +13,19 @@ Usage
     python3 resolve-config.py --name pm-conventions.yaml   → change the filename to look for
     python3 resolve-config.py --need task.record.ref,task.link_property
                                              → exit 2 naming any of these that is null, no JSON
+    python3 resolve-config.py --authored task.contract.level
+                                             → exit 3 naming any of these no layer of yours sets
+    python3 resolve-config.py --origin       → where this machine's config came from, nothing else
 
 A skill that cannot run without a value asks for it with --need. A null there is a config
 gap — setup writes it — and the skill stops on the key's name instead of running on nothing,
 which is how a run on an unfinished config used to come back thin and look like a result.
+
+--authored is the axis beside it, and --need cannot see what it sees. A key no config of
+yours mentions still resolves — to the floor's value — so it is not missing, it is somebody
+else's. Where that value decides the shape of what a run writes out, the run is deciding it
+on a default the team never saw. Preflight already keeps the floor apart for the same
+reason: a requirement comes from a value somebody wrote, never from a default nobody chose.
 
 The layers merge (later covers earlier). A config holding only some keys works as it is —
 missing keys are filled by the defaults, and only what is written gets covered.
@@ -27,7 +36,7 @@ missing keys are filled by the defaults, and only what is written gets covered.
 Deleting a key does not switch a check off — write null for that. Deleting restores the default.
 A map keeps the order the schema declares; write every one of its keys to reorder it.
 """
-import json, os, sys
+import json, os, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLUGIN = "pm" if f"{os.sep}pm{os.sep}" in HERE else "fig"
@@ -106,6 +115,116 @@ def unmet(cfg, keys):
     return out
 
 
+def present(d, dotted):
+    """Whether the dotted key exists as a chain of keys, whatever its value. A key written
+    `null` is present — somebody decided that, and --need is what reads the decision. A key
+    nobody wrote at all is not."""
+    cur = d
+    for part in dotted.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return False
+        cur = cur[part]
+    return True
+
+
+def user_layers(name):
+    """(the layers above the floor, merged), (the paths they came from). Empty where a
+    machine has no config of its own and every value is the plugin's."""
+    cfg, used = {}, []
+    for p in candidates(name)[1:]:
+        if os.path.exists(p):
+            cfg = merge(cfg, load(p))
+            used.append(p)
+    return cfg, used
+
+
+def inherited(keys, name):
+    """The dotted keys no layer of yours mentions."""
+    user, _ = user_layers(name)
+    return [k for k in keys if not present(user, k)]
+
+
+def git(root, *args, timeout=5):
+    """git, read-only and off the network. None where it cannot answer — not a repository,
+    no git on the machine, a command that took too long."""
+    try:
+        p = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def days(path):
+    """Whole days since the file was last written, or None where it is not there."""
+    try:
+        return int((time.time() - os.path.getmtime(path)) / 86400)
+    except OSError:
+        return None
+
+
+def origin_state(name):
+    """What this machine can say about where its config came from, as fields.
+
+    A config shared across a team is a copy on every machine, and a copy says nothing about
+    its own age — which is how one goes quietly stale while every run on it succeeds. None
+    of this asks the config to declare anything: a stamp naming the version a file was
+    written for is a claim about the past that nobody updates, and the person who reads the
+    warning silences it by editing the stamp. Everything here is read off the filesystem
+    instead, so a config written before any of this existed is described just as accurately.
+
+    `root` is set only where the strongest layer resolves into a git work tree — one way to
+    share a config, not the only one. Nothing here goes near the network: the count git can
+    give is as of the last fetch, so `fetched` travels beside `behind` and a fetch that has
+    not run in days is the more useful of the two findings.
+    """
+    _, used = user_layers(name)
+    if not used:
+        return {"path": None}
+    path = used[-1]
+    real = os.path.realpath(path)
+    st = {"path": path, "real": real, "linked": real != os.path.abspath(path),
+          "edited": days(real), "root": None, "dirty": False, "behind": None, "fetched": None}
+    root = git(os.path.dirname(real), "rev-parse", "--show-toplevel")
+    if not root:
+        return st
+    st["root"] = root
+    st["dirty"] = bool(git(root, "status", "--porcelain", "--", real))
+    behind = git(root, "rev-list", "--count", "HEAD..@{u}")
+    if behind is None:
+        return st                      # no upstream — nothing for it to be behind
+    st["behind"] = int(behind or 0)
+    gitdir = git(root, "rev-parse", "--absolute-git-dir")
+    st["fetched"] = days(os.path.join(gitdir, "FETCH_HEAD")) if gitdir else None
+    return st
+
+
+def origin(name):
+    """origin_state as sentences, deepest rung last. A team that shares nothing stops at the
+    first line, and the rungs below it simply do not apply."""
+    st = origin_state(name)
+    if not st.get("path"):
+        return [f"no {name} of your own — every value came from the plugin's defaults"]
+    seen = f"last edited {st['edited']}d ago" if st["edited"] is not None else "never read"
+    out = [f"{st['path']} → {st['real']}, {seen}" if st["linked"]
+           else f"{st['path']} — its own file, {seen}"]
+    if not st["root"]:
+        return out
+    out.append(f"kept in git at {st['root']}")
+    if st["dirty"]:
+        out.append("edited here and not committed — this change is on this machine only")
+    if st["behind"] is None:
+        out.append("no upstream branch — there is nothing for it to be behind")
+        return out
+    f = st["fetched"]
+    when = "not fetched since it was cloned" if f is None else f"fetched {f}d ago"
+    out.append(f"{st['behind']} commit(s) behind upstream, {when} — "
+               f"`git -C {st['root']} pull --ff-only`" if st["behind"]
+               else f"level with upstream, {when}")
+    if f is not None and f > 1:
+        out.append("git knows only what that fetch told it, so the count above is a floor")
+    return out
+
+
 def take(argv, flag):
     """The value after a flag, removed from argv. None where the flag is absent."""
     if flag not in argv:
@@ -122,8 +241,10 @@ def main():
     argv = sys.argv[1:]
     as_js = "--js" in argv
     where = "--where" in argv
+    show_origin = "--origin" in argv
     name = take(argv, "--name") or DEFAULT_NAME
     need = [k.strip() for k in (take(argv, "--need") or "").split(",") if k.strip()]
+    owned = [k.strip() for k in (take(argv, "--authored") or "").split(",") if k.strip()]
     args = [a for a in argv if not a.startswith("--")]
     cfg, src = resolve(args[0] if args else None, name)
     gaps = unmet(cfg, need)
@@ -131,7 +252,21 @@ def main():
         for k in gaps:
             print(f"{k} is not set in {name} — this cannot run without it. /{PLUGIN}:setup fills it in, or write it by hand", file=sys.stderr)
         sys.exit(2)
-    if where:
+    borrowed = inherited(owned, name)
+    if borrowed:
+        for k in borrowed:
+            print(f"{k} is not set in {name} — the value in play came from the plugin's own "
+                  f"defaults, which nobody on your team chose. Writing on one puts a shape into "
+                  f"your tracker that no one decided on. Set it — the schema and what each value "
+                  f"governs are in _common/conventions.example.yaml — and run again.", file=sys.stderr)
+        print("", file=sys.stderr)
+        for line in origin(name):
+            print(f"  {line}", file=sys.stderr)
+        sys.exit(3)
+    if show_origin:
+        for line in origin(name):
+            print(line)
+    elif where:
         print(src)
     elif as_js:
         print("const CFG = " + json.dumps(cfg, ensure_ascii=False) + ";")

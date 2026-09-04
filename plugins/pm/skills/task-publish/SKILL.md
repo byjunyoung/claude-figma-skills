@@ -19,10 +19,13 @@ Files a single task record as a ticket in the engineering tracker, or updates th
 ## What decides where things go
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml --need task.record.ref,task.link_property
+python3 ${CLAUDE_PLUGIN_ROOT}/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml \
+  --need task.record.ref,task.link_property --authored task.contract.level
 ```
 
 With `mirror.type` anything but `none`, `task.mirror.ref` belongs on that list too. A `null` named on stderr is a config gap, not a tracker problem — `/pm:setup` writes it. Stop on it rather than interviewing for the value here.
+
+**`--authored` is the other half, and `--need` cannot see what it sees.** A key no config of theirs mentions still resolves — to the bundled floor — so it reads as answered. `task.contract.level` is the one that decides which ticket carries the binding sections, and the floor says `task`: a team whose tracker reviews at the parent, running on a config that never named it, gets a contract filed onto the wrong ticket and no sign that anything was assumed. Where the stop fires, the message names the key and says where the copy came from — a config that has fallen behind a shared one is the usual cause, and the lines underneath say by how much. Do not interview for the value and do not proceed on the default: neither answers who chose it.
 
 `task.record` is where the task lives, `task.mirror` is the tracker it is filed into. **With `mirror.type: none` this skill has nothing to do** — say so and stop, rather than inventing a destination.
 

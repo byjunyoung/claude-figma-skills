@@ -37,7 +37,7 @@ Anything omitted is asked for at the start, together, in one round.
 
 ## How it runs — the ladder
 
-Eight steps, and the person sees them before the first question. Show this ladder at the
+Nine steps, and the person sees them before the first question. Show this ladder at the
 start, and at every transition say which step is beginning and whether it reads or writes:
 
 ```
@@ -49,6 +49,7 @@ start, and at every transition say which step is beginning and whether it reads 
 ⑥ Write the file             preview → go · one local file
 ⑦ Prove it                   one existing task, or the file reading back
 ⑧ First result               paste one message → a context table · nothing written
+⑨ Share it                   only where somebody else runs these too · skipped otherwise
 ```
 
 **Open with what this produces, before asking anything.** One paragraph: after this, a
@@ -291,6 +292,46 @@ Then close with the commands that follow, in the order they are used:
     /pm:task-sync                        both sides reconciled — any time
 
 With `mirror.type: none` the last two do not apply — say so, and name `/pm:log` instead.
+
+### 9. Share it — only where somebody else runs these too
+
+Ask once, at the end: **does anybody else run these skills against the same tracker?** A "no"
+ends the step in a sentence — say the file is theirs alone and this can be done later — and
+nothing is written. Do not guess the answer: one machine cannot see whether its config is a
+copy of somebody else's, and a run that assumes a team is a run that nags a person working
+alone.
+
+Where the answer is yes, the config stops being one person's file and becomes a copy on every
+machine, and a copy has no way of knowing its own age. The failure is quiet: every run
+succeeds, and the first sign that somebody was working from an old one is what it wrote into
+the tracker. Anything that asks the file to declare its own version fails here twice — a file
+written before a key existed cannot say anything about that key, and whoever reads the warning
+can silence it by editing the stamp rather than the file.
+
+So the copy is not asked. **Keep the file in a repository and symlink it into `~/.claude`.**
+The skills read where their config came from and say when a copy has fallen behind, and that
+answer needs nothing kept true by hand.
+
+- **A repository already exists** — take its url, clone it, and replace the local file with a
+  symlink. Show the existing file's diff against the shared one first: a value somebody
+  entered by hand is easy to erase here and hard to recover
+- **Nobody has made one yet** — say what goes in it, that it holds the config and nothing else,
+  and that it has to be private where the config carries ids or account names. Creating it and
+  granting access is theirs to do; offer to write the file into the clone once it exists
+- **Neither** — a shared drive, a pasted block, anything else still works. The skills simply
+  have less to say about it: the age of the file is all they can report, not how far behind it
+  is. Say that plainly rather than arguing for the repository
+
+Then offer the line that keeps it current, and say what it does before writing it:
+
+```json
+{ "env": { "CLAUDE_SHARED_CONFIG": "pull" } }
+```
+
+The default without it looks and reports but changes no file. `pull` fast-forwards the work
+tree at the start of a session, and it is skipped whenever the tree has uncommitted work.
+`off` turns the whole thing off. Write it into settings only with a go — it is the one part of
+this that acts on its own afterwards.
 
 ## Report
 

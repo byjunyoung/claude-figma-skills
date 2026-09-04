@@ -1,5 +1,9 @@
 # fig
 
+## 3.14.0 — 2026-09-04
+- **A config shared across a team is a copy on every machine, and a copy has no way of knowing its own age.** `--origin` reports what the filesystem can answer — symlink, git work tree, how far behind, when it last fetched — and a `SessionStart` hook says so when a copy has fallen behind, staying silent when it has not. Nothing is declared and nothing has to be kept true by hand. `CLAUDE_SHARED_CONFIG` takes `off`, `fetch` (the default) or `pull`
+- `--authored` stops a skill that would write on a value no config of yours mentions. No `fig` skill asks for it yet — no key here changes what gets written when it is inherited — and the resolver carries it because the two plugins hold that file byte for byte
+
 ## 3.13.1 — 2026-09-02
 - A map keeps the order the schema declares, and writing every one of its keys is how that order is changed. Ordering was silently the bundled file's — a config that wrote a map out in its own order got the default's back, which for a map whose order is read out is a wrong answer with nothing to show for it. Partial overrides are untouched: naming one key must not move it to the front (shared resolver, same fix as `pm` 0.18.0)
 

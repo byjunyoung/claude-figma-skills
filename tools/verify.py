@@ -38,7 +38,8 @@ FREE_KEY_MAPS = (
     "task.hierarchy.milestone_format.",
 )
 
-SHARED = ["_common/scripts/lib/resolve-config.py", "_common/scripts/lib/preflight.py"]
+SHARED = ["_common/scripts/lib/resolve-config.py", "_common/scripts/lib/preflight.py",
+          "hooks/shared-config.py", "hooks/hooks.json"]
 
 fails, warns, counts = [], [], []
 

@@ -433,6 +433,47 @@ Configuration lives in `pm-conventions.yaml`, layered the same way as `fig`.
 
 ---
 
+## Sharing one config across a team
+
+Both plugins read a config file, and a team running these skills against one tracker shares
+one. That means a copy on every machine — and a copy has no way of knowing its own age. Every
+run on an old one succeeds, so the first sign that somebody was working from a stale copy is
+what it wrote into the tracker.
+
+Nothing is asked of the file. A stamp naming the version it was written for would be a claim
+about the past that nobody updates, and whoever read the warning could silence it by editing
+the stamp. So the plugins look at where the file came from instead:
+
+```
+python3 <plugin>/_common/scripts/lib/resolve-config.py --name pm-conventions.yaml --origin
+```
+
+**Keep the config in a repository and symlink it into `~/.claude`.** Nothing in the file
+changes. A `SessionStart` hook then says when your copy has fallen behind, and says nothing
+when it has not:
+
+| `CLAUDE_SHARED_CONFIG` | What happens at the start of a session |
+|---|---|
+| unset, or `fetch` | looks, reports if you are behind, changes no file — the default |
+| `pull` | fast-forwards the work tree too, and skips it if you have uncommitted work |
+| `off` | nothing |
+
+Any other way of sharing still works — a drive, a pasted block. The skills simply have less to
+say about it: how old the file is, but not how far behind. `/pm:setup` and `/fig:setup` ask
+once whether anybody else runs these skills, and wire this up where the answer is yes.
+
+There is a second half to the same problem. A key your config never mentions still resolves —
+to the plugin's own defaults — so it is not missing, it is somebody else's. Where that value
+decides what gets written into a shared tool, the skill stops rather than write a shape your
+team never chose:
+
+```
+task.contract.level is not set in pm-conventions.yaml — the value in play came from the
+plugin's own defaults, which nobody on your team chose. …
+```
+
+---
+
 ## Where the two meet
 
 The two plugins never call each other. What they share is two objects, each named twice — once in `figma-conventions.yaml` and once in `pm-conventions.yaml`. **Install both and you point each pair at the same place.**
