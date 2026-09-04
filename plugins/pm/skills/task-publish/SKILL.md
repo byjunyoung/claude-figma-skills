@@ -396,7 +396,7 @@ Create it with the assembled title, body, labels and assignee.
 
 **At `contract.level: parent` the contract is a body edit on a ticket that already exists**, never a creation. Read the parent's current body, replace only the sections `contract.sections` names — the two binding ones, the requirements section where it is set, and the shared links section where `contract.sections.links` is set — and leave every other section of it byte for byte — a parent carries scenario, scope and links somebody else wrote, and this skill has no business rewriting them. Where the parent has no such sections yet, insert them **where `task.template.parent` puts them**, and where no template is named, where `contract.sections` orders them relative to what is already there, rather than appending to the end.
 
-**What this edit cannot reach is the rest of the ticket, and that is on purpose.** A parent filed before any of this — with headings somebody invented, or missing a label the rules now require — keeps them, because every section but the contract's belongs to whoever wrote it. Say so at the end rather than letting the run read as "the parent is now correct": `/pm:task-sync` is what surveys those, and a person decides.
+**The rest of the ticket is not this edit's to change, but it is not out of reach either.** A parent filed before any of this — headings somebody invented, a label the rules now require — keeps them through a contract write. Where `task.template` is set and the body does not match it, say so and offer the pass below. Never fold it into the contract write silently: they are two different changes, and one "go" should not cover both.
 
 **A milestone is not set on the task** where `task.hierarchy.milestone_on` is `parent` — that level owns it.
 
@@ -450,6 +450,54 @@ Link property : written
 
 ---
 
+## Bringing a ticket back to the template
+
+Offered wherever `task.template` names one and the ticket's body does not match it. **It is one ticket, one person, one preview and one "go"** — that is the whole reason it is allowed here and refused in `/pm:task-sync`, where the same edit across a list would rewrite a hundred tickets somebody else wrote on a single approval.
+
+**The case this exists for is a ticket this workflow itself produced.** A ticket filed before the template was named, or by a config that had fallen behind it, carries sections these skills invented — not somebody else's prose, this workflow's own output under the wrong headings. Refusing to touch it on the grounds that the contract writer never touches what it does not own is the right rule applied to the wrong ticket.
+
+### What it does on its own
+
+- **Renames a heading** to the template's name, where the two clearly correspond
+- **Reorders sections** into the template's order. Blocks are moved whole, so a ticked checkbox stays ticked and a link stays a link — nothing is re-drafted on the way
+- **Drops an empty section the template does not have.** Empty means empty: a placeholder comment is not content, an unticked checkbox is
+- **Names the labels the rule document requires and the ticket lacks**, for the same approval
+
+### What it never does on its own
+
+- **Move content between sections.** Where a section the template does not have holds something, **ask**: which template section it belongs under, or the record, or leave it where it is. Leaving it is a real answer — the ticket stays off-template and that is the person's call, not a failure
+- **Delete a section that holds anything**
+- **Add a section the rules gate on, empty.** Where `task.policy.doc` says a column is gated on a section existing, writing that heading with nothing under it makes the ticket pass a gate it should not. Name it in the preview and say why it was left out. Other missing template sections are added empty and listed
+- **Re-draft anything.** The contract sections are written by their own run, from the materials, with their own coverage pass. This pass moves text; it does not author it
+
+### Preview
+
+```
+[template pass] #{n} {title}
+Template : {task.template.parent or .task}
+
+  heading                      → what happens
+  {current}                    → renamed {template's name}
+  {current}                    → moved to position {n}
+  {current}                    → dropped (empty, not in the template)
+  {template's, missing}        → added empty
+  {template's, missing, gated} → NOT added — the rules gate {column} on it, and an
+                                 empty one passes that gate. Fill it with
+                                 /pm:task-publish --mode contract instead
+  {current, has content}       → asked below
+
+Labels   : + {label} (required by {the rule})
+Content to place, one at a time:
+  「{section}」 {n} lines — where does this go?
+     {template section} / the record / leave it here
+
+shall I proceed? (go / changes)
+```
+
+The questions come before the "go", not after it. An approval given without knowing where the content lands is not an approval of this edit.
+
+**Report what stayed off-template.** A pass that moved four things and left one is a ticket that still differs, and saying "done" hides the one. Name it, and name why — the person chose to leave it, or the rules gate it.
+
 ## The update path
 
 Taken when the link property was already filled.
@@ -459,7 +507,8 @@ Taken when the link property was already filled.
 3. **A placeholder being filled is the ordinary second pass.** The note comes out, the two sections go in, `contract.incomplete_label` comes off, and the board seating is handed back to `task.status_map`. Say in the report that the ticket now has a contract, because that is the moment it becomes startable
 4. **A ticket already in progress is the delicate case.** Re-draft the two binding sections from the current materials, then reconcile rather than overwrite: a line that survives unchanged keeps its tick, a line the spec dropped is removed and said so in the preview, and a new line arrives unticked. Silently resetting a checklist somebody has been working down destroys the only record of what was verified
 5. Preview → go → edit the ticket, keeping the record link row intact
-6. Write back into the record — the spec link only where newly given; the link property is already there. Append the new change summary under the existing one
+6. **Where the body still does not match `task.template`, offer the template pass above** — its own preview, its own "go", after this edit has landed. Two changes, two approvals, and the second one starts from what the first actually wrote
+7. Write back into the record — the spec link only where newly given; the link property is already there. Append the new change summary under the existing one
 
 ---
 
@@ -470,6 +519,8 @@ Taken when the link property was already filled.
 - **Never name a milestone for a project whose naming somebody else owns.** No `milestone_format` entry means offering what is already open, and nothing more
 - **Never write the contract at two levels.** `task.contract.level` names one. A copy on the other side is the drift the whole design avoids
 - **Never rewrite a parent beyond its contract sections.** Read its body, replace those two, leave the rest untouched
+- **Never reshape a ticket to the template without its own preview and its own "go".** It is a separate change from the contract, and one approval covers one change
+- **Never add a gated section empty.** Where the rules gate a column on a section existing, an empty one defeats the gate. Report it instead
 - **Never write a heading the tracker's template does not have.** Where `task.template` names one, its headings are the set and its order is the order. A section invented here is one no later run will revisit
 - **Never resolve a template-against-config disagreement by writing both.** A configured section name absent from the template means one of the two is stale — name both and stop. Two sections holding the same thing is the failure this rule exists for
 - **Never create a label to satisfy a rule.** A label the rule document requires but the tracker does not have is reported. Creating one puts a near-duplicate beside somebody's existing filter

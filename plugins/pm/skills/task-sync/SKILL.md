@@ -90,7 +90,7 @@ It prints the file to read — the bundled one, or yours from `adapters.dirs` wh
 | Record deleted | Ticket exists, record gone | Ask. Work may be in progress, so never auto-close |
 | Field mismatch | The owning side disagrees with the other | Correct toward `task.field_owner` |
 | Policy | Milestone on the wrong level, or a label the rules require that the ticket does not carry | Correct per `task.hierarchy`, and per the rule document where one is configured. **A label the tracker does not have is reported, never created** |
-| Off template | The ticket's headings are not the template's — a section missing, a section the template never had, a different order | **Report, propose nothing.** Name the ticket and the difference and stop there. What is under those headings is somebody's writing, and a survey run across a whole list is the worst possible place to edit it |
+| Off template | The ticket's headings are not the template's — a section missing, a section the template never had, a different order | **Report, and name the way out.** `/pm:task-publish` fixes one ticket with a person watching. This skill does not, because the same edit across a list would rewrite a hundred tickets on one approval |
 | Held by the rules | The tracker's enforcement has flagged the ticket — a violation, a decision it is waiting on | **Report, propose nothing.** It is waiting on a person, and that person is usually not the one running this |
 
 ### 3–4. Propose → approve, in two tiers
@@ -110,7 +110,7 @@ Run the approved changes and nothing else.
 
 This skill writes only a minimal ticket body and **does not add a link back to the record** — that is `/pm:task-publish`'s job, done with a person in the loop. Where such a link is already in the body, leave it: it is not used for matching and it is not removed either.
 
-**An off-template finding is never applied**, whatever was approved elsewhere in the run. It is in the table so that a drift nothing else can see gets seen — a list of tickets and what each is missing, which a person then works through, one ticket at a time, with `/pm:task-publish` or by hand. Turning that list into a batch of body edits is how a hundred tickets get rewritten on one "go".
+**An off-template finding is never applied here**, whatever was approved elsewhere in the run. It is in the table so that a drift nothing else can see gets seen. The list is what a person works through afterwards, one ticket at a time, with `/pm:task-publish` — which offers exactly this edit, with its own preview, its own "go", and a question for every piece of content that has to move. Turning the same list into a batch is how a hundred tickets get rewritten on one approval, and the difference between the two is the person who is watching.
 
 **The contract is left empty here**, whichever level `task.contract.level` names. Done conditions and a QA checklist are drafted from the spec and the design with somebody watching, which is the opposite of what a bulk reconciliation is for — a plausible condition nobody agreed to gets built. `task.contract.allow_tbd` does not gate this path: closing the gap between two lists is this skill's job, writing the contract is not. Report every ticket created here as still needing `/pm:task-publish`, so an empty contract is visible rather than assumed filled.
 
@@ -133,6 +133,6 @@ The coverage line comes first on purpose. A count with no coverage reads as "eve
 - **Never recreate a terminal pair.** That is the resurrection this design exists to stop
 - **Never close a parent where closing is gated on somebody's sign-off.** Name who can, and stop there
 - **Never read an automated close as a cancelled task.** Ask, and say which rule closed it
-- **Never rewrite a ticket's body to match a template.** The difference is reported and a person decides. This skill sees the drift precisely because nothing else does, and that is a reason to be careful with it, not licence
+- **Never rewrite a ticket's body to match a template.** The difference is reported and the person is pointed at `/pm:task-publish`, which does it one ticket at a time. This skill sees the drift precisely because nothing else does, and that is a reason to be careful with it, not licence
 - **Never invent a mapping.** An unmapped project, priority or assignee is skipped and reported
 - **Never state coverage you did not have.** Where the read was best-effort, the result says so
