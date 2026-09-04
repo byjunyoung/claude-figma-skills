@@ -1,5 +1,8 @@
 # fig
 
+## 3.16.0 — 2026-09-04
+- Layers still carrying `Frame 427` are reported, as a **warning**. The check was worth having before it was worth running: it is a regular expression over the names Figma assigns itself, so it cannot produce a false positive, and a page whose count is zero today is not a page that stays there. Layers **inside a component instance are excluded** — the name came from the library that made the component, no rename on this page can reach it, and reporting it here would put a number in front of the one person who cannot act on it. That the grade exists at all is why this could be added: on the old all-or-nothing verdict, one lazily named group would have withheld a whole section from engineering
+
 ## 3.15.0 — 2026-09-04
 - **A gate that stops everything stops being a gate.** `lint` reported a passing page and a failing one, nothing between, so a section whose number disagreed with its place on the canvas was withheld from engineering on the same footing as one whose variants sit invisibly on top of each other — and `handoff` is written to refuse "hand it over now and fix it later", which left fixing the numbering or going around the gate. Every violation now comes back **blocking** or **warning**, read off the tag the script already emits rather than judged a second time, and `handoff` gates on blocking alone. Warnings travel with the section instead of holding it: they show in the choice table and in the report, so nobody hands over unaware. Nothing about what is audited changed, and a skill that has just written still needs the full `PASS` — the person who would fix the warning is standing right there
 

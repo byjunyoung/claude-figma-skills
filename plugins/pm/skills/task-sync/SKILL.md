@@ -1,6 +1,6 @@
 ---
 name: task-sync
-description: Reconciles a planning-side task list against the engineering tracker it mirrors. Reads both, diagnoses the ways they have drifted apart — unfiled, duplicated, wrong parent, broken link, resurrected, field mismatch — and then proposes, waits for approval, and only then writes. Nothing is written automatically. Where the read cannot be exhaustive it says so in the coverage line rather than implying it saw everything. Filing or updating one task belongs to /pm:task-publish. Triggers - "/pm:task-sync", "reconcile the tasks", "sync notion and github", "일감 동기화해줘", "노션 깃헙 맞춰줘", "정합화 돌려줘".
+description: Reconciles a planning-side task list against the engineering tracker it mirrors. Reads both, diagnoses the ways they have drifted apart — unfiled, duplicated, wrong parent, broken link, resurrected, field mismatch, off the tracker's own template — and then proposes, waits for approval, and only then writes. Nothing is written automatically. Where the read cannot be exhaustive it says so in the coverage line rather than implying it saw everything. Filing or updating one task belongs to /pm:task-publish. Triggers - "/pm:task-sync", "reconcile the tasks", "sync notion and github", "일감 동기화해줘", "노션 깃헙 맞춰줘", "정합화 돌려줘".
 allowed-tools: AskUserQuestion, Bash, Agent, mcp__claude_ai_Notion__notion-fetch, mcp__claude_ai_Notion__notion-search, mcp__claude_ai_Notion__notion-query-data-sources, mcp__claude_ai_Notion__notion-update-page, mcp__plugin_github_github__issue_read, mcp__plugin_github_github__issue_write, mcp__plugin_github_github__sub_issue_write, mcp__plugin_github_github__list_issues, mcp__plugin_github_github__search_issues
 ---
 
@@ -29,6 +29,7 @@ With a mirror, `task.mirror.ref` belongs on that list too. A `null` named on std
 - **Closed means closed.** A closed ticket, whatever the reason, and an archived record, are both terminal. **A terminal pair is never recreated.** Archive rather than delete on the planning side, so the id survives.
 - **The backlog boundary** is whatever `task.status_map` maps the initial status onto. No milestone means backlog; a milestone arrives when work starts, at the level `task.hierarchy.milestone_on` names.
 - **Where `task.policy.doc` names a rule document, read it before the first write of the session.** It holds the tracker's own conventions, and where it disagrees with a default here or in the config, **it wins**. It is also what tells this skill which of the two rules below are live on this tracker. The mirror's adapter says how to fetch it; with the key null there is no such document.
+- **The tracker's own template is what a ticket's shape is judged against**, where `task.template` names one. Read it with the rule document, before the first write. A ticket filed before the template existed, or by hand, or by an older version of these skills, sits there with headings nobody will revisit — the contract writer leaves everything it does not own byte for byte, so no later run reaches them. **This skill is the only thing that looks.** It looks and it reports; the sections hold prose somebody wrote, and rewriting them from here would be the bulk edit this whole design refuses.
 - **Closing is not always this skill's to do.** Where the rules gate closing a parent on a person's sign-off — a comment, an approval, a named role — a close from here is reverted by whatever enforces them, and the reopen carries no record of why it was closed. Report it, say who can close it, and leave it open.
 - **A ticket the tracker's own automation closed is not a decision.** Rules that close a ticket for going stale, or for breaking a convention, say nothing about whether the work is still wanted. The rule document names how such a close is marked; those never drive a record to closed on their own.
 
@@ -88,7 +89,8 @@ It prints the file to read — the bundled one, or yours from `adapters.dirs` wh
 | Ahead of the mirror | Record terminal, ticket still open | **Report, propose nothing.** Where `field_owner.status` is `mirror`, this is what a finished spec waiting on engineering looks like — the normal state, not a drift. Only raise it when the ticket has been open long enough to look forgotten |
 | Record deleted | Ticket exists, record gone | Ask. Work may be in progress, so never auto-close |
 | Field mismatch | The owning side disagrees with the other | Correct toward `task.field_owner` |
-| Policy | Milestone on the wrong level, or missing where required | Correct per `task.hierarchy`, and per the rule document where one is configured |
+| Policy | Milestone on the wrong level, or a label the rules require that the ticket does not carry | Correct per `task.hierarchy`, and per the rule document where one is configured. **A label the tracker does not have is reported, never created** |
+| Off template | The ticket's headings are not the template's — a section missing, a section the template never had, a different order | **Report, propose nothing.** Name the ticket and the difference and stop there. What is under those headings is somebody's writing, and a survey run across a whole list is the worst possible place to edit it |
 | Held by the rules | The tracker's enforcement has flagged the ticket — a violation, a decision it is waiting on | **Report, propose nothing.** It is waiting on a person, and that person is usually not the one running this |
 
 ### 3–4. Propose → approve, in two tiers
@@ -108,6 +110,8 @@ Run the approved changes and nothing else.
 
 This skill writes only a minimal ticket body and **does not add a link back to the record** — that is `/pm:task-publish`'s job, done with a person in the loop. Where such a link is already in the body, leave it: it is not used for matching and it is not removed either.
 
+**An off-template finding is never applied**, whatever was approved elsewhere in the run. It is in the table so that a drift nothing else can see gets seen — a list of tickets and what each is missing, which a person then works through, one ticket at a time, with `/pm:task-publish` or by hand. Turning that list into a batch of body edits is how a hundred tickets get rewritten on one "go".
+
 **The contract is left empty here**, whichever level `task.contract.level` names. Done conditions and a QA checklist are drafted from the spec and the design with somebody watching, which is the opposite of what a bulk reconciliation is for — a plausible condition nobody agreed to gets built. `task.contract.allow_tbd` does not gate this path: closing the gap between two lists is this skill's job, writing the contract is not. Report every ticket created here as still needing `/pm:task-publish`, so an empty contract is visible rather than assumed filled.
 
 ### Result
@@ -117,6 +121,7 @@ This skill writes only a minimal ticket body and **does not add a link back to t
 read      : {how} · coverage: {N rows surfaced, exhaustive or not}
 created {n} · relinked {n} · resurrection blocked {n} · duplicates merged {n}
 field-synced {n} · skipped {n} · errors {n}
+reported only: off template {n} · held by the rules {n} · ahead of the mirror {n}
 ```
 
 The coverage line comes first on purpose. A count with no coverage reads as "everything is now consistent", which is the one claim this skill cannot make on a partial read.
@@ -128,5 +133,6 @@ The coverage line comes first on purpose. A count with no coverage reads as "eve
 - **Never recreate a terminal pair.** That is the resurrection this design exists to stop
 - **Never close a parent where closing is gated on somebody's sign-off.** Name who can, and stop there
 - **Never read an automated close as a cancelled task.** Ask, and say which rule closed it
+- **Never rewrite a ticket's body to match a template.** The difference is reported and a person decides. This skill sees the drift precisely because nothing else does, and that is a reason to be careful with it, not licence
 - **Never invent a mapping.** An unmapped project, priority or assignee is skipped and reported
 - **Never state coverage you did not have.** Where the read was best-effort, the result says so

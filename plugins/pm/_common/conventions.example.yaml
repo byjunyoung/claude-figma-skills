@@ -150,6 +150,26 @@ task:
   policy:
     doc: null                    # e.g. "https://github.com/{org}/{repo}/blob/main/docs/ticket-policy.md"
 
+  # --- The ticket skeleton the tracker already publishes --------------------------
+  # Most trackers let a team publish the shape a ticket is filed on, and everyone who
+  # files by hand gets it. A skill that writes headings of its own instead produces a
+  # ticket shaped unlike every neighbour, and the sections it invented are the ones
+  # nobody afterwards maintains. Name the template and its headings are the skeleton,
+  # read at run time — a template edited this morning is the one used this afternoon.
+  #
+  # This does not replace the section names further down. Those say which slot is
+  # which; the template says which sections exist and in what order. Where a name
+  # configured below is not in the template, one of the two has gone stale and the run
+  # says which rather than writing a second section beside the first — that silent
+  # doubling is the whole reason this key exists.
+  #
+  # A url is enough where the template is public; where it is not, the mirror's adapter
+  # says how to fetch it. Null means the tracker publishes none and the names below
+  # decide alone, which is what every run did before this key existed.
+  template:
+    task:   null                 # e.g. ".github/ISSUE_TEMPLATE/task.md", or its url
+    parent: null                 # the template for whatever hierarchy.parent_kind names
+
   # --- The context table written into a task record ------------------------------
   # Rename these to whatever your team actually asks. Order is the order written.
   context_rows: [Request source, Initial request, Background (AS-IS),

@@ -33,6 +33,10 @@ With `mirror.type` anything but `none`, `task.mirror.ref` belongs on that list t
 
 **Where `task.policy.doc` names a rule document, read it before the first write of the session.** It holds the tracker's own conventions — what may carry a version, who may close what, how a ticket with no parent is treated — and where it disagrees with a default in the config or in this file, **it wins**. Read it once and work from it for the rest of the session; read it again only where a write is refused, or where a ticket comes back changed by whatever enforces those rules. The mirror's adapter says how to fetch it. With the key null there is no such document and the config alone decides.
 
+**Where `task.template` names a ticket template, read it before assembling a body — `template.task` for a task, `template.parent` for whatever `hierarchy.parent_kind` calls its level.** It is the skeleton everyone filing by hand already gets, so it decides **which sections exist and in what order**; `task.ticket.sections` and `task.contract.sections` decide only which slot each of those headings is. Read it once per session, the same as the rule document. Fetch it the way the mirror's adapter says. Where the template is a form rather than a document, its field labels are its headings, in the order the form declares them.
+
+**Where a configured section name is not in the template, stop and name both.** One of the two has gone stale, and the run cannot tell which — the config may be behind a template somebody renamed, or the template may be a draft nobody adopted. What it must not do is write its own heading next to the template's: two sections then hold the same thing, the tracker's gates read one of them, and nothing about the ticket looks wrong. Where the template cannot be fetched at all, say so and fall back to the configured names — a ticket still has to get filed, and a fetch that failed is not a reason to hold up the work. With the key null the tracker publishes no template and the configured names decide alone.
+
 ## Inputs
 
 - `record` (required): the task record's url
@@ -205,7 +209,7 @@ duplicate of one that already exists.
 
 **A task with no parent is a real answer where the config allows it.** A one-off fix, a chore, a ticket somebody's merge opened by itself — none of those has a feature to hang under, and inventing a parent for them is what produces the empty umbrella ticket everything unrelated then collects under. Say what it costs at the same time: with `milestone_on: parent` a task with no parent cannot carry a version, so it is invisible to anything reading the milestone. Where the work does belong to a feature, the parent is still the right answer. With `parent_required` `true` the option is not offered — the tracker requires one.
 
-A newly created parent is titled by `task.hierarchy.parent_title` and carries whatever `task.mirror_extras` specifies for its type and board placement. Where the project uses milestones, the milestone is set **on the parent** — see step 8.
+A newly created parent is titled by `task.hierarchy.parent_title`, is built on `task.template.parent` where one is named, and carries whatever `task.mirror_extras` specifies for its type and board placement. **`task.ticket.default_labels` is the task level's and does not follow it up** — a parent carries the labels the rule document requires of its kind and no others, and where there is no rule document it carries none. A parent filed with a label nobody's rules asked for is worse than one filed bare: the label is what other people's filters and boards are built on. Where the project uses milestones, the milestone is set **on the parent** — see step 8.
 
 ### 5. Assemble the ticket body
 
@@ -232,9 +236,11 @@ A newly created parent is titled by `task.hierarchy.parent_title` and carries wh
 - End: {date, or "Not set"}
 ```
 
-Headings come from `task.ticket.sections`, written in the order that map is written; a slot set to `null` is dropped.
+**Where `task.template` names a template, that template is the skeleton** — its headings, in its order, including the ones no slot above maps onto. Fill the slots you can; leave every other section exactly as the template wrote it, placeholder text and all, and name those in the preview as left for a person. A template's placeholder is what tells whoever picks the ticket up that the section is theirs to fill, and deleting it hides the section instead of finishing it. **Write no heading the template does not have.** A section invented here outlives everything: the contract writer leaves what it does not own byte for byte, so an invented heading is never revisited by any later run, and the person who has to remove it is the one who did not put it there.
 
-**Take the names from the tracker's own template rather than choosing your own.** A ticket template is usually shared with everyone who files tickets, most of whom have nothing to do with this workflow, so renaming its sections to suit one process is a cost paid by people who get no benefit. What goes *inside* a section is yours to decide; what the section is called is not.
+With the key null there is no template, and headings come from `task.ticket.sections`, written in the order that map is written; a slot set to `null` is dropped.
+
+**Either way the names are the tracker's, never yours.** A ticket template is shared with everyone who files tickets, most of whom have nothing to do with this workflow, so renaming its sections to suit one process is a cost paid by people who get no benefit. What goes *inside* a section is yours to decide; what the section is called is not.
 
 **No pointer to the parent is written either.** Where the tracker links a task to its parent, the parent is already on the screen, and a line naming it only adds a second thing to keep correct. It is also where an in-house word for the two binding sections tends to get invented — the ticket is read by people who were not in the conversation that coined it. Link rows come from `task.ticket.link_rows`, and a row whose value is missing is dropped rather than written as an empty bullet.
 
@@ -334,9 +340,12 @@ The note goes in **as a quote, never as a checkbox.** A checkbox invites ticking
 Repo / board : {mirror.ref}
 Parent       : #{n} {title}
 Title        : {task.ticket.title, filled in}
-Labels       : {default_labels} + {project label} + {priority label}
+Labels       : {label} ({where it came from — config, or the rule that requires it})
+               required by the rules but not in the tracker: {label} — reported, not created
 Assignee     : {mapped username}
 Contract     : {level} → #{n} {title}   (or "this ticket", or "off")
+Template     : {task.template.task or .parent}   (or "none published")
+               left for a person: {section} — the template's own placeholder kept
 Drafted from : {spec entry} · {design, or "no design"}
 Coverage     : behaviour {n}/{n} · states {n}/{n} · rules {n}/{n} · round trip {n}
                covered elsewhere: {row} — {which line}
@@ -383,7 +392,11 @@ Where the tracker already gates on the sections existing — a column a ticket c
 
 Create it with the assembled title, body, labels and assignee.
 
-**At `contract.level: parent` the contract is a body edit on a ticket that already exists**, never a creation. Read the parent's current body, replace only the sections `contract.sections` names — the two binding ones, the requirements section where it is set, and the shared links section where `contract.sections.links` is set — and leave every other section of it byte for byte — a parent carries scenario, scope and links somebody else wrote, and this skill has no business rewriting them. Where the parent has no such sections yet, insert them where `contract.sections` orders them relative to what is already there, rather than appending to the end.
+**Labels have two sources and the preview names which.** `task.ticket.default_labels` plus the mapped project and priority are the config's. **A label the rule document requires is the other** — a kind of ticket that has to carry one, a level that does. Those are read off the document rather than listed here, because a list here is a copy of a rule that changes at a meeting the config was not in, and a copy that falls behind is invisible: the ticket comes out looking finished and drops out of the filter the rule exists to feed. **A required label the tracker does not have is reported, never created** — a label is somebody's filter and somebody's board column, and creating one from inside a ticket run is how a near-duplicate of an existing label starts collecting tickets.
+
+**At `contract.level: parent` the contract is a body edit on a ticket that already exists**, never a creation. Read the parent's current body, replace only the sections `contract.sections` names — the two binding ones, the requirements section where it is set, and the shared links section where `contract.sections.links` is set — and leave every other section of it byte for byte — a parent carries scenario, scope and links somebody else wrote, and this skill has no business rewriting them. Where the parent has no such sections yet, insert them **where `task.template.parent` puts them**, and where no template is named, where `contract.sections` orders them relative to what is already there, rather than appending to the end.
+
+**What this edit cannot reach is the rest of the ticket, and that is on purpose.** A parent filed before any of this — with headings somebody invented, or missing a label the rules now require — keeps them, because every section but the contract's belongs to whoever wrote it. Say so at the end rather than letting the run read as "the parent is now correct": `/pm:task-sync` is what surveys those, and a person decides.
 
 **A milestone is not set on the task** where `task.hierarchy.milestone_on` is `parent` — that level owns it.
 
@@ -457,6 +470,9 @@ Taken when the link property was already filled.
 - **Never name a milestone for a project whose naming somebody else owns.** No `milestone_format` entry means offering what is already open, and nothing more
 - **Never write the contract at two levels.** `task.contract.level` names one. A copy on the other side is the drift the whole design avoids
 - **Never rewrite a parent beyond its contract sections.** Read its body, replace those two, leave the rest untouched
+- **Never write a heading the tracker's template does not have.** Where `task.template` names one, its headings are the set and its order is the order. A section invented here is one no later run will revisit
+- **Never resolve a template-against-config disagreement by writing both.** A configured section name absent from the template means one of the two is stale — name both and stop. Two sections holding the same thing is the failure this rule exists for
+- **Never create a label to satisfy a rule.** A label the rule document requires but the tracker does not have is reported. Creating one puts a near-duplicate beside somebody's existing filter
 - **Never file an empty ticket that looks complete.** Filing before the requirement exists is allowed and sometimes necessary; doing it without the note, the label and the backlog seating is not
 - **Never draft a condition the materials do not support.** A plausible-sounding line nobody agreed to is worse than a short list, because it will be built
 - **Never let a thin draft pass as a finished one.** The coverage line in the preview names every row that produced nothing and why. A short list is fine when the work is short, and visibly wrong when it is not

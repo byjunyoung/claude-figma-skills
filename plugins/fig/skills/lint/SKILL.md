@@ -66,6 +66,7 @@ The layers merge bottom-up: bundled defaults → `~/.claude/figma-conventions.ya
 | Missing required state ✋ | Missing states per `[screen]` group against `naming.required_states` — **unless that state is managed on a common page and the screen's Default carries a reference annotation to it** (see fig:prep, "repeated common elements") | low |
 | Split state variants | Variants of one `[screen]` broken apart in a column by an unrelated frame wedged between parent and variant, so the `[state]` dashed line passes through it | medium |
 | **Variant stacking** | Variants of one component set whose bboxes intersect. A set with no auto-layout drops a new variant on the last one's coordinates, so several states render as a single component — nothing about it looks broken, the top variant draws fine and the rest are simply not visible | ★ high |
+| Default layer names | Layers inside a screen still carrying Figma's own `Frame 427` / `Group 12` name. **Layers inside a component instance are excluded** — they belong to the library that made the component, cannot be renamed on this page, and are fixed in that file instead | low |
 | Library sibling overlap | A set or component overlapping the one placed beside it in the same section. Frame overlap above looks at frames only, so a component page passes that check while its components bury each other — a set that gained a variant or a layout runs past the gap it was placed with | medium |
 
 ### B. Flow (arrows) — fig:arrows's territory
@@ -121,6 +122,7 @@ The grade is read off the tag the script already emits, so it is a lookup and no
 | `[default]` | blocking | The instance carries a library default this screen does not use, and it ships as an empty slot |
 | Missing required state ✋, **type settled** | blocking | A state nobody designed is a state engineering invents |
 | `[naming]` · `[order]` | warning | Reads correctly, filed untidily |
+| `[layer name]` | warning | Reads fine to whoever drew it, and to nobody else |
 | `[arrow]` · `[state]` geometry — edge offset, target gap, entry direction, elbows, name order | warning | The connection is right; the drawing is off |
 | `[label]` — z-order, clearance, covering a line | warning | Legibility, not meaning |
 | Missing required state ✋, **type unclear** | warning | Undecided is not the same as missing, and the report has to say which |

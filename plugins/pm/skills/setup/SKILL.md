@@ -195,6 +195,9 @@ Exit 3 means no adapter exists for that type, exit 4 that the one there answers 
 | Collaborators | `task.assignee_map` right-hand side |
 | A handful of existing tickets | `task.ticket.title` pattern, `task.hierarchy.parent_kind` and `parent_title` |
 | Milestones | `task.hierarchy.milestone_format`, `milestone_projects` |
+| Ticket templates the tracker publishes | `task.template.task` and `.parent` |
+
+**A template is found, not asked for.** Where the tracker publishes ticket templates, list them and match one to each level — the task's, and the parent kind's. Two candidates for a level is a question, not a guess. Where there are none, both keys stay `null` and the section names in the config decide alone, which is the ordinary answer for a tracker nobody has set a template on.
 
 **These queries are the reason this skill exists.** Board field ids and single-select option ids are not visible in any user interface, and a person configuring by hand simply cannot find them.
 
@@ -232,6 +235,7 @@ One at a time, most consequential first, each with a recommendation grounded in 
 - `hierarchy.milestone_on` — which level carries a version, if any
 - `hierarchy.milestone_projects` — which projects use them. Often only one does
 - `field_owner` — which side wins per field. **The default is deliberately small**; a field nobody claims is reported as a difference and left alone, which is safer than an arbitrary winner
+- `policy.doc` — is this tracker run by written rules of its own, and where do they live. **No schema answers this**, and it is the one setting that outranks everything else in the file: what may carry a version, who may close what, which labels a kind of ticket has to have. A team that has such a document usually knows exactly where it is; a team that does not says so in a word, and `null` is the honest answer
 - `context_rows` — the defaults, or what this team actually asks
 
 ### 6. Write the draft

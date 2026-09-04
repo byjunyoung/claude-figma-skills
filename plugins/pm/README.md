@@ -37,6 +37,8 @@ The detail stays in the record and the ticket links to it, so there is one place
 
 A ticket filed before its requirement exists says so, as a quote rather than a checkbox, and names what is missing.
 
+**The rest of the ticket is your tracker's shape, not this plugin's.** `task.template` names the ticket skeleton everyone else files on and `task.policy.doc` the rules the tracker is run by; both are read at run time and both outrank the config. The headings, their order and the labels the rules require come from there, so a ticket filed by these skills is not distinguishable from one filed by hand. Where a section name in the config is no longer in the template, the run names both and stops rather than adding a second section next to the first. A ticket already filed is out of reach — the contract writer leaves what it does not own byte for byte — so `/pm:task-sync` reports it and a person decides.
+
 ## Tools it has never seen
 
 How to work with one tool is written in one file, and the tool's name in your settings picks it. Notion, GitHub, markdown, Slack and Google Calendar come built in. Name anything else — Linear, Jira, Teams — and `/pm:setup` writes the support for it from the tools connected on your machine, into `pm-adapters/` next to your settings, marking what it could not verify. Until that file exists, the skills stop and say the tool is not supported yet, rather than guessing. What such a file has to cover is in [`trackers/README.md`](_common/trackers/README.md) and [`sources/README.md`](_common/sources/README.md).

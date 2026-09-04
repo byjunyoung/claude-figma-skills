@@ -149,4 +149,22 @@ for (const s of secs) {
     }
 }
 
+// ── Default layer names — layers still carrying Figma's auto-generated name ──
+// "Frame 427" tells the next person nothing. It is not wrong, it is unread — the file can only be
+// navigated by whoever drew it. Layers inside a component instance are the library's, not this
+// page's: they cannot be renamed here, so they are excluded and belong to the source library.
+const DEFAULT_NAME = /^(Frame|Group|Rectangle|Ellipse|Vector|Line|Polygon|Star|Slice|Component|Union|Subtract|Intersect|Exclude|Image|Arrow)( \d+)?$/;
+const inInstance = n => {
+  for (let a = n.parent; a && a.type !== "PAGE"; a = a.parent) if (a.type === "INSTANCE") return true;
+  return false;
+};
+for (const s of secs) {
+  if (skipSection(s)) continue;
+  for (const f of s.children.filter(isScreen)) {
+    const hits = f.findAll(n => DEFAULT_NAME.test(n.name) && !inInstance(n));
+    if (hits.length)
+      issues.push(`[layer name] ${s.name} / ${f.name}: ${hits.length} on Figma defaults (${hits.slice(0, 3).map(n => n.name).join(", ")}${hits.length > 3 ? ", \u2026" : ""})`);
+  }
+}
+
 return issues.length ? issues : "STRUCT PASS";
