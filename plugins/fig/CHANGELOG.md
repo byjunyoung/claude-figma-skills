@@ -1,5 +1,8 @@
 # fig
 
+## 3.15.0 — 2026-09-04
+- **A gate that stops everything stops being a gate.** `lint` reported a passing page and a failing one, nothing between, so a section whose number disagreed with its place on the canvas was withheld from engineering on the same footing as one whose variants sit invisibly on top of each other — and `handoff` is written to refuse "hand it over now and fix it later", which left fixing the numbering or going around the gate. Every violation now comes back **blocking** or **warning**, read off the tag the script already emits rather than judged a second time, and `handoff` gates on blocking alone. Warnings travel with the section instead of holding it: they show in the choice table and in the report, so nobody hands over unaware. Nothing about what is audited changed, and a skill that has just written still needs the full `PASS` — the person who would fix the warning is standing right there
+
 ## 3.14.0 — 2026-09-04
 - **A config shared across a team is a copy on every machine, and a copy has no way of knowing its own age.** `--origin` reports what the filesystem can answer — symlink, git work tree, how far behind, when it last fetched — and a `SessionStart` hook says so when a copy has fallen behind, staying silent when it has not. Nothing is declared and nothing has to be kept true by hand. `CLAUDE_SHARED_CONFIG` takes `off`, `fetch` (the default) or `pull`
 - `--authored` stops a skill that would write on a value no config of yours mentions. No `fig` skill asks for it yet — no key here changes what gets written when it is inherited — and the resolver carries it because the two plugins hold that file byte for byte

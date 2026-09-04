@@ -1,6 +1,6 @@
 ---
 name: lint
-description: Audits a Figma design page read-only — frame membership and bounds, section overlap, naming, arrow geometry and entry direction and pass-through, coverage orphans, [state] dashed links, variants stacked on one another inside a component set, and component default residue carried over by duplication. Reports violations and writes nothing. Rules come from figma-conventions.yaml and the audit code lives in one place under ${CLAUDE_PLUGIN_ROOT}/_common/scripts. It is the single gate that absorbs the checks fig:prep and fig:arrows would otherwise each carry, and it is called again right after those skills write. Triggers - "/fig:lint", "lint this page", "audit the design", "검증해줘", "규칙 위반 검사해줘", "피그마 검수", "화면 복제 후 검수".
+description: Audits a Figma design page read-only — frame membership and bounds, section overlap, naming, arrow geometry and entry direction and pass-through, coverage orphans, [state] dashed links, variants stacked on one another inside a component set, and component default residue carried over by duplication. Reports violations and writes nothing. Each one comes back graded blocking or warning, which is what decides whether a section can be handed to engineering. Rules come from figma-conventions.yaml and the audit code lives in one place under ${CLAUDE_PLUGIN_ROOT}/_common/scripts. It is the single gate that absorbs the checks fig:prep and fig:arrows would otherwise each carry, and it is called again right after those skills write. Triggers - "/fig:lint", "lint this page", "audit the design", "검증해줘", "규칙 위반 검사해줘", "피그마 검수", "화면 복제 후 검수".
 allowed-tools: AskUserQuestion, Bash, mcp__plugin_figma_figma__use_figma, mcp__plugin_figma_figma__get_metadata, mcp__plugin_figma_figma__get_screenshot, mcp__claude_ai_Notion__notion-fetch
 ---
 
@@ -92,16 +92,50 @@ The basis is not a written rule but **how the same file actually uses the compon
 
 **Missing required state**, marked `✋` above, is not done by the audit script. Not because it can't be, but because **it shouldn't be** — which states are required depends on whether the screen is a list, a form, or a search, and that call requires reading the screen's content. Faking it with a regex produces "if the name contains 'list' it's a list screen", which only adds false positives.
 
-So this item is **judged by the agent, in step 3.** Read the target screen as a screenshot, settle its type, compare against the matching list in `naming.required_states`, and write the missing states into the report separately. If the type is ambiguous, do not decide — record it as "type unclear".
+So this item is **judged by the agent, in step 3.** Read the target screen as a screenshot, settle its type, compare against the matching list in `naming.required_states`, and write the missing states into the report separately. If the type is ambiguous, do not decide — record it as "type unclear". **The grade turns on exactly that**: a settled type makes a missing state blocking, an unclear one makes it a warning.
 
 Keep **the script's violations and this judgement separate** in the report. They rest on different kinds of evidence.
+
+## Severity — what blocks a handoff
+
+Every violation carries one of two grades. **The grade never changes what is audited, only how it is reported** — every check still runs, and everything found is still listed.
+
+- **blocking** — engineering reading the file as it stands would build the wrong thing. A screen that cannot be seen, a coordinate that left its section, a connection that points somewhere it does not go, a slot switched on with nothing in it
+- **warning** — the file reads correctly and is merely untidy. Names, numbering, a few pixels of tolerance
+
+The grade is read off the tag the script already emits, so it is a lookup and not a second judgement.
+
+| In the output | Grade | Why |
+|---|---|---|
+| `[duplicate name]` | blocking | A name lookup catches only one of them, so nothing else in the run can be trusted — narrow and re-run before reading the rest |
+| `[membership]` | blocking | Not in a section. Handoff marks status on sections, so the screen is not in the handover at all |
+| `[bounds]` | blocking | The frame left its own section |
+| `[frame overlap]` | blocking | Screens cover each other — the one behind is invisible |
+| `[section overlap]` | blocking | Which section a frame belongs to becomes ambiguous |
+| `[variant stack]` | blocking | Variants sit on one another and only the top one renders |
+| `[library overlap]` | blocking | Components bury each other on a library page |
+| `[split state]` | blocking | An unrelated frame is wedged in, so the state chain runs through it |
+| `[arrow] … orphan` · `… passes through` | blocking | The source or target does not exist, or the line crosses an unrelated frame and reads as connecting to it |
+| `[state] … orphan` · `… passes through` | blocking | The same two, on a state chain |
+| `[coverage] orphan frame` | blocking | A screen nothing reaches — engineering cannot tell how the user gets there |
+| `[default]` | blocking | The instance carries a library default this screen does not use, and it ships as an empty slot |
+| Missing required state ✋, **type settled** | blocking | A state nobody designed is a state engineering invents |
+| `[naming]` · `[order]` | warning | Reads correctly, filed untidily |
+| `[arrow]` · `[state]` geometry — edge offset, target gap, entry direction, elbows, name order | warning | The connection is right; the drawing is off |
+| `[label]` — z-order, clearance, covering a line | warning | Legibility, not meaning |
+| Missing required state ✋, **type unclear** | warning | Undecided is not the same as missing, and the report has to say which |
+
+Three of these are close calls placed deliberately rather than obviously: `[section overlap]` (ambiguity, not invisibility), `[label] covers` (a label can be read against the wrong arrow), and `[arrow] arrowhead parallel` (the entry direction is wrong, the connection is not). If a file argues otherwise, move it and say so in the report.
+
+**Who reads which.** `/fig:handoff` gates on blocking alone — how a file is filed is not a reason to withhold work engineering can build. `/fig:prep` and `/fig:arrows` call this skill right after writing and still need a full `PASS`: the person who would fix the warning is the one standing there.
+
 
 ## Procedure
 
 1. **Settle the target page and resolve the config.** Take fileKey and page from the URL and get `CFG` via `resolve-config.py --js <fileKey>`. For several pages, split per page and **call in parallel** — one `setCurrentPageAsync` per script, per the figma-use rule.
 2. **Run the read-only audits** — the scripts below (A structure / B flow / C components) and collect violations. Zero node changes. C is two stages: derive conventions from a reference page (C-1), then compare against the working page (C-2). Different pages, so different calls.
 3. **Judge required states (✋) and do the second visual pass** — settle the screen type (list, form, search) from a screenshot and compare against `naming.required_states`. Then, if a violation is suspected or clone/move was involved, confirm with **a screenshot of the whole section node**, not an isolated frame. Isolated renders cannot catch parent or position errors, so they are never grounds for a PASS.
-4. **Report** — violating nodes by category, a one-line reason each, and **which skill fixes it** (structure → fig:prep, flow → fig:arrows). Zero violations is `PASS`.
+4. **Report** — violating nodes by category, a one-line reason each, its **grade** (see "Severity"), and **which skill fixes it** (structure → fig:prep, flow → fig:arrows). Blocking first, warnings beneath them, never interleaved. Close on a line of its own with both counts — `blocking: N · warning: N`. Zero of both is `PASS`. Zero blocking with warnings still open is `GATE PASS` — enough for /fig:handoff, not enough for fig:prep or fig:arrows.
 
 ## Running it
 
@@ -128,6 +162,7 @@ After editing a script, check its syntax with `scripts/lib/check.sh`. `use_figma
 ## Constraints
 
 - **Never substitute eye inspection for the component default check (C)** — empty icon slots and empty supplementary areas are invisible at zoomed-out scale. Always run C after building a screen by duplication, or after duplicating a field. Repairs go through fig:prep as a **"handle the first match, then re-query" while loop** — changing an instance property invalidates sibling handles
+- **Grading never narrows the audit** — every check runs and everything found is reported whatever its grade. The grade tells the reader what to do, and only /fig:handoff acts on it
 - **Zero writes** — `use_figma` is read-only (`return` only). Never create or change a node. Repairs go to fig:prep or fig:arrows behind their own go
 - **Never PASS on an isolated screenshot alone** — measured metadata is the first pass, a whole-section screenshot the second. A frame rendered by itself cannot show a parent or canvas-position error
 - Convention-dependent checks (naming and the like) are only decided when the config has a pattern. On `null`, skip the check; if it ran on bundled defaults, say so in the report

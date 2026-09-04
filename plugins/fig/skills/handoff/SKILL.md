@@ -60,8 +60,11 @@ With `handoff.dev_status` off — the default — steps 1 to 3 still run: the ga
 
 Call `/fig:lint` (via the Skill tool) on the page. **No audit lives here**; the verdict is lint's alone, and it is the only thing that makes a section a candidate.
 
-- A section that passes is a candidate
-- A section that fails is out, with lint's reasons beside its name. It is not offered, and if the person names it anyway, say why it cannot go and leave it out — "hand it over now and fix it later" is what the status is meant to prevent
+The gate reads **blocking only** (lint, "Severity"). A section is not held back by how it is filed — it is held back by what engineering would build wrong.
+
+- A section with zero blocking is a candidate, warnings and all
+- **Warnings never remove a candidate.** They ride along to step 3 and into the report, so the handover happens knowing what is still untidy
+- A section carrying any blocking is out, with those reasons beside its name. It is not offered, and if the person names it anyway, say why it cannot go and leave it out — "hand it over now and fix it later" is what the status is meant to prevent
 
 ### 2. What is already there (read-only)
 
@@ -75,7 +78,7 @@ For each candidate read `section.devStatus`:
 
 ### 3. Choose
 
-Show the candidates as a table — name, what lint said, current status — and ask which go: all, or some. One question. Sections that failed the gate appear below the table with their reasons, so the person sees why they are not offered.
+Show the candidates as a table — name, warnings still open (`—` where none), current status — and ask which go: all, or some. One question. Sections held back by blocking appear below the table with those reasons, so the person sees why they are not offered.
 
 ### 4. Pin the version
 
@@ -148,7 +151,10 @@ Re-read `devStatus` on every section written. The status is not visible in a scr
 · 02. Account - Signup  Ready for dev (refreshed)                 https://…
 
 [not offered]
-· 03. Account - Recovery   lint: 2 frames outside any section · Recovery-Error missing
+· 03. Account - Recovery   blocking — 2 frames outside any section · Recovery-Error missing
+
+[handed over with warnings open]
+· 02. Account - Signup   warning — section number 02 disagrees with its place on canvas
 
 [version]    {label} · {date} · version-id {id}   (or "not pinned — handoff.version is off")
 [task doc]   {where the line went, or "no tracker configured"}
@@ -158,7 +164,7 @@ Re-read `devStatus` on every section written. The status is not visible in a scr
 ## Constraints
 
 - Writes are the status and the one doc line. Frames, sections, names and positions are never touched
-- A section that fails lint is never marked, whoever asks
+- A section carrying a lint **blocking** is never marked, whoever asks. A warning alone never withholds one
 - **Never hand over unpinned where `handoff.version.enabled`.** An unpinned handover reads as pinned to whoever gets it, and that is worse than stopping
 - Never save a version, rename one, or write a date that is not the version's own
 - Status goes on sections only
